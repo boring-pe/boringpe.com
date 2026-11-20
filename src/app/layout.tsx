@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Boring PE",
   description:
-    "Boring PE is a private enterprise. The Unconventional Business Building Framework covers BUILD, CO-BUILD, OWN and ENABLE. Powering the Business Stack.",
+    "Boring PE builds, co-builds, and owns sustainable, cash-flowing businesses. Powering the Business Stack.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
