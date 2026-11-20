@@ -1,45 +1,61 @@
-export const ROLES = ["superadmin", "admin", "partner", "operator", "founder", "lp"] as const;
+export const ROLES = ["super_admin", "admin", "partner", "operator", "founder", "lp"] as const;
 
 export type Role = (typeof ROLES)[number];
 
 export type SectionId =
+  | "console"
+  | "content"
   | "dashboard"
   | "portfolio"
   | "deals"
   | "vault"
   | "marrow"
-  | "access";
+  | "approvals"
+  | "access"
+  | "personal";
 
-export const SECTIONS: { id: SectionId; href: string; label: string }[] = [
-  { id: "dashboard", href: "/portal/dashboard", label: "Dashboard" },
-  { id: "portfolio", href: "/portal/portfolio", label: "Portfolio (SPVs)" },
-  { id: "deals", href: "/portal/deals", label: "Deal Pipeline" },
-  { id: "vault", href: "/portal/vault", label: "BIDU Vault" },
-  { id: "marrow", href: "/portal/marrow", label: "Impact Marrow" },
-  { id: "access", href: "/portal/access", label: "Access" },
+export type Group = "super" | "firm" | "personal";
+
+export const GROUPS: { id: Group; label: string }[] = [
+  { id: "super", label: "Super Admin" },
+  { id: "firm", label: "Boring PE" },
+  { id: "personal", label: "Rahul Mane · private" },
+];
+
+export const SECTIONS: { id: SectionId; href: string; label: string; group: Group }[] = [
+  { id: "console", href: "/portal/console", label: "Console", group: "super" },
+  { id: "content", href: "/portal/content", label: "Site content", group: "super" },
+  { id: "dashboard", href: "/portal/dashboard", label: "Dashboard", group: "firm" },
+  { id: "portfolio", href: "/portal/portfolio", label: "Portfolio (SPVs)", group: "firm" },
+  { id: "deals", href: "/portal/deals", label: "Deal Pipeline", group: "firm" },
+  { id: "vault", href: "/portal/vault", label: "BIDU Vault", group: "firm" },
+  { id: "marrow", href: "/portal/marrow", label: "Impact Marrow", group: "firm" },
+  { id: "approvals", href: "/portal/approvals", label: "Approvals", group: "firm" },
+  { id: "access", href: "/portal/access", label: "Access", group: "firm" },
+  { id: "personal", href: "/portal/personal", label: "Personal desk", group: "personal" },
 ];
 
 const GRANTS: Record<Role, SectionId[]> = {
-  superadmin: ["dashboard", "portfolio", "deals", "vault", "marrow", "access"],
-  admin: ["dashboard", "portfolio", "deals", "vault", "marrow", "access"],
-  partner: ["dashboard", "portfolio", "deals", "vault", "marrow"],
-  operator: ["dashboard", "portfolio", "vault", "marrow"],
+  super_admin: [
+    "console", "content", "dashboard", "portfolio", "deals", "vault", "marrow",
+    "approvals", "access", "personal",
+  ],
+  admin: ["dashboard", "portfolio", "deals", "vault", "marrow", "approvals", "access"],
+  partner: ["dashboard", "portfolio", "deals", "vault", "marrow", "approvals"],
+  operator: ["dashboard", "portfolio", "vault", "marrow", "approvals"],
   founder: ["dashboard", "marrow"],
   lp: ["dashboard", "portfolio"],
 };
 
-export const ROLE_META: Record<
-  Role,
-  { label: string; detail: string; initials: string }
-> = {
-  superadmin: {
+export const ROLE_META: Record<Role, { label: string; detail: string; initials: string }> = {
+  super_admin: {
     label: "Super Admin",
-    detail: "Current portal account. Full control, including who may assume a role.",
-    initials: "RM",
+    detail: "The owner. Sees and runs everything, approves requests and keeps a private desk.",
+    initials: "SA",
   },
   admin: {
     label: "Admin",
-    detail: "Opens every desk, including Access. Cannot change the Super Admin seat.",
+    detail: "Runs Boring PE access day to day. Cannot touch other admins or the Super Admin.",
     initials: "AD",
   },
   partner: {
@@ -64,17 +80,24 @@ export const ROLE_META: Record<
   },
 };
 
-export const MEMBERS: { name: string; email: string; role: Role; scope: string }[] = [
-  { name: "Rahul Mane", email: "business@boringpe.com", role: "superadmin", scope: "Firm" },
-  { name: "Partner Desk", email: "partners@boringpe.com", role: "partner", scope: "Firm" },
-  { name: "Desk Operator", email: "ops@boringpe.com", role: "operator", scope: "Firm" },
-  { name: "Portfolio Founder", email: "founder@spv.boringpe.com", role: "founder", scope: "Own SPV" },
-  { name: "Limited Partner", email: "lp@boringpe.com", role: "lp", scope: "Portfolio" },
-];
+const ADMIN_MAY_MANAGE: readonly Role[] = ["partner", "operator", "founder", "lp"];
 
-export function parseRole(value: string | undefined | null): Role {
-  if (value && (ROLES as readonly string[]).includes(value)) return value as Role;
-  return "superadmin";
+/** Roles this actor may hand out. Only the Super Admin can create admins or other super admins. */
+export function assignableRoles(actor: Role): Role[] {
+  if (actor === "super_admin") return [...ROLES];
+  if (actor === "admin") return [...ADMIN_MAY_MANAGE];
+  return [];
+}
+
+/** Whether this actor may change, switch off or reset someone who currently holds `target`. */
+export function canManageRole(actor: Role, target: Role): boolean {
+  if (actor === "super_admin") return true;
+  if (actor === "admin") return ADMIN_MAY_MANAGE.includes(target);
+  return false;
+}
+
+export function isRole(value: unknown): value is Role {
+  return typeof value === "string" && (ROLES as readonly string[]).includes(value);
 }
 
 export function can(role: Role, section: SectionId) {
@@ -83,13 +106,6 @@ export function can(role: Role, section: SectionId) {
 
 export function allowedSections(role: Role) {
   return SECTIONS.filter((section) => can(role, section.id));
-}
-
-export function sectionFromPath(pathname: string): SectionId | null {
-  const match = SECTIONS.find(
-    (section) => pathname === section.href || pathname.startsWith(`${section.href}/`)
-  );
-  return match?.id ?? null;
 }
 
 export function firstAllowedHref(role: Role) {

@@ -1,7 +1,12 @@
 import React from 'react';
-import { Building2, Brain, HeartHandshake, Monitor, ArrowRight, ShieldCheck, TrendingUp, Users } from 'lucide-react';
+import { getSiteContent } from '@/lib/content';
+import { Building2, Brain, HeartHandshake, ArrowRight, ShieldCheck, TrendingUp, Users } from 'lucide-react';
 
-export default function Home() {
+// Wording is editable from the portal (Super Admin > Site content); changes show within a minute.
+export const revalidate = 60;
+
+export default async function Home() {
+  const c = await getSiteContent('boringpe');
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 font-sans selection:bg-blue-900 selection:text-white">
       
@@ -31,13 +36,13 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-400 text-xs font-medium mb-6">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            Now Accepting CO-BUILD Partnerships
+            {c.badge}
           </div>
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-tight">
-            Powering the <span className="text-blue-500">Business Stack.</span>
+            {c.headlineLead} <span className="text-blue-500">{c.headlineAccent}</span>
           </h1>
           <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Boring PE is a private enterprise that builds, co-builds, and owns sustainable, cash-flowing businesses. We combine institutional capital, operational discipline, and proprietary technology to transform essential industries into enduring enterprises.
+            {c.intro}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href="#framework" className="px-8 py-4 bg-white text-slate-950 font-semibold rounded-md hover:bg-slate-200 transition-colors w-full sm:w-auto">
@@ -91,35 +96,24 @@ export default function Home() {
       <section id="framework" className="py-24 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">The Unconventional Business Building Framework</h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">An integrated approach to business creation, collaboration, and ownership.</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{c.frameworkTitle}</h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">{c.frameworkIntro}</p>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Card 1 */}
-            <div className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
-              <Building2 className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
-              <h3 className="text-xl font-bold text-white mb-3">Business Studio</h3>
-              <p className="text-sm text-slate-400 leading-relaxed mb-4">The outward-facing engine. We BUILD independent ventures, CO-BUILD with partners, and OWN stable cash-flowing assets.</p>
-            </div>
-            {/* Card 2 */}
-            <div className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
-              <Brain className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
-              <h3 className="text-xl font-bold text-white mb-3">Business House</h3>
-              <p className="text-sm text-slate-400 leading-relaxed mb-4">The central intelligence. Our BMU and BIDU units provide institutional-grade finance, HR, legal, and strategic playbooks.</p>
-            </div>
-            {/* Card 3 */}
-            <div className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
-              <HeartHandshake className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
-              <h3 className="text-xl font-bold text-white mb-3">Impact Marrow</h3>
-              <p className="text-sm text-slate-400 leading-relaxed mb-4">We inject value. Through employee profit-sharing and community reinvestment, we build fierce loyalty and resilience.</p>
-            </div>
-            {/* Card 4 */}
-            <div className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
-              <Monitor className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
-              <h3 className="text-xl font-bold text-white mb-3">Boring Portal</h3>
-              <p className="text-sm text-slate-400 leading-relaxed mb-4">The digital spine. Our proprietary MIS/ERP platform centralizes data, automates reporting, and ensures scalable governance.</p>
-            </div>
+            {[
+              { n: '1', name: 'Build', body: c.buildBody, Icon: Building2 },
+              { n: '2', name: 'Own', body: c.ownBody, Icon: ShieldCheck },
+              { n: '3', name: 'Co-Build', body: c.coBuildBody, Icon: HeartHandshake },
+              { n: '4', name: 'Enable', body: c.enableBody, Icon: Brain },
+            ].map(({ n, name, body, Icon }) => (
+              <div key={name} className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
+                <Icon className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
+                <div className="text-xs font-semibold text-blue-400 mb-1">{n}</div>
+                <h3 className="text-xl font-bold text-white mb-3">{name}</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">{body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -127,15 +121,15 @@ export default function Home() {
       {/* --- FOR FOUNDERS --- */}
       <section id="founders" className="py-24 px-6 bg-blue-950/20 border-y border-slate-800">
         <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">You Built It. We Protect and Scale It.</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">{c.foundersTitle}</h2>
           <p className="text-slate-400 text-lg mb-12 max-w-3xl mx-auto">
-            A better alternative to traditional private equity or exhausting solo entrepreneurship. We respect your legacy, allow you to retain skin in the game, and plug your business into our institutional infrastructure on Day 1.
+            {c.foundersBody}
           </p>
           <a 
-            href="mailto:hello@boringpe.com" 
+            href={`mailto:${c.contactEmail}`} 
             className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition-all"
           >
-            Start a Confidential Conversation <ArrowRight className="w-5 h-5" />
+            {c.ctaLabel} <ArrowRight className="w-5 h-5" />
           </a>
         </div>
       </section>
@@ -149,7 +143,7 @@ export default function Home() {
               <span className="text-lg font-bold text-white">BORING PE</span>
             </div>
             <p className="text-slate-500 text-sm max-w-sm mb-6">
-              A private enterprise that builds, co-builds, and owns sustainable businesses. Powering the Business Stack.
+              {c.footerTagline}
             </p>
             <p className="text-slate-600 text-xs">© {new Date().getFullYear()} Boring PE Venture. All Rights Reserved.</p>
           </div>
