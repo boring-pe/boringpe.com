@@ -1,4 +1,6 @@
-export default function MarrowPage() {
+import { requireSection } from "@/lib/dal";
+export default async function MarrowPage() {
+  await requireSection("marrow");
   return (
     <div>
       <h2 className="text-2xl font-bold text-white">Impact Marrow</h2>

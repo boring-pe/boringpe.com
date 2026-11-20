@@ -1,4 +1,6 @@
-export default function VaultPage() {
+import { requireSection } from "@/lib/dal";
+export default async function VaultPage() {
+  await requireSection("vault");
   return (
     <div>
       <h2 className="text-2xl font-bold text-white">BIDU Vault</h2>

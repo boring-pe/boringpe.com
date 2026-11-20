@@ -1,3 +1,4 @@
+import { requireSection } from "@/lib/dal";
 import React from 'react';
 import { 
   TrendingUp, DollarSign, Building2, Target, 
@@ -31,7 +32,8 @@ const StatCard = ({
   </div>
 );
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  await requireSection("dashboard");
   return (
     <div className="space-y-8">
       

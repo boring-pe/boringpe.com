@@ -1,4 +1,6 @@
-export default function PortfolioPage() {
+import { requireSection } from "@/lib/dal";
+export default async function PortfolioPage() {
+  await requireSection("portfolio");
   return (
     <div>
       <h2 className="text-2xl font-bold text-white">Portfolio (SPVs)</h2>

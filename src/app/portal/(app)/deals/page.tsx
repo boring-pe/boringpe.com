@@ -1,4 +1,6 @@
-export default function DealsPage() {
+import { requireSection } from "@/lib/dal";
+export default async function DealsPage() {
+  await requireSection("deals");
   return (
     <div>
       <h2 className="text-2xl font-bold text-white">Deal Pipeline</h2>

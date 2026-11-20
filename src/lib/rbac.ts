@@ -33,7 +33,7 @@ export const ROLE_META: Record<
 > = {
   admin: {
     label: "Admin",
-    detail: "Firm control. Assigns roles and opens every desk.",
+    detail: "Firm control. Invites people, assigns roles and opens every desk.",
     initials: "AD",
   },
   partner: {
@@ -58,17 +58,8 @@ export const ROLE_META: Record<
   },
 };
 
-export const MEMBERS: { name: string; email: string; role: Role; scope: string }[] = [
-  { name: "Boring PE LLP", email: "business@boringpe.com", role: "admin", scope: "Firm" },
-  { name: "Partner Desk", email: "partners@boringpe.com", role: "partner", scope: "Firm" },
-  { name: "Desk Operator", email: "ops@boringpe.com", role: "operator", scope: "Firm" },
-  { name: "Portfolio Founder", email: "founder@spv.boringpe.com", role: "founder", scope: "Own SPV" },
-  { name: "Limited Partner", email: "lp@boringpe.com", role: "lp", scope: "Portfolio" },
-];
-
-export function parseRole(value: string | undefined | null): Role {
-  if (value && (ROLES as readonly string[]).includes(value)) return value as Role;
-  return "admin";
+export function isRole(value: unknown): value is Role {
+  return typeof value === "string" && (ROLES as readonly string[]).includes(value);
 }
 
 export function can(role: Role, section: SectionId) {
@@ -77,13 +68,6 @@ export function can(role: Role, section: SectionId) {
 
 export function allowedSections(role: Role) {
   return SECTIONS.filter((section) => can(role, section.id));
-}
-
-export function sectionFromPath(pathname: string): SectionId | null {
-  const match = SECTIONS.find(
-    (section) => pathname === section.href || pathname.startsWith(`${section.href}/`)
-  );
-  return match?.id ?? null;
 }
 
 export function firstAllowedHref(role: Role) {
