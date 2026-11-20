@@ -1,4 +1,4 @@
-export const ROLES = ["admin", "partner", "operator", "founder", "lp"] as const;
+export const ROLES = ["superadmin", "admin", "partner", "operator", "founder", "lp"] as const;
 
 export type Role = (typeof ROLES)[number];
 
@@ -20,6 +20,7 @@ export const SECTIONS: { id: SectionId; href: string; label: string }[] = [
 ];
 
 const GRANTS: Record<Role, SectionId[]> = {
+  superadmin: ["dashboard", "portfolio", "deals", "vault", "marrow", "access"],
   admin: ["dashboard", "portfolio", "deals", "vault", "marrow", "access"],
   partner: ["dashboard", "portfolio", "deals", "vault", "marrow"],
   operator: ["dashboard", "portfolio", "vault", "marrow"],
@@ -31,9 +32,14 @@ export const ROLE_META: Record<
   Role,
   { label: string; detail: string; initials: string }
 > = {
+  superadmin: {
+    label: "Super Admin",
+    detail: "Current portal account. Full control, including who may assume a role.",
+    initials: "SA",
+  },
   admin: {
     label: "Admin",
-    detail: "Firm control. Assigns roles and opens every desk.",
+    detail: "Opens every desk, including Access. Cannot change the Super Admin seat.",
     initials: "AD",
   },
   partner: {
@@ -59,7 +65,7 @@ export const ROLE_META: Record<
 };
 
 export const MEMBERS: { name: string; email: string; role: Role; scope: string }[] = [
-  { name: "Boring PE LLP", email: "business@boringpe.com", role: "admin", scope: "Firm" },
+  { name: "Boring PE LLP", email: "business@boringpe.com", role: "superadmin", scope: "Firm" },
   { name: "Partner Desk", email: "partners@boringpe.com", role: "partner", scope: "Firm" },
   { name: "Desk Operator", email: "ops@boringpe.com", role: "operator", scope: "Firm" },
   { name: "Portfolio Founder", email: "founder@spv.boringpe.com", role: "founder", scope: "Own SPV" },
@@ -68,7 +74,7 @@ export const MEMBERS: { name: string; email: string; role: Role; scope: string }
 
 export function parseRole(value: string | undefined | null): Role {
   if (value && (ROLES as readonly string[]).includes(value)) return value as Role;
-  return "admin";
+  return "superadmin";
 }
 
 export function can(role: Role, section: SectionId) {

@@ -13,7 +13,7 @@ import {
 
 export default async function AccessPage() {
   const jar = await cookies();
-  const role = parseRole(jar.get("bp_role")?.value);
+  const role = parseRole(jar.get("bp_preview")?.value);
 
   return (
     <div className="space-y-8">
@@ -25,7 +25,7 @@ export default async function AccessPage() {
           </div>
           <h2 className="mt-2 text-2xl font-bold text-white">Access Control</h2>
           <p className="mt-2 text-sm text-slate-400 max-w-2xl">
-            Each desk opens only the sections granted to its role. The admin seat can assume another role to confirm the gate.
+            Each desk opens only the sections granted to its role. Only the Super Admin account can assume another role.
           </p>
         </div>
         <div className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-right">
@@ -34,9 +34,9 @@ export default async function AccessPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {ROLES.map((item) => (
-          <RoleCard key={item} item={item} active={item === role} />
+          <RoleCard key={item} item={item} active={item === role} canAssume={role === "superadmin"} />
         ))}
       </div>
 
@@ -57,7 +57,7 @@ export default async function AccessPage() {
               </tr>
             </thead>
             <tbody>
-              {SECTIONS.filter((section) => section.id !== "access").map((section) => (
+              {SECTIONS.map((section) => (
                 <tr key={section.id} className="border-t border-slate-800/80">
                   <td className="px-6 py-3 text-white">{section.label}</td>
                   {ROLES.map((item) => (
@@ -73,16 +73,6 @@ export default async function AccessPage() {
                   ))}
                 </tr>
               ))}
-              <tr className="border-t border-slate-800/80">
-                <td className="px-6 py-3 text-white">Access control</td>
-                {ROLES.map((item) => (
-                  <td key={item} className="px-4 py-3">
-                    <span className={item === "admin" ? "text-blue-400" : "text-slate-600"}>
-                      {item === "admin" ? "Open" : "Closed"}
-                    </span>
-                  </td>
-                ))}
-              </tr>
             </tbody>
           </table>
         </div>
@@ -118,11 +108,19 @@ export default async function AccessPage() {
   );
 }
 
-function RoleCard({ item, active }: { item: Role; active: boolean }) {
+function RoleCard({
+  item,
+  active,
+  canAssume,
+}: {
+  item: Role;
+  active: boolean;
+  canAssume: boolean;
+}) {
   const meta = ROLE_META[item];
   return (
     <form
-      action={setPortalRole}
+      action={canAssume ? setPortalRole : undefined}
       className={`p-4 rounded-xl border ${
         active ? "bg-blue-500/10 border-blue-500/40" : "bg-slate-900 border-slate-800"
       }`}
@@ -130,12 +128,14 @@ function RoleCard({ item, active }: { item: Role; active: boolean }) {
       <input type="hidden" name="role" value={item} />
       <div className="text-sm font-semibold text-white">{meta.label}</div>
       <p className="mt-2 text-xs text-slate-400 min-h-12">{meta.detail}</p>
-      <button
-        type="submit"
-        className="mt-4 text-xs font-semibold text-blue-400 hover:text-blue-300"
-      >
-        {active ? "Current role" : "Assume role"}
-      </button>
+      {canAssume && (
+        <button
+          type="submit"
+          className="mt-4 text-xs font-semibold text-blue-400 hover:text-blue-300"
+        >
+          {active ? "Current role" : "Assume role"}
+        </button>
+      )}
     </form>
   );
 }

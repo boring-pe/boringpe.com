@@ -34,7 +34,7 @@ export default async function PortalLayout({
   children: React.ReactNode;
 }) {
   const jar = await cookies();
-  const role = parseRole(jar.get("bp_role")?.value);
+  const role = parseRole(jar.get("bp_preview")?.value);
   const meta = ROLE_META[role];
   const items = allowedSections(role);
 
@@ -75,11 +75,11 @@ export default async function PortalLayout({
               <div className="text-xs text-slate-500">{meta.label}</div>
             </div>
           </div>
-          {role !== "admin" && (
+          {role !== "superadmin" && (
             <form action={setPortalRole} className="px-3 pb-2">
-              <input type="hidden" name="role" value="admin" />
+              <input type="hidden" name="role" value="superadmin" />
               <button type="submit" className="text-xs font-semibold text-blue-400 hover:text-blue-300">
-                Return to Admin
+                Return to Super Admin
               </button>
             </form>
           )}
@@ -91,7 +91,7 @@ export default async function PortalLayout({
           <div>
             <h1 className="text-lg font-semibold text-white">Enterprise Command</h1>
             <p className="text-xs text-slate-500">
-              {role === "admin"
+              {role === "superadmin"
                 ? "Real-time portfolio intelligence"
                 : `Viewing as ${meta.label}`}
             </p>

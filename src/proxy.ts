@@ -15,7 +15,7 @@ export function proxy(request: NextRequest) {
   }
 
   if (effective.startsWith("/portal")) {
-    const role = parseRole(request.cookies.get("bp_role")?.value);
+    const role = parseRole(request.cookies.get("bp_preview")?.value);
     const section = sectionFromPath(effective);
     if (section && !can(role, section)) {
       return NextResponse.redirect(new URL(firstAllowedHref(role), request.url));
