@@ -68,7 +68,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             </button>
             <a href="https://boringpe.com" className="flex items-center gap-2 text-sm text-slate-400 hover:text-white">
               <LogOut className="w-4 h-4" /> Exit Portal
-            </Link>
+            </a>
           </div>
         </header>
 
