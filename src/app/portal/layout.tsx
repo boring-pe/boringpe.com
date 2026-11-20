@@ -71,7 +71,7 @@ export default async function PortalLayout({
               {meta.initials}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-white truncate">Boring PE LLP</div>
+              <div className="text-sm font-medium text-white truncate">Rahul Mane</div>
               <div className="text-xs text-slate-500">{meta.label}</div>
             </div>
           </div>

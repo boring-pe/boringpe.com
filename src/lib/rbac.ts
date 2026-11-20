@@ -35,7 +35,7 @@ export const ROLE_META: Record<
   superadmin: {
     label: "Super Admin",
     detail: "Current portal account. Full control, including who may assume a role.",
-    initials: "SA",
+    initials: "RM",
   },
   admin: {
     label: "Admin",
@@ -65,7 +65,7 @@ export const ROLE_META: Record<
 };
 
 export const MEMBERS: { name: string; email: string; role: Role; scope: string }[] = [
-  { name: "Boring PE LLP", email: "business@boringpe.com", role: "superadmin", scope: "Firm" },
+  { name: "Rahul Mane", email: "business@boringpe.com", role: "superadmin", scope: "Firm" },
   { name: "Partner Desk", email: "partners@boringpe.com", role: "partner", scope: "Firm" },
   { name: "Desk Operator", email: "ops@boringpe.com", role: "operator", scope: "Firm" },
   { name: "Portfolio Founder", email: "founder@spv.boringpe.com", role: "founder", scope: "Own SPV" },
