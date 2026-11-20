@@ -1,6 +1,6 @@
 import React from 'react';
 import { getSiteContent } from '@/lib/content';
-import { Building2, Brain, HeartHandshake, Monitor, ArrowRight, ShieldCheck, TrendingUp, Users } from 'lucide-react';
+import { Building2, Brain, HeartHandshake, ArrowRight, ShieldCheck, TrendingUp, Users } from 'lucide-react';
 
 // Wording is editable from the portal (Super Admin > Site content); changes show within a minute.
 export const revalidate = 60;
@@ -96,35 +96,24 @@ export default async function Home() {
       <section id="framework" className="py-24 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">The Unconventional Business Building Framework</h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">An integrated approach to business creation, collaboration, and ownership.</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{c.frameworkTitle}</h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">{c.frameworkIntro}</p>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Card 1 */}
-            <div className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
-              <Building2 className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
-              <h3 className="text-xl font-bold text-white mb-3">Business Studio</h3>
-              <p className="text-sm text-slate-400 leading-relaxed mb-4">The outward-facing engine. We BUILD independent ventures, CO-BUILD with partners, and OWN stable cash-flowing assets.</p>
-            </div>
-            {/* Card 2 */}
-            <div className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
-              <Brain className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
-              <h3 className="text-xl font-bold text-white mb-3">Business House</h3>
-              <p className="text-sm text-slate-400 leading-relaxed mb-4">The central intelligence. Our BMU and BIDU units provide institutional-grade finance, HR, legal, and strategic playbooks.</p>
-            </div>
-            {/* Card 3 */}
-            <div className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
-              <HeartHandshake className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
-              <h3 className="text-xl font-bold text-white mb-3">Impact Marrow</h3>
-              <p className="text-sm text-slate-400 leading-relaxed mb-4">We inject value. Through employee profit-sharing and community reinvestment, we build fierce loyalty and resilience.</p>
-            </div>
-            {/* Card 4 */}
-            <div className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
-              <Monitor className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
-              <h3 className="text-xl font-bold text-white mb-3">Boring Portal</h3>
-              <p className="text-sm text-slate-400 leading-relaxed mb-4">The digital spine. Our proprietary MIS/ERP platform centralizes data, automates reporting, and ensures scalable governance.</p>
-            </div>
+            {[
+              { n: '1', name: 'Build', body: c.buildBody, Icon: Building2 },
+              { n: '2', name: 'Own', body: c.ownBody, Icon: ShieldCheck },
+              { n: '3', name: 'Co-Build', body: c.coBuildBody, Icon: HeartHandshake },
+              { n: '4', name: 'Enable', body: c.enableBody, Icon: Brain },
+            ].map(({ n, name, body, Icon }) => (
+              <div key={name} className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
+                <Icon className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
+                <div className="text-xs font-semibold text-blue-400 mb-1">{n}</div>
+                <h3 className="text-xl font-bold text-white mb-3">{name}</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">{body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

@@ -31,6 +31,24 @@ export const SITES: Record<SiteId, { label: string; where: string; path: string;
         default:
           "Boring PE is a private enterprise that builds, co-builds, and owns sustainable, cash-flowing businesses. We combine institutional capital, operational discipline, and proprietary technology to transform essential industries into enduring enterprises.",
       },
+      { key: "frameworkTitle", label: "Framework title", max: 120, default: "The Unconventional Business Building Framework" },
+      {
+        key: "frameworkIntro",
+        label: "Framework intro",
+        max: 300,
+        multiline: true,
+        default: "Four ways we work: Build, Own, Co-Build and Enable.",
+      },
+      { key: "buildBody", label: "Pillar 1, Build", max: 300, multiline: true, default: "We build independent ventures." },
+      { key: "ownBody", label: "Pillar 2, Own", max: 300, multiline: true, default: "We own stable, cash-flowing assets." },
+      { key: "coBuildBody", label: "Pillar 3, Co-Build", max: 300, multiline: true, default: "We co-build with partners." },
+      {
+        key: "enableBody",
+        label: "Pillar 4, Enable",
+        max: 300,
+        multiline: true,
+        default: "We enable businesses with institutional-grade finance, HR, legal and strategic playbooks.",
+      },
       { key: "foundersTitle", label: "Founders section title", max: 120, default: "You Built It. We Protect and Scale It." },
       {
         key: "foundersBody",
