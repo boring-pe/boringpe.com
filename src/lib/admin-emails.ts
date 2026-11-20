@@ -1,6 +1,6 @@
-/** Emails that may always bootstrap an admin seat. Everyone else must be invited. */
-export function adminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? "")
+/** Emails that may always bootstrap the Super Admin seat. Everyone else must be invited. */
+export function superAdminEmails(): string[] {
+  return (process.env.SUPER_ADMIN_EMAILS ?? "")
     .split(",")
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);

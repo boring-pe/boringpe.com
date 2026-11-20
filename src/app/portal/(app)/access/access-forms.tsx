@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { ROLES, ROLE_META } from "@/lib/rbac";
+import { ROLE_META, type Role } from "@/lib/rbac";
 import { inviteUser, resetPassword, type AccessState } from "./actions";
 
 const input =
@@ -22,14 +22,14 @@ function Secret({ state }: { state: AccessState }) {
   );
 }
 
-export function InviteForm() {
+export function InviteForm({ roles }: { roles: Role[] }) {
   const [state, action, pending] = useActionState<AccessState, FormData>(inviteUser, null);
   return (
     <form action={action} className="grid gap-3 md:grid-cols-4">
       <input name="email" type="email" required placeholder="Email" maxLength={254} className={input} />
       <input name="name" placeholder="Name (optional)" maxLength={120} className={input} />
       <select name="role" defaultValue="lp" className={input}>
-        {ROLES.map((role) => (
+        {roles.map((role) => (
           <option key={role} value={role}>
             {ROLE_META[role].label}
           </option>

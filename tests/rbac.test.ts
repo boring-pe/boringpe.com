@@ -1,9 +1,29 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ROLES, SECTIONS, allowedSections, can, firstAllowedHref, isRole } from "../src/lib/rbac.ts";
+import {
+  GROUPS,
+  ROLES,
+  SECTIONS,
+  allowedSections,
+  assignableRoles,
+  can,
+  canManageRole,
+  firstAllowedHref,
+  isRole,
+} from "../src/lib/rbac.ts";
 
-test("only admins reach access control", () => {
-  for (const role of ROLES) assert.equal(can(role, "access"), role === "admin");
+test("only the Super Admin reaches the console, site content and the personal desk", () => {
+  for (const section of ["console", "content", "personal"] as const) {
+    for (const role of ROLES) assert.equal(can(role, section), role === "super_admin", `${role} ${section}`);
+  }
+});
+
+test("access control is for admins and the Super Admin only", () => {
+  for (const role of ROLES) assert.equal(can(role, "access"), role === "admin" || role === "super_admin");
+});
+
+test("the Super Admin can open every section", () => {
+  for (const section of SECTIONS) assert.equal(can("super_admin", section.id), true);
 });
 
 test("the deal pipeline is closed to operators, founders and LPs", () => {
@@ -11,21 +31,42 @@ test("the deal pipeline is closed to operators, founders and LPs", () => {
   for (const role of ["operator", "founder", "lp"] as const) assert.equal(can(role, "deals"), false);
 });
 
-test("every role can open at least the dashboard", () => {
-  for (const role of ROLES) {
-    assert.equal(can(role, "dashboard"), true);
+test("approvals are open to the Super Admin and operating roles, not founders or LPs", () => {
+  for (const role of ["super_admin", "admin", "partner", "operator"] as const) assert.equal(can(role, "approvals"), true);
+  for (const role of ["founder", "lp"] as const) assert.equal(can(role, "approvals"), false);
+});
+
+test("landing page per role", () => {
+  assert.equal(firstAllowedHref("super_admin"), "/portal/console");
+  for (const role of ROLES.filter((r) => r !== "super_admin")) {
     assert.equal(firstAllowedHref(role), "/portal/dashboard");
   }
 });
 
-test("allowedSections follows the grants and only lists real sections", () => {
-  const ids = SECTIONS.map((s) => s.id);
-  for (const role of ROLES) for (const s of allowedSections(role)) assert.ok(ids.includes(s.id));
+test("admins can hand out only the lower roles", () => {
+  assert.deepEqual(assignableRoles("admin"), ["partner", "operator", "founder", "lp"]);
+  assert.deepEqual(assignableRoles("super_admin"), [...ROLES]);
+  for (const role of ["partner", "operator", "founder", "lp"] as const) assert.deepEqual(assignableRoles(role), []);
+});
+
+test("admins cannot touch admins or the Super Admin; the Super Admin can touch anyone", () => {
+  assert.equal(canManageRole("admin", "admin"), false);
+  assert.equal(canManageRole("admin", "super_admin"), false);
+  assert.equal(canManageRole("admin", "lp"), true);
+  for (const role of ROLES) assert.equal(canManageRole("super_admin", role), true);
+  for (const actor of ["partner", "operator", "founder", "lp"] as const) {
+    for (const target of ROLES) assert.equal(canManageRole(actor, target), false);
+  }
+});
+
+test("every section belongs to a known group and allowedSections follows the grants", () => {
+  const groups = GROUPS.map((g) => g.id);
+  for (const section of SECTIONS) assert.ok(groups.includes(section.group));
   assert.deepEqual(allowedSections("lp").map((s) => s.id), ["dashboard", "portfolio"]);
 });
 
-test("unknown roles are rejected, never defaulted to admin", () => {
-  assert.equal(isRole("admin"), true);
+test("unknown roles are rejected, never defaulted to a powerful one", () => {
+  assert.equal(isRole("super_admin"), true);
   assert.equal(isRole("root"), false);
   assert.equal(isRole(undefined), false);
   assert.equal(isRole(null), false);

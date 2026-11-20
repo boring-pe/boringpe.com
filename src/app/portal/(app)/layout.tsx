@@ -10,9 +10,13 @@ import {
   ShieldCheck,
   UserCircle,
   LogOut,
+  Crown,
+  FileText,
+  ClipboardCheck,
+  Lock,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
-import { ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
+import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
 import { signOutAction } from "./sign-out";
 
 export const metadata: Metadata = {
@@ -21,6 +25,10 @@ export const metadata: Metadata = {
 };
 
 const ICONS: Record<SectionId, React.ElementType> = {
+  console: Crown,
+  content: FileText,
+  approvals: ClipboardCheck,
+  personal: Lock,
   dashboard: LayoutDashboard,
   portfolio: Building2,
   deals: Target,
@@ -49,14 +57,25 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-6 space-y-1">
-          {items.map((item) => {
-            const Icon = ICONS[item.id];
+        <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+          {GROUPS.map((group) => {
+            const inGroup = items.filter((item) => item.group === group.id);
+            if (inGroup.length === 0) return null;
             return (
-              <Link key={item.href} href={item.href} className={link}>
-                <Icon className="w-4 h-4" />
-                {item.label}
-              </Link>
+              <div key={group.id} className="space-y-1">
+                <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                  {group.label}
+                </div>
+                {inGroup.map((item) => {
+                  const Icon = ICONS[item.id];
+                  return (
+                    <Link key={item.href} href={item.href} className={link}>
+                      <Icon className="w-4 h-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>

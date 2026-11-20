@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { looksLikeEmail, normalizeEmail } from "@/lib/admin-emails";
-import { requireAdmin } from "@/lib/dal";
+import { requireAccessManager } from "@/lib/dal";
 import { generateTemporaryPassword, hashPassword } from "@/lib/password";
-import { isRole } from "@/lib/rbac";
+import { assignableRoles, canManageRole, isRole } from "@/lib/rbac";
 import {
   audit,
-  countActiveAdmins,
+  countActiveWithRole,
   createUser,
   getUserByEmail,
   getUserById,
@@ -25,7 +25,7 @@ function back(notice: string): never {
 }
 
 export async function inviteUser(_: AccessState, formData: FormData): Promise<AccessState> {
-  const admin = await requireAdmin();
+  const admin = await requireAccessManager();
   const email = normalizeEmail(formData.get("email"));
   const name = String(formData.get("name") ?? "").trim().slice(0, 120) || null;
   const role = formData.get("role");
@@ -33,6 +33,9 @@ export async function inviteUser(_: AccessState, formData: FormData): Promise<Ac
 
   if (!looksLikeEmail(email)) return { message: "Enter a valid email address." };
   if (!isRole(role)) return { message: "Choose a role." };
+  if (!assignableRoles(admin.role).includes(role)) {
+    return { message: "Only the Super Admin can create admins." };
+  }
   if (await getUserByEmail(email)) return { message: "That email already has a seat." };
 
   const tempPassword = withPassword ? generateTemporaryPassword() : undefined;
@@ -56,13 +59,20 @@ export async function inviteUser(_: AccessState, formData: FormData): Promise<Ac
 }
 
 export async function changeRole(formData: FormData) {
-  const admin = await requireAdmin();
+  const admin = await requireAccessManager();
   const target = await getUserById(String(formData.get("userId") ?? ""));
   const role = formData.get("role");
   if (!target || !isRole(role)) back("invalid");
   if (target.id === admin.id) back("self");
+  if (!canManageRole(admin.role, target.role) || !assignableRoles(admin.role).includes(role)) {
+    back("not-allowed");
+  }
   if (target.role === role) back("unchanged");
-  if (target.role === "admin" && target.status === "active" && (await countActiveAdmins()) <= 1) {
+  if (
+    target.role === "super_admin" &&
+    target.status === "active" &&
+    (await countActiveWithRole("super_admin")) <= 1
+  ) {
     back("last-admin");
   }
   await setRole(target.id, role);
@@ -77,16 +87,17 @@ export async function changeRole(formData: FormData) {
 }
 
 export async function toggleStatus(formData: FormData) {
-  const admin = await requireAdmin();
+  const admin = await requireAccessManager();
   const target = await getUserById(String(formData.get("userId") ?? ""));
   const to = formData.get("to");
   if (!target || (to !== "active" && to !== "disabled")) back("invalid");
   if (target.id === admin.id) back("self");
+  if (!canManageRole(admin.role, target.role)) back("not-allowed");
   if (
     to === "disabled" &&
-    target.role === "admin" &&
+    target.role === "super_admin" &&
     target.status === "active" &&
-    (await countActiveAdmins()) <= 1
+    (await countActiveWithRole("super_admin")) <= 1
   ) {
     back("last-admin");
   }
@@ -101,10 +112,11 @@ export async function toggleStatus(formData: FormData) {
 }
 
 export async function resetPassword(_: AccessState, formData: FormData): Promise<AccessState> {
-  const admin = await requireAdmin();
+  const admin = await requireAccessManager();
   const target = await getUserById(String(formData.get("userId") ?? ""));
   if (!target) return { message: "User not found." };
   if (target.id === admin.id) return { message: "Change your own password under Account." };
+  if (!canManageRole(admin.role, target.role)) return { message: "You cannot manage that seat." };
   const tempPassword = generateTemporaryPassword();
   await setPassword(target.id, await hashPassword(tempPassword), true);
   await audit({
@@ -118,10 +130,11 @@ export async function resetPassword(_: AccessState, formData: FormData): Promise
 }
 
 export async function signOutEverywhere(formData: FormData) {
-  const admin = await requireAdmin();
+  const admin = await requireAccessManager();
   const target = await getUserById(String(formData.get("userId") ?? ""));
   if (!target) back("invalid");
   if (target.id === admin.id) back("self");
+  if (!canManageRole(admin.role, target.role)) back("not-allowed");
   await revokeSessions(target.id);
   await audit({
     actorId: admin.id,

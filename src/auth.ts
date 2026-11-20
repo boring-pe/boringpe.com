@@ -4,7 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import LinkedIn from "next-auth/providers/linkedin";
 import Resend from "next-auth/providers/resend";
-import { adminEmails, looksLikeEmail, normalizeEmail } from "./lib/admin-emails";
+import { superAdminEmails, looksLikeEmail, normalizeEmail } from "./lib/admin-emails";
 import { inviteOnlyAdapter } from "./lib/auth-adapter";
 import { burnPasswordCheck, verifyPassword } from "./lib/password";
 import { providerFlags } from "./lib/providers";
@@ -18,14 +18,14 @@ import {
 
 /**
  * Decides whether an email may enter. Existing, active users may. A new address may only
- * if it is listed in ADMIN_EMAILS, which provisions that first admin seat. Disabled wins.
+ * if it is listed in SUPER_ADMIN_EMAILS, which provisions the Super Admin seat. Disabled wins.
  */
 async function mayEnter(email: string) {
   if (!looksLikeEmail(email)) return false;
   const user = await getUserByEmail(email);
   if (user) return user.status === "active";
-  if (adminEmails().includes(email)) {
-    await createUser({ email, name: null, role: "admin", createdBy: "bootstrap" });
+  if (superAdminEmails().includes(email)) {
+    await createUser({ email, name: null, role: "super_admin", createdBy: "bootstrap" });
     return true;
   }
   return false;
@@ -39,7 +39,7 @@ function verified(profile: unknown) {
 async function sendMagicLink({ identifier, url }: { identifier: string; url: string }) {
   // Do not reveal who is invited: uninvited addresses get the same screen but no email.
   const user = await getUserByEmail(normalizeEmail(identifier));
-  const allowed = user ? user.status === "active" : adminEmails().includes(normalizeEmail(identifier));
+  const allowed = user ? user.status === "active" : superAdminEmails().includes(normalizeEmail(identifier));
   if (!allowed) return;
 
   const response = await fetch("https://api.resend.com/emails", {

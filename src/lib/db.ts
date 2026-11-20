@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { adminEmails } from "./admin-emails";
+import { superAdminEmails } from "./admin-emails";
 import { hashPassword, MIN_PASSWORD_LENGTH } from "./password";
 
 export interface Sql {
@@ -70,12 +70,12 @@ async function connect(): Promise<Sql> {
 }
 
 /**
- * First admin seat. Creates the first ADMIN_EMAILS address with ADMIN_BOOTSTRAP_PASSWORD
+ * First Super Admin seat. Creates the first SUPER_ADMIN_EMAILS address with ADMIN_BOOTSTRAP_PASSWORD
  * if that user does not exist yet. It never resets an existing password, and the user
  * must choose a new one at first sign-in. Remove the variable once you are in.
  */
 async function bootstrapAdmin(sql: Sql) {
-  const email = adminEmails()[0];
+  const email = superAdminEmails()[0];
   const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
   if (!email || !password) return;
   if (password.length < MIN_PASSWORD_LENGTH) {
@@ -86,7 +86,7 @@ async function bootstrapAdmin(sql: Sql) {
   if (existing.length > 0) return;
   await sql`
     insert into users (email, name, role, status, password_hash, must_change_password, created_by)
-    values (${email}, ${"Admin"}, ${"admin"}, ${"active"}, ${await hashPassword(password)}, ${true}, ${"bootstrap"})
+    values (${email}, ${"Super Admin"}, ${"super_admin"}, ${"active"}, ${await hashPassword(password)}, ${true}, ${"bootstrap"})
     on conflict do nothing
   `;
 }

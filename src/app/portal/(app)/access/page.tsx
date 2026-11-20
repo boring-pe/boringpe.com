@@ -1,6 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import { requireSection } from "@/lib/dal";
-import { ROLES, ROLE_META, SECTIONS, can } from "@/lib/rbac";
+import { ROLES, ROLE_META, SECTIONS, assignableRoles, can, canManageRole } from "@/lib/rbac";
 import { listAudit, listUsers } from "@/lib/users";
 import { changeRole, signOutEverywhere, toggleStatus } from "./actions";
 import { InviteForm, ResetPasswordForm } from "./access-forms";
@@ -11,7 +11,8 @@ const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   enabled: { text: "Seat switched back on." },
   revoked: { text: "Their sessions were ended." },
   self: { text: "You cannot change your own seat here.", bad: true },
-  "last-admin": { text: "That would leave no active admin.", bad: true },
+  "last-admin": { text: "That would leave no active Super Admin.", bad: true },
+  "not-allowed": { text: "Only the Super Admin can change that seat.", bad: true },
   unchanged: { text: "Nothing changed.", bad: true },
   invalid: { text: "That request was not valid.", bad: true },
 };
@@ -32,6 +33,7 @@ export default async function AccessPage({
   const { notice } = await searchParams;
   const [users, events] = await Promise.all([listUsers(), listAudit(25)]);
   const banner = notice ? NOTICES[notice] : undefined;
+  const roles = assignableRoles(me.role);
 
   return (
     <div className="space-y-8">
@@ -62,7 +64,7 @@ export default async function AccessPage({
 
       <section className={`${card} p-6`}>
         <h3 className="text-sm font-semibold text-white mb-4">Invite someone</h3>
-        <InviteForm />
+        <InviteForm roles={roles} />
       </section>
 
       <section className={`${card} overflow-hidden`}>
@@ -83,6 +85,7 @@ export default async function AccessPage({
             <tbody>
               {users.map((user) => {
                 const self = user.id === me.id;
+                const manageable = !self && canManageRole(me.role, user.role);
                 return (
                   <tr key={user.id} className="border-t border-slate-800/80 align-top">
                     <td className="px-6 py-4">
@@ -92,7 +95,7 @@ export default async function AccessPage({
                       <div className="text-xs text-slate-500">{user.email}</div>
                     </td>
                     <td className="px-4 py-4">
-                      {self ? (
+                      {!manageable ? (
                         <span className="text-slate-300">{ROLE_META[user.role].label}</span>
                       ) : (
                         <form action={changeRole} className="flex items-center gap-2">
@@ -103,7 +106,7 @@ export default async function AccessPage({
                             aria-label={`Role for ${user.email}`}
                             className="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white"
                           >
-                            {ROLES.map((role) => (
+                            {roles.map((role) => (
                               <option key={role} value={role}>
                                 {ROLE_META[role].label}
                               </option>
@@ -125,8 +128,10 @@ export default async function AccessPage({
                     </td>
                     <td className="px-4 py-4 text-slate-400">{when(user.last_sign_in_at)}</td>
                     <td className="px-4 py-4">
-                      {self ? (
-                        <span className="text-xs text-slate-600">Use Account</span>
+                      {!manageable ? (
+                        <span className="text-xs text-slate-600">
+                          {self ? "Use Account" : "Super Admin only"}
+                        </span>
                       ) : (
                         <div className="space-y-2">
                           <form action={toggleStatus}>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const PORTAL_HOST = "portal.boringpe.com";
+const PERSONAL_HOSTS = ["rahulmane.com", "www.rahulmane.com"];
 
 /**
  * Routing plus an optimistic check only: "is there a session cookie at all?".
@@ -15,6 +16,13 @@ export function proxy(request: NextRequest) {
 
   // Auth.js endpoints live at /api/auth on every host.
   if (pathname.startsWith("/api/")) return NextResponse.next();
+
+  // rahulmane.com shows the personal site at its front door.
+  if (PERSONAL_HOSTS.includes(host) && pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/sites/rahulmane";
+    return NextResponse.rewrite(url);
+  }
 
   const effective =
     onPortalHost && !pathname.startsWith("/portal")

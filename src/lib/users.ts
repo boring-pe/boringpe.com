@@ -129,12 +129,20 @@ export async function recordSignIn(id: string) {
   );
 }
 
-export async function countActiveAdmins() {
+export async function countActiveWithRole(role: Role) {
   const sql = await getSql();
   const rows = await sql.query<{ n: number }>(
-    "select count(*)::int as n from users where role = 'admin' and status = 'active'",
+    "select count(*)::int as n from users where role = $1 and status = 'active'",
+    [role],
   );
   return Number(rows[0]?.n ?? 0);
+}
+
+export async function countSeats() {
+  const sql = await getSql();
+  return sql.query<{ role: Role; status: Status; n: number }>(
+    "select role, status, count(*)::int as n from users group by role, status",
+  );
 }
 
 export type AuditRow = {

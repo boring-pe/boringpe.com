@@ -32,9 +32,20 @@ export async function requireSection(section: SectionId): Promise<UserRow> {
   return user;
 }
 
-/** Use inside every server action that changes access. */
-export async function requireAdmin(): Promise<UserRow> {
+/** Admins and the Super Admin: may manage access, within the limits in rbac.ts. */
+export async function requireAccessManager(): Promise<UserRow> {
   const user = await requireUser();
-  if (user.role !== "admin" || user.must_change_password) redirect("/portal/dashboard");
+  if (user.must_change_password || !can(user.role, "access")) {
+    redirect(firstAllowedHref(user.role));
+  }
+  return user;
+}
+
+/** The owner only: console, site content, personal desk and approval decisions. */
+export async function requireSuperAdmin(): Promise<UserRow> {
+  const user = await requireUser();
+  if (user.must_change_password || user.role !== "super_admin") {
+    redirect(firstAllowedHref(user.role));
+  }
   return user;
 }
