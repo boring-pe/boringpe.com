@@ -1,0 +1,121 @@
+import { requireSection } from "@/lib/dal";
+import { listDeals, listMoney, listParties } from "@/lib/ops";
+import { CATEGORIES, categoryLabel, inr } from "@/lib/ops-fields";
+import { addEntry } from "./actions";
+
+const NOTICES: Record<string, { text: string; bad?: boolean }> = {
+  saved: { text: "Recorded." },
+  requested: { text: "Payment sent to the Super Admin. It counts once approved." },
+  invalid: { text: "That was not valid. Check the amount and category.", bad: true },
+  memo: { text: "Say what the payment is for.", bad: true },
+  "too-many": { text: "You already have 20 requests waiting.", bad: true },
+};
+const STATUS_STYLE: Record<string, string> = {
+  recorded: "text-green-400",
+  approved: "text-green-400",
+  awaiting_approval: "text-amber-400",
+  rejected: "text-red-400",
+  withdrawn: "text-slate-500",
+};
+const card = "bg-slate-900 border border-slate-800 rounded-xl";
+const input =
+  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none";
+
+export default async function MoneyPage({ searchParams }: { searchParams: Promise<{ notice?: string }> }) {
+  const user = await requireSection("money");
+  const { notice } = await searchParams;
+  const [entries, deals, parties] = await Promise.all([listMoney(), listDeals(), listParties()]);
+  const banner = notice ? NOTICES[notice] : undefined;
+  const owner = user.role === "super_admin";
+
+  const sum = (pred: (e: (typeof entries)[number]) => boolean) =>
+    entries.filter(pred).reduce((total, e) => total + Number(e.amount), 0);
+  const moneyIn = sum((e) => e.direction === "in" && e.status === "recorded");
+  const moneyOut = sum((e) => e.direction === "out" && e.status === "approved");
+  const waiting = sum((e) => e.status === "awaiting_approval");
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-white">Money</h2>
+        <p className="mt-2 text-sm text-slate-400 max-w-2xl">
+          Money in is recorded as it happens. Money out is a payment
+          {owner ? "; as Super Admin yours count immediately." : " and waits for the Super Admin before it counts."}
+        </p>
+      </div>
+
+      {banner ? (
+        <p role="status" className={`rounded-md border px-3 py-2 text-sm ${banner.bad ? "border-red-500/30 bg-red-500/10 text-red-300" : "border-blue-500/30 bg-blue-500/10 text-blue-200"}`}>
+          {banner.text}
+        </p>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {[
+          ["In", moneyIn],
+          ["Out (approved)", moneyOut],
+          ["Awaiting approval", waiting],
+        ].map(([label, value]) => (
+          <div key={label as string} className={`${card} p-5`}>
+            <div className="text-xs uppercase tracking-wide text-slate-500">{label as string}</div>
+            <div className="mt-1 text-xl font-semibold text-white">{inr(value as number)}</div>
+          </div>
+        ))}
+      </div>
+
+      <section className={`${card} p-6`}>
+        <h3 className="text-sm font-semibold text-white mb-4">Add an entry</h3>
+        <form action={addEntry} className="grid gap-3 md:grid-cols-4">
+          <select name="direction" defaultValue="in" className={input} aria-label="Direction">
+            <option value="in">Money in</option>
+            <option value="out">Payment out</option>
+          </select>
+          <select name="category" defaultValue="investment" className={input} aria-label="Category">
+            {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+          <input name="amount" required inputMode="decimal" placeholder="Amount in ₹" className={input} />
+          <input name="date" type="date" className={input} aria-label="Date" />
+          <input name="memo" maxLength={300} placeholder="What is it for?" className={`${input} md:col-span-2`} />
+          <select name="dealId" defaultValue="" className={input} aria-label="Deal">
+            <option value="">No deal</option>
+            {deals.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+          <select name="partyId" defaultValue="" className={input} aria-label="Party">
+            <option value="">No party</option>
+            {parties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <div className="md:col-span-4">
+            <button type="submit" className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+              Save
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className={`${card} overflow-hidden`}>
+        <div className="px-6 py-4 border-b border-slate-800">
+          <h3 className="text-sm font-semibold text-white">Entries ({entries.length})</h3>
+        </div>
+        {entries.length === 0 ? (
+          <p className="px-6 py-4 text-sm text-slate-500">Nothing recorded yet.</p>
+        ) : (
+          <ul className="divide-y divide-slate-800/80 text-sm">
+            {entries.map((e) => (
+              <li key={e.id} className="px-6 py-3 flex flex-wrap items-baseline gap-x-4 gap-y-1" data-entry={e.memo || e.id}>
+                <span className="text-xs text-slate-500">{e.entry_date}</span>
+                <span className={e.direction === "in" ? "text-green-400" : "text-slate-200"}>
+                  {e.direction === "in" ? "+" : "-"}{inr(e.amount)}
+                </span>
+                <span className="text-slate-300">{categoryLabel(e.category)}</span>
+                {e.memo ? <span className="text-slate-400">{e.memo}</span> : null}
+                {e.deal_name ? <span className="text-xs text-slate-500">{e.deal_name}</span> : null}
+                {e.party_name ? <span className="text-xs text-slate-500">{e.party_name}</span> : null}
+                <span className={`text-xs font-semibold ${STATUS_STYLE[e.status]}`}>{e.status.replace("_", " ")}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}

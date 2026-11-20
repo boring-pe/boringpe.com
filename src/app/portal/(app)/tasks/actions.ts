@@ -1,0 +1,45 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { requireSection } from "@/lib/dal";
+import { createTask, getDeal, listAssignees, setTaskDone } from "@/lib/ops";
+import { oneLine, parseDate } from "@/lib/ops-fields";
+import { can } from "@/lib/rbac";
+import { audit } from "@/lib/users";
+
+function back(notice: string): never {
+  redirect(`/portal/tasks?notice=${notice}`);
+}
+
+export async function addTask(formData: FormData) {
+  const user = await requireSection("tasks");
+  const title = oneLine(formData.get("title"), 200);
+  const dueRaw = String(formData.get("due") ?? "");
+  const due = dueRaw ? parseDate(dueRaw) : null;
+  if (title.length < 2 || (dueRaw && !due)) back("invalid");
+
+  // Linking to a deal is for people who can see deals; everyone else's link is ignored.
+  let dealId: string | null = null;
+  const dealRaw = String(formData.get("dealId") ?? "");
+  if (dealRaw && can(user.role, "deals")) {
+    if (!(await getDeal(dealRaw))) back("invalid");
+    dealId = dealRaw;
+  }
+  let assigneeId: string | null = null;
+  const assigneeRaw = String(formData.get("assigneeId") ?? "");
+  if (assigneeRaw) {
+    if (!(await listAssignees()).some((a) => a.id === assigneeRaw)) back("invalid");
+    assigneeId = assigneeRaw;
+  }
+  await createTask({ title, dealId, assigneeId, due, by: user.id });
+  await audit({ actorId: user.id, actorEmail: user.email, action: "task_added", detail: title });
+  back("added");
+}
+
+export async function toggleTask(formData: FormData) {
+  const user = await requireSection("tasks");
+  const done = formData.get("done") === "true";
+  if (!(await setTaskDone(String(formData.get("id") ?? ""), done))) back("invalid");
+  await audit({ actorId: user.id, actorEmail: user.email, action: done ? "task_done" : "task_reopened" });
+  back(done ? "done" : "reopened");
+}

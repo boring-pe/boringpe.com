@@ -67,10 +67,22 @@ npm run dev
 ```bash
 npm run typecheck
 npm run lint
-npm test                      # unit tests: passwords, roles
+npm test                      # unit tests: passwords, roles, operations
 # End to end (needs a production build running on :3100 with a clean database):
 npm run build && PGLITE_DIR=$(mktemp -d) AUTH_SECRET=test AUTH_URL=http://127.0.0.1:3100 \
   SUPER_ADMIN_EMAILS=admin@example.test ADMIN_BOOTSTRAP_PASSWORD="bootstrap passphrase 123" \
   npx next start -p 3100 &
 node tests/e2e.mjs
 ```
+
+## Operations
+
+Deals, money and tasks live under the Boring PE group. Every deal belongs to one of the four
+pillars (Build, Own, Co-Build, Enable). Rules, all enforced on the server:
+
+- Moving a deal to Closing or Closed, by anyone but the Super Admin, creates an approval and parks
+  the move; the stage changes only when the Super Admin approves. Only the Super Admin can move a
+  closed deal.
+- Money in is recorded as it happens. A payment out by anyone but the Super Admin waits for
+  approval and is not counted until then. Rejected and withdrawn payments never count.
+- Money and Deals are open to the Super Admin, Admin and Partner; Tasks also to Operators.

@@ -8,6 +8,8 @@ export type SectionId =
   | "dashboard"
   | "portfolio"
   | "deals"
+  | "money"
+  | "tasks"
   | "vault"
   | "marrow"
   | "approvals"
@@ -28,6 +30,8 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
   { id: "dashboard", href: "/portal/dashboard", label: "Dashboard", group: "firm" },
   { id: "portfolio", href: "/portal/portfolio", label: "Portfolio (SPVs)", group: "firm" },
   { id: "deals", href: "/portal/deals", label: "Deal Pipeline", group: "firm" },
+  { id: "money", href: "/portal/money", label: "Money", group: "firm" },
+  { id: "tasks", href: "/portal/tasks", label: "Tasks", group: "firm" },
   { id: "vault", href: "/portal/vault", label: "BIDU Vault", group: "firm" },
   { id: "marrow", href: "/portal/marrow", label: "Impact Marrow", group: "firm" },
   { id: "approvals", href: "/portal/approvals", label: "Approvals", group: "firm" },
@@ -37,12 +41,12 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
 
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
-    "console", "content", "dashboard", "portfolio", "deals", "vault", "marrow",
+    "console", "content", "dashboard", "portfolio", "deals", "money", "tasks", "vault", "marrow",
     "approvals", "access", "personal",
   ],
-  admin: ["dashboard", "portfolio", "deals", "vault", "marrow", "approvals", "access"],
-  partner: ["dashboard", "portfolio", "deals", "vault", "marrow", "approvals"],
-  operator: ["dashboard", "portfolio", "vault", "marrow", "approvals"],
+  admin: ["dashboard", "portfolio", "deals", "money", "tasks", "vault", "marrow", "approvals", "access"],
+  partner: ["dashboard", "portfolio", "deals", "money", "tasks", "vault", "marrow", "approvals"],
+  operator: ["dashboard", "portfolio", "tasks", "vault", "marrow", "approvals"],
   founder: ["dashboard", "marrow"],
   lp: ["dashboard", "portfolio"],
 };
