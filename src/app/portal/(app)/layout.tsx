@@ -14,6 +14,8 @@ import {
   FileText,
   ClipboardCheck,
   Lock,
+  Wallet,
+  ListChecks,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
@@ -32,6 +34,8 @@ const ICONS: Record<SectionId, React.ElementType> = {
   dashboard: LayoutDashboard,
   portfolio: Building2,
   deals: Target,
+  money: Wallet,
+  tasks: ListChecks,
   vault: FolderKanban,
   marrow: HeartHandshake,
   access: ShieldCheck,

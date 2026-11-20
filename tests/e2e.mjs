@@ -457,6 +457,155 @@ await step("the console reflects real activity: waiting requests, seats and the 
   assert.ok(/Seats by role/.test(text) && /System checks/.test(text));
 });
 
+// ---------------------------------------------------------------- Operations
+
+await step("Admin adds a party and a deal under a pillar and moves it freely up to Diligence", async () => {
+  await E.page.goto("/portal/deals");
+  await E.page.fill('input[name="name"] >> nth=1', "Acme Supplies");
+  await E.page.click('button:has-text("Add party")');
+  await E.page.waitForSelector("text=Party added.");
+  await E.page.fill('input[name="name"] >> nth=0', "Alpha");
+  await E.page.selectOption('select[name="pillar"]', "co_build");
+  await E.page.selectOption('select[name="partyId"]', { label: "Acme Supplies" });
+  await E.page.fill('input[name="value"]', "1,50,000");
+  await E.page.click('button:has-text("Add deal")');
+  await E.page.waitForSelector("text=Deal added.");
+  const row = E.page.locator('li[data-deal="Alpha"]');
+  assert.ok(/Co-Build/.test(await row.innerText()) && /1,50,000/.test(await row.innerText()));
+  await row.locator("select").selectOption("diligence");
+  await row.locator('button:has-text("Move")').click();
+  await E.page.waitForSelector("text=Stage updated.");
+  assert.ok(/Diligence/.test(await E.page.locator('li[data-deal="Alpha"]').innerText()));
+});
+
+await step("a non-owner moving a deal to Closing only asks; the owner's approval then moves it", async () => {
+  const row = E.page.locator('li[data-deal="Alpha"]');
+  await row.locator("select").selectOption("closing");
+  await row.locator('button:has-text("Move")').click();
+  await E.page.waitForSelector("text=Sent to the Super Admin");
+  const after = await E.page.locator('li[data-deal="Alpha"]').innerText();
+  assert.ok(/Diligence/.test(after) && /awaiting approval/.test(after), "still in Diligence, move parked");
+  await A.page.goto("/portal/approvals");
+  await A.page.locator('li[data-approval=\'Move "Alpha" to Closing\'] button:has-text("Approve")').click();
+  await A.page.waitForSelector("text=Approved.");
+  await E.page.goto("/portal/deals");
+  const done = await E.page.locator('li[data-deal="Alpha"]').innerText();
+  assert.ok(/Closing/.test(done) && !/awaiting approval/.test(done), "moved after approval");
+});
+
+await step("a rejected stage move leaves the deal where it was; a closed deal is the owner's to move", async () => {
+  let row = E.page.locator('li[data-deal="Alpha"]');
+  await row.locator("select").selectOption("closed");
+  await row.locator('button:has-text("Move")').click();
+  await E.page.waitForSelector("text=Sent to the Super Admin");
+  await A.page.goto("/portal/approvals");
+  await A.page.locator('li[data-approval=\'Move "Alpha" to Closed\'] button:has-text("Reject")').click();
+  await A.page.waitForSelector("text=Rejected.");
+  await E.page.goto("/portal/deals");
+  const text = await E.page.locator('li[data-deal="Alpha"]').innerText();
+  assert.ok(/Closing/.test(text) && !/awaiting approval/.test(text));
+  await A.page.goto("/portal/deals");
+  row = A.page.locator('li[data-deal="Alpha"]');
+  await row.locator("select").selectOption("closed");
+  await row.locator('button:has-text("Move")').click();
+  await A.page.waitForSelector("text=Stage updated.");
+  await E.page.goto("/portal/deals");
+  row = E.page.locator('li[data-deal="Alpha"]');
+  await row.locator("select").selectOption("sourcing");
+  await row.locator('button:has-text("Move")').click();
+  await E.page.waitForSelector("text=Only the Super Admin can move a closed deal.");
+});
+
+await step("money: bad amounts are refused, money in is recorded, a payment out waits for approval", async () => {
+  await E.page.goto("/portal/money");
+  await E.page.waitForLoadState("networkidle");
+  for (const bad of ["abc", "-5", "0"]) {
+    await E.page.fill('input[name="amount"]', bad);
+    await E.page.click('button:has-text("Save")');
+    await E.page.waitForSelector("text=That was not valid");
+  }
+  await E.page.fill('input[name="amount"]', "2,00,000");
+  await E.page.fill('input[name="memo"]', "Seed from Acme");
+  await E.page.click('button:has-text("Save")');
+  await E.page.waitForSelector("text=Recorded.");
+  await E.page.selectOption('select[name="direction"]', "out");
+  await E.page.selectOption('select[name="category"]', "expense");
+  await E.page.fill('input[name="amount"]', "25000");
+  await E.page.fill('input[name="memo"]', "Legal fees");
+  await E.page.click('button:has-text("Save")');
+  await E.page.waitForSelector("text=Payment sent to the Super Admin");
+  const text = await E.page.locator("main").innerText();
+  assert.ok(/awaiting approval/.test(text), "entry waits");
+  const cards = await E.page.locator("main .grid").first().innerText();
+  assert.ok(/2,00,000/.test(cards), "money in counted");
+  assert.ok(/Out \(approved\)\s*₹0\.00/i.test(cards.replace(/\n/g, " ")), "unapproved payment not counted");
+});
+
+await step("the owner approving a payment makes it count; rejecting one never does", async () => {
+  await E.page.selectOption('select[name="direction"]', "out");
+  await E.page.fill('input[name="amount"]', "9999");
+  await E.page.fill('input[name="memo"]', "Rejected spend");
+  await E.page.click('button:has-text("Save")');
+  await E.page.waitForSelector("text=Payment sent to the Super Admin");
+  await A.page.goto("/portal/approvals");
+  await A.page.locator('li[data-approval="Pay ₹25,000.00 (Expense)"] button:has-text("Approve")').click();
+  await A.page.waitForSelector("text=Approved.");
+  await A.page.locator('li[data-approval="Pay ₹9,999.00 (Investment)"] button:has-text("Reject")').click();
+  await A.page.waitForSelector("text=Rejected.");
+  await E.page.goto("/portal/money");
+  const cards = (await E.page.locator("main .grid").first().innerText()).replace(/\n/g, " ");
+  assert.ok(/Out \(approved\)\s*₹25,000\.00/i.test(cards), "only the approved payment counts");
+  const list = await E.page.locator("li[data-entry='Rejected spend']").innerText();
+  assert.ok(/rejected/.test(list));
+});
+
+await step("the owner's own payment counts at once, without asking anyone", async () => {
+  await A.page.goto("/portal/money");
+  await A.page.selectOption('select[name="direction"]', "out");
+  await A.page.fill('input[name="amount"]', "1000");
+  await A.page.fill('input[name="memo"]', "Owner paid");
+  await A.page.click('button:has-text("Save")');
+  await A.page.waitForSelector("text=Recorded.");
+  assert.ok(/approved/.test(await A.page.locator("li[data-entry='Owner paid']").innerText()));
+});
+
+await step("an LP cannot open Money, Tasks or Deals, nor replay the forms", async () => {
+  for (const path of ["/portal/money", "/portal/tasks", "/portal/deals"]) {
+    await B.page.goto(path);
+    assert.match(B.page.url(), /\/portal\/dashboard$/, path);
+  }
+  await E.page.goto("/portal/money");
+  const form = E.page.locator('form:has(input[name="amount"])');
+  const actionField = await form.locator('input[name^="$ACTION_ID_"]').first().getAttribute("name");
+  const anon = await browser.newContext({ baseURL: BASE });
+  for (const request of [B.page.request, anon.request]) {
+    await request.post("/portal/money", {
+      multipart: { [actionField]: "", direction: "out", category: "payout", amount: "777", memo: "LP replay", date: "2026-01-01" },
+      maxRedirects: 0,
+    });
+  }
+  await anon.close();
+  await A.page.goto("/portal/money");
+  assert.ok(!(await A.page.content()).includes("LP replay"), "no entry was created");
+});
+
+await step("tasks: add, see overdue, mark done; the dashboard now shows real figures", async () => {
+  await E.page.goto("/portal/tasks");
+  await E.page.fill('input[name="title"]', "Send term sheet");
+  await E.page.fill('input[name="due"]', "2020-01-01");
+  await E.page.selectOption('select[name="dealId"]', { label: "Alpha" });
+  await E.page.click('button:has-text("Add task")');
+  await E.page.waitForSelector("text=Task added.");
+  assert.ok(/overdue/.test(await E.page.locator('li[data-task="Send term sheet"]').innerText()));
+  await E.page.locator('li[data-task="Send term sheet"] button:has-text("Mark done")').click();
+  await E.page.waitForSelector("text=Marked done.");
+  assert.ok(await E.page.locator('li[data-task="Send term sheet"] .line-through').count());
+  await A.page.goto("/portal/dashboard");
+  const text = (await A.page.locator("main").innerText()).replace(/\n/g, " ");
+  assert.ok(/Deals\s*1/i.test(text) && /Money in\s*₹2,00,000/i.test(text) && /Paid out\s*₹26,000/i.test(text), text);
+  assert.ok(!/Nothing to report yet/.test(text));
+});
+
 await step("sign out clears the session", async () => {
   await A.page.click('button:has-text("Sign out")');
   await A.page.waitForURL(/\/portal\/login/);

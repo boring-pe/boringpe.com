@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createApproval, decideApproval, getApproval, withdrawApproval } from "@/lib/approvals";
 import { isApprovalKind } from "@/lib/approval-kinds";
 import { requireSection, requireSuperAdmin } from "@/lib/dal";
+import { applyDecision } from "@/lib/ops";
 import { audit } from "@/lib/users";
 
 function back(notice: string): never {
@@ -41,6 +42,7 @@ export async function withdrawRequest(formData: FormData) {
   const user = await requireSection("approvals");
   const row = await withdrawApproval(String(formData.get("id") ?? ""), user.id);
   if (!row) back("gone");
+  await applyDecision(row, "withdrawn");
   await audit({
     actorId: user.id,
     actorEmail: user.email,
@@ -58,6 +60,7 @@ export async function decide(formData: FormData) {
   const note = String(formData.get("note") ?? "").trim().slice(0, 500) || null;
   const row = await decideApproval({ id: existing.id, status, deciderEmail: owner.email, note });
   if (!row) back("gone");
+  await applyDecision(row, status);
   await audit({
     actorId: owner.id,
     actorEmail: owner.email,
