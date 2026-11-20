@@ -1,18 +1,28 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { firstAllowedHref, parseRole, sectionFromPath, can } from "@/lib/rbac";
 
 export function proxy(request: NextRequest) {
   const host = request.headers.get("host")?.split(":")[0] ?? "";
-  if (host !== "portal.boringpe.com") {
-    return NextResponse.next();
+  const { pathname } = request.nextUrl;
+  const onPortalHost = host === "portal.boringpe.com";
+  const isAsset =
+    pathname.startsWith("/_next") || pathname.includes(".");
+
+  let effective = pathname;
+  if (onPortalHost && !pathname.startsWith("/portal") && !isAsset) {
+    effective = pathname === "/" ? "/portal/dashboard" : `/portal${pathname}`;
   }
 
-  const { pathname } = request.nextUrl;
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/portal") ||
-    pathname.includes(".")
-  ) {
+  if (effective.startsWith("/portal")) {
+    const role = parseRole(request.cookies.get("bp_role")?.value);
+    const section = sectionFromPath(effective);
+    if (section && !can(role, section)) {
+      return NextResponse.redirect(new URL(firstAllowedHref(role), request.url));
+    }
+  }
+
+  if (!onPortalHost || isAsset || pathname.startsWith("/portal")) {
     return NextResponse.next();
   }
 
