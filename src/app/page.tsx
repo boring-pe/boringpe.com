@@ -1,0 +1,177 @@
+import React from 'react';
+import { Building2, Brain, HeartHandshake, Monitor, ArrowRight, ShieldCheck, TrendingUp, Users } from 'lucide-react';
+
+export default function Home() {
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-50 font-sans selection:bg-blue-900 selection:text-white">
+      
+      {/* --- NAVIGATION --- */}
+      <nav className="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-8 h-8 text-blue-500" />
+            <span className="text-xl font-bold tracking-tight text-white">BORING PE</span>
+          </div>
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+            <a href="#framework" className="hover:text-white transition-colors">The Framework</a>
+            <a href="#founders" className="hover:text-white transition-colors">For Founders</a>
+            <a href="#about" className="hover:text-white transition-colors">About Us</a>
+          </div>
+          <a 
+            href="https://portal.boringpe.com" 
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md transition-all flex items-center gap-2"
+          >
+            Portal Login <ArrowRight className="w-4 h-4" />
+          </a>
+        </div>
+      </nav>
+
+      {/* --- HERO SECTION --- */}
+      <section className="pt-32 pb-20 md:pt-48 md:pb-32 px-6 border-b border-slate-800">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-400 text-xs font-medium mb-6">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            Now Accepting CO-BUILD Partnerships
+          </div>
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-tight">
+            Powering the <span className="text-blue-500">Business Stack.</span>
+          </h1>
+          <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+            Boring PE is a private enterprise that builds, co-builds, and owns sustainable, cash-flowing businesses. We combine institutional capital, operational discipline, and proprietary technology to transform essential industries into enduring enterprises.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="#framework" className="px-8 py-4 bg-white text-slate-950 font-semibold rounded-md hover:bg-slate-200 transition-colors w-full sm:w-auto">
+              Explore Our Framework
+            </a>
+            <a href="#founders" className="px-8 py-4 bg-slate-900 border border-slate-700 text-white font-semibold rounded-md hover:bg-slate-800 transition-colors w-full sm:w-auto">
+              Partner With Us
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* --- PHILOSOPHY --- */}
+      <section className="py-20 px-6 bg-slate-900/50">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Fundamentals Over Hype.<br/>Enduring Value Over Short-Term Trends.</h2>
+            <p className="text-slate-400 leading-relaxed mb-6">
+              We believe that successful enterprises are not built through ideas alone. They require the right combination of business models, capital, people, capabilities, systems, and long-term execution.
+            </p>
+            <p className="text-slate-400 leading-relaxed">
+              While others chase the next disruptive trend, we focus on the backbone of the economy. We identify opportunities that solve real problems, serve enduring needs, and create compounding economic value.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-6 bg-slate-950 border border-slate-800 rounded-lg">
+              <TrendingUp className="w-8 h-8 text-blue-500 mb-4" />
+              <h3 className="font-semibold text-white mb-2">Profitable</h3>
+              <p className="text-sm text-slate-400">Sustainable economic returns with proven cash flow.</p>
+            </div>
+            <div className="p-6 bg-slate-950 border border-slate-800 rounded-lg mt-8">
+              <ShieldCheck className="w-8 h-8 text-blue-500 mb-4" />
+              <h3 className="font-semibold text-white mb-2">Resilient</h3>
+              <p className="text-sm text-slate-400">Built to adapt and thrive in changing markets.</p>
+            </div>
+            <div className="p-6 bg-slate-950 border border-slate-800 rounded-lg">
+              <Users className="w-8 h-8 text-blue-500 mb-4" />
+              <h3 className="font-semibold text-white mb-2">Scalable</h3>
+              <p className="text-sm text-slate-400">Systems designed for operational expansion.</p>
+            </div>
+            <div className="p-6 bg-slate-950 border border-slate-800 rounded-lg mt-8">
+              <HeartHandshake className="w-8 h-8 text-blue-500 mb-4" />
+              <h3 className="font-semibold text-white mb-2">Sustainable</h3>
+              <p className="text-sm text-slate-400">Long-term relevance and community value.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* --- THE FRAMEWORK --- */}
+      <section id="framework" className="py-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">The Unconventional Business Building Framework</h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">An integrated approach to business creation, collaboration, and ownership.</p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Card 1 */}
+            <div className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
+              <Building2 className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
+              <h3 className="text-xl font-bold text-white mb-3">Business Studio</h3>
+              <p className="text-sm text-slate-400 leading-relaxed mb-4">The outward-facing engine. We BUILD independent ventures, CO-BUILD with partners, and OWN stable cash-flowing assets.</p>
+            </div>
+            {/* Card 2 */}
+            <div className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
+              <Brain className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
+              <h3 className="text-xl font-bold text-white mb-3">Business House</h3>
+              <p className="text-sm text-slate-400 leading-relaxed mb-4">The central intelligence. Our BMU and BIDU units provide institutional-grade finance, HR, legal, and strategic playbooks.</p>
+            </div>
+            {/* Card 3 */}
+            <div className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
+              <HeartHandshake className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
+              <h3 className="text-xl font-bold text-white mb-3">Impact Marrow</h3>
+              <p className="text-sm text-slate-400 leading-relaxed mb-4">We inject value. Through employee profit-sharing and community reinvestment, we build fierce loyalty and resilience.</p>
+            </div>
+            {/* Card 4 */}
+            <div className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
+              <Monitor className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
+              <h3 className="text-xl font-bold text-white mb-3">Boring Portal</h3>
+              <p className="text-sm text-slate-400 leading-relaxed mb-4">The digital spine. Our proprietary MIS/ERP platform centralizes data, automates reporting, and ensures scalable governance.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* --- FOR FOUNDERS --- */}
+      <section id="founders" className="py-24 px-6 bg-blue-950/20 border-y border-slate-800">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">You Built It. We Protect and Scale It.</h2>
+          <p className="text-slate-400 text-lg mb-12 max-w-3xl mx-auto">
+            A better alternative to traditional private equity or exhausting solo entrepreneurship. We respect your legacy, allow you to retain skin in the game, and plug your business into our institutional infrastructure on Day 1.
+          </p>
+          <a 
+            href="mailto:hello@boringpe.com" 
+            className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition-all"
+          >
+            Start a Confidential Conversation <ArrowRight className="w-5 h-5" />
+          </a>
+        </div>
+      </section>
+
+      {/* --- FOOTER --- */}
+      <footer className="py-16 px-6 bg-slate-950 border-t border-slate-800">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-12">
+          <div className="md:col-span-2">
+            <div className="flex items-center gap-2 mb-4">
+              <Building2 className="w-6 h-6 text-blue-500" />
+              <span className="text-lg font-bold text-white">BORING PE</span>
+            </div>
+            <p className="text-slate-500 text-sm max-w-sm mb-6">
+              A private enterprise that builds, co-builds, and owns sustainable businesses. Powering the Business Stack.
+            </p>
+            <p className="text-slate-600 text-xs">© {new Date().getFullYear()} Boring PE Venture. All Rights Reserved.</p>
+          </div>
+          <div>
+            <h4 className="text-white font-semibold mb-4">Enterprise</h4>
+            <ul className="space-y-3 text-sm text-slate-400">
+              <li><a href="#framework" className="hover:text-white transition-colors">The Framework</a></li>
+              <li><a href="#founders" className="hover:text-white transition-colors">For Founders</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-white font-semibold mb-4">Internal</h4>
+            <ul className="space-y-3 text-sm text-slate-400">
+              <li><a href="https://portal.boringpe.com" className="hover:text-white transition-colors">Boring Portal Login</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+            </ul>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  );
+}
