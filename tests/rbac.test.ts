@@ -75,3 +75,11 @@ test("unknown roles are rejected, never defaulted to a powerful one", () => {
   assert.equal(isRole(undefined), false);
   assert.equal(isRole(null), false);
 });
+
+test("appearance preferences are cleaned whatever is stored", async () => {
+  const { cleanPrefs, DEFAULT_PREFS } = await import("../src/lib/prefs-fields.ts");
+  assert.deepEqual(cleanPrefs(null), DEFAULT_PREFS);
+  assert.deepEqual(cleanPrefs({ theme: "dark", accent: "navy", density: "compact", pinned: ["books", "books", "<x>", 5] }),
+    { theme: "dark", accent: "navy", density: "compact", pinned: ["books"] });
+  assert.equal(cleanPrefs({ theme: "neon", accent: "#ff0000" }).accent, "green");
+});

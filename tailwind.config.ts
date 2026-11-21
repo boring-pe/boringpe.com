@@ -8,22 +8,8 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      colors: {
-        // Institutional Palette
-        slate: {
-          950: '#020617', // Deep background
-          900: '#0f172a', // Card background
-          800: '#1e293b', // Borders
-          50: '#f8fafc',  // Primary text
-          400: '#94a3b8', // Secondary text
-        },
-        blue: {
-          500: '#3b82f6', // Primary accent (trust, stability)
-          600: '#2563eb', // Hover state
-          700: '#1d4ed8', // Active state
-          950: '#172554', // Deep blue backgrounds
-        }
-      },
+      // Colours come from Tailwind's palette as CSS variables, so the portal can re-theme them
+      // (light, dark, accent) in globals.css. The public site keeps the default values.
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'], // Clean, professional typography
       }

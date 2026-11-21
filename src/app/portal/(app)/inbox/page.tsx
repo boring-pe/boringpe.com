@@ -105,7 +105,7 @@ async function Message({ accounts, accountId, messageId, userId, role }: { accou
         <h3 className="text-lg font-semibold text-white">{m.subject || "(no subject)"}</h3>
         <div className="text-sm text-slate-400">From {m.from}<br />To {m.to}{m.cc ? <><br />Cc {m.cc}</> : null}<br />{when(m.date)} · in {account.email}</div>
         {m.html ? (
-          <iframe title="Message" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={emailFrameDoc(m.html)} className="h-[60vh] w-full rounded-md bg-white" data-mail-frame />
+          <iframe title="Message" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={emailFrameDoc(m.html)} className="paper h-[60vh] w-full rounded-md bg-white" data-mail-frame />
         ) : (
           <pre className="whitespace-pre-wrap break-words rounded-md bg-slate-950 p-4 text-sm text-slate-200">{m.text}</pre>
         )}

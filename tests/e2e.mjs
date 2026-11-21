@@ -1699,6 +1699,57 @@ await step("razorpay: a payment link settles the invoice through the gateway acc
   assert.ok(/Paid online/.test(await A.page.locator("main").innerText()));
 });
 
+// ---------------------------------------------------------------- Design: themes, personalisation, palette
+await step("design: theme, accent, density and pins are personal and stick", async () => {
+  await A.page.goto("/portal/account");
+  await A.page.waitForLoadState("networkidle");
+  const portal = A.page.locator(".portal");
+  assert.equal(await portal.getAttribute("data-theme"), "system");
+  await A.page.locator('[data-appearance] label:has-text("Dark")').click();
+  await A.page.locator('[data-appearance] label:has-text("Navy")').click();
+  await A.page.locator('[data-appearance] label:has-text("Compact")').click();
+  await A.page.click('button:has-text("Save appearance")');
+  await A.page.waitForFunction(() => document.querySelector(".portal")?.getAttribute("data-accent") === "navy");
+  await A.page.goto("/portal/dashboard");
+  assert.deepEqual(
+    [await portal.getAttribute("data-theme"), await portal.getAttribute("data-accent"), await portal.getAttribute("data-density")],
+    ["dark", "navy", "compact"],
+  );
+  const bg = await A.page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  assert.equal(bg, "rgb(10, 15, 26)", "the dark palette is applied");
+  await A.page.click("[data-theme-toggle]");
+  await A.page.waitForFunction(() => document.querySelector(".portal")?.getAttribute("data-theme") === "system");
+  await A.page.waitForTimeout(500);
+  await A.page.goto("/portal/dashboard");
+  assert.equal(await portal.getAttribute("data-theme"), "system", "the toggle is saved");
+  assert.equal(await E.page.locator(".portal").getAttribute("data-accent") ?? "green", "green", "someone else's choice is untouched");
+
+  await A.page.locator('#portal-nav button[aria-label="Pin Invoices"]').click();
+  await A.page.waitForSelector('#portal-nav button[aria-label="Unpin Invoices"]');
+  assert.ok(/pinned/i.test(await A.page.locator("#portal-nav").innerText()));
+  await A.page.locator('#portal-nav button[aria-label="Unpin Invoices"]').first().click();
+  await A.page.waitForFunction(() => !/Pinned/.test(document.querySelector("#portal-nav")?.textContent ?? ""));
+});
+
+await step("design: Ctrl+K jumps to pages and finds records, never ones the person cannot open", async () => {
+  await A.page.goto("/portal/dashboard");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.keyboard.press("Control+k");
+  await A.page.waitForSelector("[data-palette]");
+  await A.page.keyboard.type("Acme");
+  await A.page.waitForSelector('[data-palette-item*="Acme Supplies"]');
+  await A.page.keyboard.press("Escape");
+  await A.page.click("header [data-search]");
+  await A.page.keyboard.type("bank rec");
+  await A.page.keyboard.press("Enter");
+  await A.page.waitForURL(/\/portal\/bank/);
+  const lp = await (await B.page.request.get("/portal/../api/portal/search?q=Acme")).json();
+  assert.equal(lp.results.length, 0, "an LP finds no firm invoices or contacts");
+  const anon = await browser.newContext({ baseURL: BASE });
+  assert.equal((await anon.request.get("/api/portal/search?q=Acme")).status(), 401);
+  await anon.close();
+});
+
 await step("sign out clears the session", async () => {
   await A.page.click('button:has-text("Sign out")');
   await A.page.waitForURL(/\/portal\/login/);

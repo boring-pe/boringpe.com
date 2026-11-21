@@ -1,38 +1,19 @@
-import React from "react";
+import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  LayoutDashboard,
-  Building2,
-  Target,
-  FolderKanban,
-  HeartHandshake,
-  ShieldCheck,
-  UserCircle,
-  LogOut,
-  Crown,
-  FileText,
-  ClipboardCheck,
-  Lock,
-  Wallet,
-  ListChecks,
-  BookOpen,
-  Rocket,
-  Users,
-  BarChart3,
-  Receipt,
-  Landmark,
-  Bell,
-  Package,
-  Plug,
-  Inbox as InboxIcon,
-  MessageCircle,
-  CalendarDays,
-  Target as TargetIcon,
+  BarChart3, Bell, BookOpen, Building2, CalendarDays, ClipboardCheck, Crown, FileText, FolderKanban, HeartHandshake,
+  Inbox as InboxIcon, LayoutDashboard, Landmark, ListChecks, Lock, LogOut, MessageCircle, Package, Pin, Plug, Receipt,
+  Rocket, ShieldCheck, Target, Crosshair, UserCircle, Users, Wallet,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
-import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
 import { unreadCount } from "@/lib/notify";
+import { getPrefs } from "@/lib/prefs";
+import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
+import { togglePin } from "./_shell/prefs-actions";
+import { CommandPalette, type PaletteItem } from "./_shell/palette";
+import { NavProgress } from "./_shell/progress";
+import { SearchButton, ThemeToggle } from "./_shell/controls";
 import { PortalFrame } from "./frame";
 import { signOutAction } from "./sign-out";
 
@@ -42,97 +23,107 @@ export const metadata: Metadata = {
 };
 
 const ICONS: Record<SectionId, React.ElementType> = {
-  console: Crown,
-  integrations: Plug,
-  content: FileText,
-  approvals: ClipboardCheck,
-  reports: BarChart3,
-  personal: Lock,
-  dashboard: LayoutDashboard,
-  inbox: InboxIcon,
-  whatsapp: MessageCircle,
-  calendar: CalendarDays,
-  portfolio: Building2,
-  ventures: Rocket,
-  deals: Target,
-  money: Wallet,
-  books: BookOpen,
-  invoices: Receipt,
-  bank: Landmark,
-  assets: Package,
-  budgets: TargetIcon,
-  tasks: ListChecks,
-  people: Users,
-  vault: FolderKanban,
-  marrow: HeartHandshake,
-  access: ShieldCheck,
+  console: Crown, integrations: Plug, content: FileText, approvals: ClipboardCheck, reports: BarChart3, personal: Lock,
+  dashboard: LayoutDashboard, inbox: InboxIcon, calendar: CalendarDays, whatsapp: MessageCircle, portfolio: Building2,
+  ventures: Rocket, deals: Target, money: Wallet, books: BookOpen, invoices: Receipt, bank: Landmark, assets: Package,
+  budgets: Crosshair, tasks: ListChecks, people: Users, vault: FolderKanban, marrow: HeartHandshake, access: ShieldCheck,
 };
 
 const link =
-  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors";
+  "group/link flex flex-1 min-w-0 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800/60 hover:text-white";
+
+/** Quick actions offered in the command palette, each only to people who can use the page it opens. */
+const ACTIONS: { section: SectionId; label: string; href: string; hint: string }[] = [
+  { section: "invoices", label: "New invoice", href: "/portal/invoices?view=new", hint: "Invoices" },
+  { section: "books", label: "Post a journal entry", href: "/portal/books?view=journal", hint: "Books" },
+  { section: "money", label: "Record money in or a payment", href: "/portal/money", hint: "Money" },
+  { section: "inbox", label: "Compose an email", href: "/portal/inbox?view=compose", hint: "Inbox" },
+  { section: "calendar", label: "Schedule a meeting", href: "/portal/calendar", hint: "Calendar" },
+  { section: "whatsapp", label: "Start a WhatsApp conversation", href: "/portal/whatsapp?start=1", hint: "WhatsApp" },
+  { section: "tasks", label: "Add a task", href: "/portal/tasks", hint: "Tasks" },
+  { section: "people", label: "Prepare payroll", href: "/portal/people?view=payroll", hint: "People" },
+  { section: "bank", label: "Import a bank statement", href: "/portal/bank", hint: "Bank" },
+  { section: "reports", label: "Open MIS reports", href: "/portal/reports", hint: "Reports" },
+];
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   const meta = ROLE_META[user.role];
   // Until a temporary password is replaced, the only open page is Account.
   const items = user.must_change_password ? [] : allowedSections(user.role);
+  const [unread, prefs] = await Promise.all([unreadCount(user.id), getPrefs(user.id)]);
+  const pinned = prefs.pinned.map((id) => items.find((i) => i.id === id)).filter((i): i is (typeof items)[number] => Boolean(i));
+  const initials = (user.name ?? user.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || meta.initials;
 
-  const unread = await unreadCount(user.id);
+  const navItem = (item: (typeof items)[number], isPinned: boolean) => {
+    const Icon = ICONS[item.id];
+    return (
+      <div key={`${isPinned ? "pin" : "nav"}-${item.id}`} className="group flex items-center">
+        <Link href={item.href} className={link}>
+          <Icon className="h-4 w-4 shrink-0 text-slate-500 transition-colors group-hover/link:text-blue-400" />
+          <span className="truncate">{item.label}</span>
+        </Link>
+        <form action={togglePin.bind(null, item.id)}>
+          <button
+            aria-label={`${prefs.pinned.includes(item.id) ? "Unpin" : "Pin"} ${item.label}`}
+            className={`rounded-md p-1.5 text-slate-500 transition hover:text-blue-400 focus:opacity-100 ${prefs.pinned.includes(item.id) ? "opacity-70" : "opacity-0 group-hover:opacity-100"}`}
+          >
+            <Pin className={`h-3.5 w-3.5 ${prefs.pinned.includes(item.id) ? "fill-current" : ""}`} />
+          </button>
+        </form>
+      </div>
+    );
+  };
 
   const sidebar = (
     <>
-      <div className="h-16 md:h-20 flex items-center gap-2 px-6 border-b border-slate-800">
-        <Building2 className="w-7 h-7 text-blue-500" />
-        <div>
-          <div className="text-sm font-bold text-white">BORING PE</div>
-          <div className="text-xs text-slate-500">Boring Portal</div>
+      <div className="flex h-16 items-center gap-3 border-b border-slate-800 px-5 md:h-20">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 font-serif text-lg font-semibold text-white shadow-sm">B</div>
+        <div className="leading-tight">
+          <div className="font-serif text-base font-semibold tracking-tight text-white">Boring PE</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Portal</div>
         </div>
       </div>
-
-      <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+      <div className="px-3 pt-4 md:hidden">
+        <SearchButton wide />
+      </div>
+      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4" aria-label="Portal">
+        {pinned.length ? (
+          <div className="space-y-0.5">
+            <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-600">Pinned</div>
+            {pinned.map((i) => navItem(i, true))}
+          </div>
+        ) : null}
         {GROUPS.map((group) => {
           const inGroup = items.filter((item) => item.group === group.id);
           if (inGroup.length === 0) return null;
           return (
-            <div key={group.id} className="space-y-1">
-              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
-                {group.label}
-              </div>
-              {inGroup.map((item) => {
-                const Icon = ICONS[item.id];
-                return (
-                  <Link key={item.href} href={item.href} className={link}>
-                    <Icon className="w-4 h-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
+            <div key={group.id} className="space-y-0.5">
+              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-600">{group.label}</div>
+              {inGroup.map((i) => navItem(i, false))}
             </div>
           );
         })}
       </nav>
-
-      <div className="p-3 border-t border-slate-800 space-y-1">
+      <div className="space-y-1 border-t border-slate-800 p-3">
         <Link href="/portal/notifications" className={link}>
-          <Bell className="w-4 h-4" />
+          <Bell className="h-4 w-4 text-slate-500" />
           Notifications{unread ? <span className="ml-auto rounded-full bg-blue-600 px-2 text-xs text-white">{unread}</span> : null}
         </Link>
         <Link href="/portal/account" className={link}>
-          <UserCircle className="w-4 h-4" />
-          Account
+          <UserCircle className="h-4 w-4 text-slate-500" />
+          Account and appearance
         </Link>
         <div className="flex items-center gap-3 px-3 py-2">
-          <div className="w-8 h-8 shrink-0 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white">
-            {meta.initials}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-white truncate">{user.name ?? user.email}</div>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">{initials}</div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-medium text-white">{user.name ?? user.email}</div>
             <div className="text-xs text-slate-500">{meta.label}</div>
           </div>
         </div>
         <form action={signOutAction} className="px-1">
           <button type="submit" className={`${link} w-full`}>
-            <LogOut className="w-4 h-4" />
+            <LogOut className="h-4 w-4 text-slate-500" />
             Sign out
           </button>
         </form>
@@ -142,19 +133,27 @@ export default async function PortalLayout({ children }: { children: React.React
 
   const headerEnd = (
     <>
-      <Link href="/portal/notifications" aria-label={unread ? `${unread} unread notifications` : "Notifications"} className="relative rounded-md p-2 text-slate-300 hover:bg-slate-800" data-bell>
+      <ThemeToggle theme={prefs.theme} />
+      <Link href="/portal/notifications" aria-label={unread ? `${unread} unread notifications` : "Notifications"} className="relative rounded-lg p-2 text-slate-400 transition hover:bg-slate-800/60 hover:text-white" data-bell>
         <Bell className="h-5 w-5" />
         {unread ? <span className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-blue-600 px-1 text-center text-[11px] font-semibold leading-5 text-white">{unread > 99 ? "99+" : unread}</span> : null}
       </Link>
-      <a href="https://boringpe.com" className="hidden text-sm text-slate-400 hover:text-white sm:inline">
-        boringpe.com
-      </a>
+      <Link href="/portal/account" aria-label="Account" className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">{initials}</Link>
     </>
   );
 
+  const palette: PaletteItem[] = [
+    ...items.map((i) => ({ kind: "page" as const, label: i.label, href: i.href, hint: "Go to" })),
+    { kind: "page", label: "Notifications", href: "/portal/notifications", hint: "Go to" },
+    { kind: "page", label: "Account and appearance", href: "/portal/account", hint: "Go to" },
+    ...ACTIONS.filter((a) => items.some((i) => i.id === a.section)).map((a) => ({ kind: "action" as const, label: a.label, href: a.href, hint: a.hint })),
+  ];
+
   return (
-    <PortalFrame sidebar={sidebar} headerEnd={headerEnd} title="Enterprise Command" subtitle={user.email}>
+    <PortalFrame sidebar={sidebar} headerEnd={headerEnd} prefs={{ theme: prefs.theme, accent: prefs.accent, density: prefs.density }}>
+      <Suspense fallback={null}><NavProgress /></Suspense>
       {children}
+      <CommandPalette items={palette} />
     </PortalFrame>
   );
 }
