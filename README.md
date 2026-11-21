@@ -101,3 +101,21 @@ pillars (Build, Own, Co-Build, Enable). Rules, all enforced on the server:
 
 Money that leaves the firm (investing, exits, contributions, operator payouts, salaries) is recorded only by the Super Admin.
 External roles (LP, founder, operator, Co-Build partner) see only what is linked to them.
+
+## Integrations
+
+Set up under **Integrations** (Super Admin). Each card shows the redirect or webhook URL to paste into the provider.
+
+| Service | What it powers | Needs |
+| --- | --- | --- |
+| Resend | Sign-in links, invites, notification email | API key, from address |
+| Google Workspace | Gmail in **Inbox**, Google Calendar in **Calendar** | OAuth client (Gmail API + Calendar API enabled) |
+| Microsoft 365 | Outlook mail and calendar | Azure app registration |
+| Zoho Mail | Zoho mail in **Inbox** | Zoho API client |
+| WhatsApp Cloud API | **WhatsApp** shared inbox | Phone number ID, WABA ID, system-user token, app secret, verify token |
+| Razorpay | Payment links on invoices; paid links post to the books | Key ID, key secret, webhook secret (`payment_link.paid`) |
+
+- Credentials are encrypted with AES-256-GCM. Set **`INTEGRATIONS_KEY`** (any long random string) in Vercel; without it `AUTH_SECRET` is used, and rotating that would make stored credentials unreadable.
+- Public API: `/api/v1/*` with keys from Integrations → API keys. Outgoing webhooks are signed `X-BoringPE-Signature: t=…,v1=HMAC-SHA256(secret, "t.body")`.
+- Incoming webhooks: `/api/webhooks/whatsapp` (Meta signature) and `/api/webhooks/razorpay` (Razorpay signature, de-duplicated by event id).
+- **`PORTAL_TEST_MODE=1`** gives a pretend mailbox, calendar, WhatsApp and Razorpay for the browser tests only. **Never set it in production.**

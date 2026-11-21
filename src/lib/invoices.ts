@@ -167,7 +167,7 @@ export async function deleteDraft(id: string) {
  * comes off at the invoice's rate and any difference from the rupees actually received is an exchange gain or loss.
  */
 export async function recordReceipt(
-  id: string, r: { date: string; amount: bigint; tds: bigint; by: string; fxSettled?: bigint | null },
+  id: string, r: { date: string; amount: bigint; tds: bigint; by: string; fxSettled?: bigint | null; bankCode?: string },
 ): Promise<"ok" | "too-much" | "not-open" | "needs-fx"> {
   const sql = await getSql();
   return sql.tx(async (db) => {
@@ -194,7 +194,7 @@ export async function recordReceipt(
     const journal = await postByCodes(db, {
       entityId: inv.entity_id, date: r.date, by: r.by, memo: `Receipt against ${inv.number}`, sourceType: "invoice_receipt", sourceId: id,
       lines: [
-        { code: "1010", debit: r.amount, credit: 0n }, { code: "1500", debit: r.tds, credit: 0n },
+        { code: r.bankCode ?? "1010", debit: r.amount, credit: 0n }, { code: "1500", debit: r.tds, credit: 0n },
         { code: "1100", debit: 0n, credit: settled + r.tds },
         { code: "4910", debit: 0n, credit: gain > 0n ? gain : 0n }, { code: "5910", debit: gain < 0n ? -gain : 0n, credit: 0n },
       ],

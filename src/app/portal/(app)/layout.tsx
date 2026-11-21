@@ -27,6 +27,7 @@ import {
   Plug,
   Inbox as InboxIcon,
   MessageCircle,
+  CalendarDays,
   Target as TargetIcon,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
@@ -50,6 +51,7 @@ const ICONS: Record<SectionId, React.ElementType> = {
   dashboard: LayoutDashboard,
   inbox: InboxIcon,
   whatsapp: MessageCircle,
+  calendar: CalendarDays,
   portfolio: Building2,
   ventures: Rocket,
   deals: Target,

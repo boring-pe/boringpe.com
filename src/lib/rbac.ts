@@ -9,6 +9,7 @@ export type SectionId =
   | "dashboard"
   | "inbox"
   | "whatsapp"
+  | "calendar"
   | "portfolio"
   | "ventures"
   | "deals"
@@ -41,6 +42,7 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
   { id: "content", href: "/portal/content", label: "Site content", group: "super" },
   { id: "dashboard", href: "/portal/dashboard", label: "Dashboard", group: "firm" },
   { id: "inbox", href: "/portal/inbox", label: "Inbox", group: "firm" },
+  { id: "calendar", href: "/portal/calendar", label: "Calendar", group: "firm" },
   { id: "whatsapp", href: "/portal/whatsapp", label: "WhatsApp", group: "firm" },
   { id: "portfolio", href: "/portal/portfolio", label: "Portfolio", group: "firm" },
   { id: "ventures", href: "/portal/ventures", label: "Ventures", group: "firm" },
@@ -63,15 +65,15 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
 
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
-    "console", "integrations", "content", "dashboard", "inbox", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
+    "console", "integrations", "content", "dashboard", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
     "reports", "approvals", "access", "personal",
   ],
-  admin: ["dashboard", "inbox", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "access"],
-  partner: ["dashboard", "inbox", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals"],
-  operator: ["dashboard", "inbox", "portfolio", "ventures", "tasks", "people", "vault", "marrow", "approvals"],
-  cobuild_partner: ["dashboard", "inbox", "portfolio", "ventures", "tasks", "vault"],
-  founder: ["dashboard", "inbox", "vault", "marrow"],
-  lp: ["dashboard", "inbox", "portfolio", "vault"],
+  admin: ["dashboard", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "access"],
+  partner: ["dashboard", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals"],
+  operator: ["dashboard", "inbox", "calendar", "portfolio", "ventures", "tasks", "people", "vault", "marrow", "approvals"],
+  cobuild_partner: ["dashboard", "inbox", "calendar", "portfolio", "ventures", "tasks", "vault"],
+  founder: ["dashboard", "inbox", "calendar", "vault", "marrow"],
+  lp: ["dashboard", "inbox", "calendar", "portfolio", "vault"],
 };
 
 export const ROLE_META: Record<Role, { label: string; detail: string; initials: string }> = {
