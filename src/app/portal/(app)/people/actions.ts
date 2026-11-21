@@ -8,8 +8,9 @@ import { daysBetween, fiscalYearOf, isEmploymentType, isLeaveKind } from "@/lib/
 import { oneLine, parseDate } from "@/lib/ops-fields";
 import {
   createEmployee, decideLeave, discardRun, employeeForUser, getEmployee, linkableUsers, payRun, postRun, prepareRun,
-  requestLeave, updateEmployee, withdrawLeave,
+  leaveOwner, requestLeave, runPeople, updateEmployee, withdrawLeave,
 } from "@/lib/people";
+import { notifyRoles, notifyUsers } from "@/lib/notify";
 import { canManagePeople } from "@/lib/rbac";
 import { audit } from "@/lib/users";
 import { parseMonth, parsePercent } from "@/lib/venture-calc";
@@ -85,6 +86,9 @@ export async function askLeave(formData: FormData) {
   const result = await requestLeave({ employeeId: me.id, kind, from, to, days, reason, by: user.id });
   if (result !== "ok") back("", result);
   await audit({ actorId: user.id, actorEmail: user.email, action: "leave_requested", detail: `${kind} ${from} to ${to}` });
+  await notifyRoles(["super_admin", "admin"], {
+    kind: "leave", title: `Leave request: ${me.name}`, body: `${days} days, ${from} to ${to}${reason ? `: ${reason}` : ""}`, href: "/portal/people?view=leave",
+  }, user.id);
   back("", "leave-requested");
 }
 
@@ -99,8 +103,13 @@ export async function decide(formData: FormData) {
   const user = await manager();
   const decision = formData.get("decision");
   if (decision !== "approved" && decision !== "rejected") back("view=leave", "invalid");
-  const ok = await decideLeave(String(formData.get("leaveId") ?? ""), decision, user.id);
+  const leaveId = String(formData.get("leaveId") ?? "");
+  const ok = await decideLeave(leaveId, decision, user.id);
   if (!ok) back("view=leave", "cannot-decide");
+  const owner = await leaveOwner(leaveId);
+  await notifyUsers([owner?.user_id], {
+    kind: "leave", title: `Leave ${decision}`, body: owner ? `${owner.from_date} to ${owner.to_date}` : "", href: "/portal/people",
+  });
   await audit({ actorId: user.id, actorEmail: user.email, action: `leave_${decision}` });
   back("view=leave", `leave-${decision}`);
 }
@@ -132,5 +141,11 @@ export async function runAction(formData: FormData) {
   }
   if (!ok) back("view=payroll", "invalid");
   await audit({ actorId: user.id, actorEmail: user.email, action: `payrun_${String(what)}`, detail: id });
+  if (what === "post" || what === "pay") {
+    const run = await runPeople(id);
+    await notifyUsers(run.users, {
+      kind: "payroll", title: what === "post" ? `Payslip ready: ${run.period}` : `Salary paid: ${run.period}`, href: "/portal/people",
+    });
+  }
   back("view=payroll", `run-${String(what)}`);
 }

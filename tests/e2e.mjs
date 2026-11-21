@@ -1288,6 +1288,54 @@ await step("bank: a statement imports, matches the books, posts charges, reconci
   }
 });
 
+// ---------------------------------------------------------------- Notifications and phones
+await step("notifications: each person hears about their own things, and opening one marks it read", async () => {
+  await A.page.goto("/portal/notifications");
+  const a = await A.page.locator("main").innerText();
+  assert.ok(/Approval needed: Pay ₹25,000\.00 \(Expense\)/.test(a), a.slice(0, 400));
+  assert.ok(/Leave request: Asha Patil/.test(a));
+  await E.page.goto("/portal/notifications");
+  assert.ok(/Approved: Pay ₹25,000\.00 \(Expense\)/.test(await E.page.locator("main").innerText()));
+  await F.page.goto("/portal/notifications");
+  const f = await F.page.locator("main").innerText();
+  for (const t of [/Leave approved/, /Payslip ready: 2026-10/, /Salary paid: 2026-10/, /Statement ready: Boring Cafe 2026-10/]) assert.ok(t.test(f), `${t} in ${f.slice(0, 500)}`);
+  assert.ok(!/Approval needed/.test(f), "operators never see others' approvals");
+  await B.page.goto("/portal/notifications");
+  assert.ok(/New document shared: Alpha SHA/.test(await B.page.locator("main").innerText()));
+
+  const bell = async () => (await F.page.locator("[data-bell]").getAttribute("aria-label")) ?? "";
+  const before = await bell();
+  await F.page.locator('li[data-notification="Leave approved"] a').click();
+  await F.page.waitForURL(/\/portal\/people/);
+  assert.notEqual(await bell(), before, "the unread count went down");
+  const href = await A.page.locator("li[data-notification] a").first().getAttribute("href");
+  await F.page.goto(href);
+  assert.match(F.page.url(), /\/portal\/notifications$/, "someone else's notification opens nothing");
+});
+
+await step("phones: the menu is a drawer, it closes after choosing, and no page scrolls sideways", async () => {
+  const M = await browser.newContext({ baseURL: BASE, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await M.newPage();
+  await login(page, ADMIN, ADMIN_NEW);
+  await page.waitForURL(/\/portal\//);
+  const nav = page.locator("#portal-nav");
+  const offscreen = async () => (await nav.boundingBox()).x < 0;
+  assert.ok(await offscreen(), "the menu starts hidden");
+  await page.click('button[aria-label="Open menu"]');
+  await page.waitForTimeout(400);
+  assert.ok(!(await offscreen()), "the menu opens");
+  await page.click('#portal-nav a:has-text("Invoices")');
+  await page.waitForURL(/\/portal\/invoices/);
+  await page.waitForTimeout(400);
+  assert.ok(await offscreen(), "choosing a page closes it");
+  for (const path of ["/portal/dashboard", "/portal/books?view=reports", "/portal/invoices", "/portal/people?view=payroll", "/portal/ventures", "/portal/bank", "/portal/reports", "/portal/portfolio"]) {
+    await page.goto(path);
+    const wide = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    assert.ok(wide <= 1, `${path} scrolls sideways by ${wide}px`);
+  }
+  await M.close();
+});
+
 await step("sign out clears the session", async () => {
   await A.page.click('button:has-text("Sign out")');
   await A.page.waitForURL(/\/portal\/login/);

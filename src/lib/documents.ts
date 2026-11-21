@@ -73,3 +73,14 @@ export async function linkExists(type: "entity" | "venture" | "holding", id: str
   const table = type === "entity" ? "entities" : type === "venture" ? "ventures" : "holdings";
   return (await sql.query(`select 1 from ${table} where id = $1`, [id])).length > 0;
 }
+
+/** External people who can see documents linked to this item. */
+export async function linkedUsers(type: "entity" | "venture" | "holding", id: string) {
+  const sql = await getSql();
+  const rows = await sql.query<{ id: string }>(
+    `select user_id as id from access_scopes where scope_type = $1 and ref_id = $2
+     union select user_id from venture_operators where $1 = 'venture' and venture_id = $2 and user_id is not null`,
+    [type, id],
+  );
+  return rows.map((r) => r.id);
+}

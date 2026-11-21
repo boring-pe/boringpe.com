@@ -8,7 +8,8 @@ import { oneLine, parseDate } from "@/lib/ops-fields";
 import { canManagePortfolio, canPostBooks } from "@/lib/rbac";
 import { audit } from "@/lib/users";
 import { parseMonth, parsePercent } from "@/lib/venture-calc";
-import { addOperator, closePeriod, createVenture, getVenture, operatorUsers, payPayout } from "@/lib/ventures";
+import { addOperator, closePeriod, createVenture, getVenture, operatorUsers, payoutUser, payPayout, ventureUsers } from "@/lib/ventures";
+import { notifyUsers } from "@/lib/notify";
 
 function back(query: string, notice: string): never {
   redirect(`/portal/ventures?${query}${query ? "&" : ""}notice=${notice}`);
@@ -75,6 +76,9 @@ export async function closeVenturePeriod(formData: FormData) {
   if (result === "exists") back(q, "period-exists");
   if (result !== "ok") back(q, "invalid");
   await audit({ actorId: user.id, actorEmail: user.email, action: "venture_period_closed", detail: `${venture.name} ${period.slice(0, 7)}` });
+  await notifyUsers(await ventureUsers(venture.id), {
+    kind: "venture", title: `Statement ready: ${venture.name} ${period.slice(0, 7)}`, href: `/portal/ventures?v=${venture.id}`,
+  });
   back(q, "closed");
 }
 
@@ -93,5 +97,9 @@ export async function payOperator(formData: FormData) {
   }
   if (!ok) back(q, "already-paid");
   await audit({ actorId: user.id, actorEmail: user.email, action: "operator_paid", detail: ventureId });
+  const paid = await payoutUser(String(formData.get("payoutId") ?? ""));
+  await notifyUsers([paid?.user_id], {
+    kind: "venture", title: `Your share was paid: ${paid?.venture ?? ""} ${paid?.period ?? ""}`, href: `/portal/ventures?v=${encodeURIComponent(ventureId)}`,
+  });
   back(q, "paid");
 }

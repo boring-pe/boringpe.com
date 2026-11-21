@@ -1,4 +1,5 @@
 import { getSql } from "./db";
+import { notifyRoles } from "./notify";
 import { MAX_PENDING_PER_PERSON, type ApprovalKind } from "./approval-kinds";
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "withdrawn";
@@ -50,6 +51,10 @@ export async function createApproval(input: {
       input.refId ?? null,
     ],
   );
+  await notifyRoles(["super_admin"], {
+    kind: "approval", title: `Approval needed: ${input.title}`, body: `${input.requestedByEmail}${input.detail ? `: ${input.detail}` : ""}`,
+    href: "/portal/approvals",
+  }, input.requestedBy);
   return rows[0] as ApprovalRow;
 }
 

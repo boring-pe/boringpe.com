@@ -5,6 +5,7 @@ import { requireSection } from "@/lib/dal";
 import { createTask, getDeal, listAssignees, setTaskDone } from "@/lib/ops";
 import { oneLine, parseDate } from "@/lib/ops-fields";
 import { can, canSeeFirmData } from "@/lib/rbac";
+import { notifyUsers } from "@/lib/notify";
 import { audit } from "@/lib/users";
 
 function back(notice: string): never {
@@ -35,6 +36,9 @@ export async function addTask(formData: FormData) {
   }
   await createTask({ title, dealId, assigneeId, due, by: user.id });
   await audit({ actorId: user.id, actorEmail: user.email, action: "task_added", detail: title });
+  if (assigneeId && assigneeId !== user.id) {
+    await notifyUsers([assigneeId], { kind: "task", title: `New task: ${title}`, body: due ? `Due ${due}` : "", href: "/portal/tasks" });
+  }
   back("added");
 }
 
