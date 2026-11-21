@@ -36,10 +36,10 @@ test("closing and closed are the gated stages", () => {
   assert.deepEqual([...GATED_STAGES], ["closing", "closed"]);
 });
 
-test("money is for admins and partners; tasks also for operators; nobody else", () => {
+test("money is for admins and partners; tasks also for operators and Co-Build partners; nobody else", () => {
   for (const r of ROLES) {
     assert.equal(can(r, "money"), ["super_admin", "admin", "partner"].includes(r), `money ${r}`);
-    assert.equal(can(r, "tasks"), ["super_admin", "admin", "partner", "operator"].includes(r), `tasks ${r}`);
+    assert.equal(can(r, "tasks"), ["super_admin", "admin", "partner", "operator", "cobuild_partner"].includes(r), `tasks ${r}`);
   }
 });
 

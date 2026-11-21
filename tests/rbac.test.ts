@@ -44,9 +44,9 @@ test("landing page per role", () => {
 });
 
 test("admins can hand out only the lower roles", () => {
-  assert.deepEqual(assignableRoles("admin"), ["partner", "operator", "founder", "lp"]);
+  assert.deepEqual(assignableRoles("admin"), ["partner", "operator", "cobuild_partner", "founder", "lp"]);
   assert.deepEqual(assignableRoles("super_admin"), [...ROLES]);
-  for (const role of ["partner", "operator", "founder", "lp"] as const) assert.deepEqual(assignableRoles(role), []);
+  for (const role of ["partner", "operator", "cobuild_partner", "founder", "lp"] as const) assert.deepEqual(assignableRoles(role), []);
 });
 
 test("admins cannot touch admins or the Super Admin; the Super Admin can touch anyone", () => {

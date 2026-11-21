@@ -8,6 +8,7 @@ import { addCapRow, createHolding, getHolding, recordTxn } from "@/lib/investmen
 import { oneLine, parseDate } from "@/lib/ops-fields";
 import { isAssetClass, isHoldingPillar, isInstrument } from "@/lib/portfolio-calc";
 import { canManagePortfolio } from "@/lib/rbac";
+import { addScope, isScopeType, removeScope } from "@/lib/scopes";
 import { audit } from "@/lib/users";
 
 function back(query: string, notice: string): never {
@@ -92,4 +93,23 @@ export async function addCap(formData: FormData) {
   await addCapRow({ entityId, holderName, instrument, shares: sharesRaw, invested, issuedOn, notes, by: user.id });
   await audit({ actorId: user.id, actorEmail: user.email, action: "cap_row_added", detail: `${holderName}: ${sharesRaw}` });
   back(q, "cap-added");
+}
+
+/** Links an external person (LP, founder, operator, Co-Build partner) to one SPV, venture or holding. */
+export async function addAccess(formData: FormData) {
+  const user = await requireSection("portfolio");
+  if (!canManagePortfolio(user.role)) back("view=access", "forbidden");
+  const userId = String(formData.get("userId") ?? "");
+  const [type, refId] = String(formData.get("item") ?? "").split(":");
+  if (!isScopeType(type) || !refId || !(await addScope(userId, type, refId, user.id))) back("view=access", "access-invalid");
+  await audit({ actorId: user.id, actorEmail: user.email, action: "access_linked", detail: `${type} ${refId}` });
+  back("view=access", "access-added");
+}
+
+export async function dropAccess(formData: FormData) {
+  const user = await requireSection("portfolio");
+  if (!canManagePortfolio(user.role)) back("view=access", "forbidden");
+  if (!(await removeScope(String(formData.get("scopeId") ?? "")))) back("view=access", "invalid");
+  await audit({ actorId: user.id, actorEmail: user.email, action: "access_unlinked" });
+  back("view=access", "access-removed");
 }

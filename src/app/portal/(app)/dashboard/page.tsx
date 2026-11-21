@@ -1,13 +1,19 @@
 import { BarChart3 } from "lucide-react";
 import { requireSection } from "@/lib/dal";
-import { summary } from "@/lib/ops";
+import { listTasks, summary } from "@/lib/ops";
 import { inr, stageLabel, STAGES } from "@/lib/ops-fields";
-import { can } from "@/lib/rbac";
+import Link from "next/link";
+import { rupees } from "@/lib/accounting";
+import { toTxns } from "@/lib/investments";
+import { position } from "@/lib/portfolio-calc";
+import { can, canSeeFirmData } from "@/lib/rbac";
+import { myView } from "@/lib/scopes";
 
 const card = "bg-slate-900 border border-slate-800 rounded-xl p-5";
 
 export default async function DashboardPage() {
   const user = await requireSection("dashboard");
+  if (!canSeeFirmData(user.role)) return <MyDashboard userId={user.id} />;
   const seeDeals = can(user.role, "deals");
   const seeMoney = can(user.role, "money");
   const seeTasks = can(user.role, "tasks");
@@ -83,6 +89,38 @@ export default async function DashboardPage() {
           ) : null}
         </>
       )}
+    </div>
+  );
+}
+
+/** External people: only what is linked to them, never firm-wide figures. */
+async function MyDashboard({ userId }: { userId: string }) {
+  const [view, tasks] = await Promise.all([myView(userId), listTasks(userId)]);
+  const holdings = [...view.holdings, ...view.entities.flatMap((e) => e.holdings)];
+  const positions = holdings.map((h) => position(toTxns(h)));
+  const invested = positions.reduce((s, p) => s + p.invested, 0n);
+  const value = positions.reduce((s, p) => s + p.currentValue, 0n);
+  const open = tasks.filter((t) => !t.done).length;
+  const tiles: [string, string, string][] = [
+    ["Linked companies", String(view.entities.length), "/portal/portfolio"],
+    ["Holdings: invested / value", `${rupees(invested)} / ${rupees(value)}`, "/portal/portfolio"],
+    ["Ventures", String(view.ventures.length), "/portal/ventures"],
+    ["Open tasks", String(open), "/portal/tasks"],
+  ];
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-white">Dashboard</h2>
+        <p className="mt-2 text-sm text-slate-400 max-w-2xl">What is linked to you in the portal.</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-4">
+        {tiles.map(([label, v, href]) => (
+          <Link key={label} href={href} className={`${card} block hover:border-slate-700`}>
+            <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
+            <div className="mt-1 text-xl font-semibold text-white">{v}</div>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

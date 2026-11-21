@@ -286,7 +286,7 @@ await step("an Admin cannot open the console, site content or the personal desk"
 await step("an Admin can only offer the lower roles and cannot manage the Super Admin", async () => {
   await E.page.goto("/portal/access");
   const options = await E.page.locator('form select[name="role"]').first().locator("option").allInnerTexts();
-  assert.deepEqual(options.map((o) => o.trim()), ["Partner", "Operator", "Founder", "Limited Partner"]);
+  assert.deepEqual(options.map((o) => o.trim()), ["Partner", "Operator", "Co-Build partner", "Founder", "Limited Partner"]);
   const superRow = E.page.locator("tr", { hasText: ADMIN });
   assert.equal(await superRow.locator("button").count(), 0);
   assert.ok(await superRow.locator("text=Super Admin only").count());
@@ -796,7 +796,7 @@ await step("Impact Marrow: contributions from Boring PE and Rahul personally lan
 await step("an LP sees no firm holdings", async () => {
   await B.page.goto("/portal/portfolio");
   const text = await flat(B.page);
-  assert.ok(!/Acme Foods/.test(text) && /once your access is linked/.test(text), text);
+  assert.ok(!/Acme Foods/.test(text) && /Nothing is linked to you yet/.test(text), text);
 });
 
 // ---------------------------------------------------------------- Ventures and operators
@@ -971,6 +971,104 @@ await step("people: the operator sees their own payslip; an LP cannot open Peopl
   assert.ok(/₹46,974\.19/.test(row) && /paid/i.test(row), row);
   await B.page.goto("/portal/people");
   assert.match(B.page.url(), /\/portal\/dashboard$/);
+});
+
+// ---------------------------------------------------------------- Scoped access for external people
+const COBUILD = "cobuild@example.test";
+const COBUILD_NEW = "cobuild chosen passphrase 42!";
+const G = await ctx();
+const formAction = (html, marker) => {
+  const form = html.match(new RegExp(`<form[^>]*>(?:(?!</form>)[\\s\\S])*${marker}(?:(?!</form>)[\\s\\S])*</form>`))[0];
+  return form.match(/name="(\$ACTION_ID_[^"]+)"/)[1];
+};
+
+await step("access: links decide exactly what an LP sees", async () => {
+  const link = async (who, item) => {
+    await A.page.goto("/portal/portfolio?view=access");
+    await A.page.waitForLoadState("networkidle");
+    await A.page.selectOption('select[name="userId"]', { label: who });
+    await A.page.selectOption('select[name="item"]', { label: item });
+    await A.page.click('button:has-text("Link")');
+    await A.page.waitForSelector("text=Linked.");
+  };
+  await link(`${LP} (Limited Partner)`, "Alpha SPV");
+  await link(`${LP} (Limited Partner)`, "Acme Foods");
+  await B.page.goto("/portal/portfolio");
+  assert.ok(/80\.00%/.test(await B.page.locator('[data-entity="Alpha SPV"] tr[data-holder="Boring PE"]').innerText()));
+  assert.ok(/1\.20x/.test(await B.page.locator('tr[data-holding="Acme Foods"]').innerText()));
+  assert.ok(!/Alpha SPV stake/.test(await B.page.locator("main").innerText()), "Boring PE's own holding in the SPV stays hidden");
+  await A.page.goto("/portal/portfolio?view=access");
+  await A.page.locator(`tr[data-scope="${LP} Acme Foods"] button:has-text("Remove")`).click();
+  await A.page.waitForSelector("text=Link removed");
+  await B.page.goto("/portal/portfolio");
+  assert.ok(!/Acme Foods/.test(await B.page.locator("main").innerText()));
+  await B.page.goto("/portal/dashboard");
+  const dash = (await B.page.locator("main").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Linked companies 1/i.test(dash) && !/Money in/i.test(dash), dash);
+});
+
+await step("access: a Co-Build partner sees only the venture linked to them", async () => {
+  await A.page.goto("/portal/access");
+  await A.page.fill('input[name="email"]', COBUILD);
+  await A.page.selectOption('select[name="role"]', "cobuild_partner");
+  await A.page.selectOption('select[name="passwordMode"]', "generate");
+  await A.page.click('button:has-text("Invite")');
+  await A.page.waitForSelector("code");
+  const temp = (await A.page.locator("code").first().innerText()).trim();
+  await login(G.page, COBUILD, temp);
+  await G.page.waitForURL(/\/portal\/account/);
+  await G.page.fill('input[name="current"]', temp);
+  await G.page.fill('input[name="next"]', COBUILD_NEW);
+  await G.page.fill('input[name="confirm"]', COBUILD_NEW);
+  await G.page.click('button:has-text("Save password")');
+  await G.page.waitForURL(/changed=1/);
+  await login(G.page, COBUILD, COBUILD_NEW);
+  await G.page.waitForURL(/\/portal\/dashboard/);
+  await G.page.goto("/portal/ventures");
+  assert.ok(/not linked to a venture yet/.test(await G.page.locator("main").innerText()));
+
+  await A.page.goto("/portal/portfolio?view=access");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="userId"]', { label: `${COBUILD} (Co-Build partner)` });
+  await A.page.selectOption('select[name="item"]', { label: "Alpha Co-Build" });
+  await A.page.click('button:has-text("Link")');
+  await A.page.waitForSelector("text=Linked.");
+
+  await G.page.goto("/portal/ventures");
+  const list = await G.page.locator("main").innerText();
+  assert.ok(/Alpha Co-Build/.test(list) && !/Boring Cafe/.test(list), list);
+  await G.page.click('a:has-text("Alpha Co-Build")');
+  await G.page.waitForSelector('article[data-period="2026-10"]');
+  const text = (await G.page.locator("main").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Revenue ₹1,00,000\.00/.test(text) && !/Alpha Operator/.test(text) && !/Net to venture/i.test(text), text);
+  for (const path of ["/portal/books", "/portal/people", "/portal/money", "/portal/deals"]) {
+    await G.page.goto(path);
+    assert.match(G.page.url(), /\/portal\/dashboard$/, path);
+  }
+});
+
+await step("tasks: an operator sees and changes only their own tasks", async () => {
+  await F.page.goto("/portal/tasks");
+  await F.page.waitForLoadState("networkidle");
+  const before = await F.page.locator("main").innerText();
+  assert.ok(!/Send term sheet/.test(before) && !/Alpha/.test(before), before);
+  const options = await F.page.locator('select[name="assigneeId"] option').allInnerTexts();
+  assert.deepEqual(options.filter((o) => o !== "Unassigned").length, 1, options.join());
+  await F.page.fill('input[name="title"]', "Operator task");
+  await F.page.click('button:has-text("Add task")');
+  await F.page.waitForSelector('li[data-task="Operator task"]');
+
+  const aHtml = await (await A.page.request.get("/portal/tasks")).text();
+  const target = aHtml.match(/data-task="Send term sheet"[\s\S]*?name="id" value="([^"]+)"/)[1];
+  const fHtml = await (await F.page.request.get("/portal/tasks")).text();
+  await F.page.request.post("/portal/tasks", {
+    multipart: { [formAction(fHtml, 'name="done"')]: "", id: target, done: "false" },
+    maxRedirects: 0,
+  });
+  await A.page.goto("/portal/tasks");
+  assert.ok(await A.page.locator('li[data-task="Send term sheet"] .line-through').count(), "still done");
+  await F.page.goto("/portal/dashboard");
+  assert.ok(/Open tasks\s*1/i.test(await F.page.locator("main").innerText()));
 });
 
 await step("sign out clears the session", async () => {

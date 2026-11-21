@@ -6,7 +6,10 @@ import { getHolding, listCapTable, listHoldings, toTxns, type HoldingRow } from 
 import { pillarLabel } from "@/lib/ops-fields";
 import { ASSET_CLASSES, INSTRUMENTS, assetClassLabel, capTable, instrumentLabel, position } from "@/lib/portfolio-calc";
 import { canManagePortfolio, canSeeFirmData } from "@/lib/rbac";
-import { addCap, addHolding, addHoldingTxn } from "./actions";
+import { ROLE_META, isRole } from "@/lib/rbac";
+import { SCOPE_LABEL, externalUsers, listScopes, myView } from "@/lib/scopes";
+import { listVentures } from "@/lib/ventures";
+import { addAccess, addCap, addHolding, addHoldingTxn, dropAccess } from "./actions";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   "holding-added": { text: "Holding added. Record the investment below." },
@@ -19,6 +22,9 @@ const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   forbidden: { text: "You do not have permission for that. Investing and exiting are for the Super Admin.", bad: true },
   exited: { text: "This holding is exited.", bad: true },
   "too-much-cost": { text: "An exit cannot recover more cost than is still held.", bad: true },
+  "access-added": { text: "Linked. They see it the next time they open the portal." },
+  "access-removed": { text: "Link removed." },
+  "access-invalid": { text: "Choose an external person (LP, founder, operator or Co-Build partner) and one item.", bad: true },
   "cost-left": { text: "To mark it fully exited, recover all the remaining cost in this exit.", bad: true },
   "books-refused": { text: "The books refused that posting. Check the entity's chart of accounts.", bad: true },
 };
@@ -41,18 +47,9 @@ export default async function PortfolioPage({
   const sp = await searchParams;
   const banner = sp.notice ? NOTICES[sp.notice] : undefined;
 
-  if (!canSeeFirmData(user.role)) {
-    return (
-      <div>
-        <h2 className="text-2xl font-bold text-white">Portfolio</h2>
-        <p className="mt-2 text-sm text-slate-400 max-w-2xl">
-          Your own holdings and statements will appear here once your access is linked to them.
-        </p>
-      </div>
-    );
-  }
+  if (!canSeeFirmData(user.role)) return <MyPortfolio userId={user.id} />;
 
-  const view = sp.view === "cap" ? "cap" : "holdings";
+  const view = sp.view === "cap" || sp.view === "access" ? sp.view : "holdings";
   const manage = canManagePortfolio(user.role);
   const owner = user.role === "super_admin";
   const entities = await listEntities();
@@ -74,14 +71,20 @@ export default async function PortfolioPage({
       ) : null}
 
       <nav aria-label="Portfolio sections" className="flex gap-1 border-b border-slate-800">
-        {[["holdings", "Holdings", "/portal/portfolio"], ["cap", "Cap tables", "/portal/portfolio?view=cap"]].map(([id, label, href]) => (
+        {[
+          ["holdings", "Holdings", "/portal/portfolio"],
+          ["cap", "Cap tables", "/portal/portfolio?view=cap"],
+          ...(manage ? [["access", "Access links", "/portal/portfolio?view=access"]] : []),
+        ].map(([id, label, href]) => (
           <Link key={id} href={href} className={`px-4 py-2 text-sm -mb-px border-b-2 ${view === id && !sp.h ? "border-blue-500 text-white" : "border-transparent text-slate-400 hover:text-white"}`}>
             {label}
           </Link>
         ))}
       </nav>
 
-      {sp.h ? <HoldingDetail id={sp.h} manage={manage} owner={owner} /> : view === "cap" ? (
+      {sp.h ? <HoldingDetail id={sp.h} manage={manage} owner={owner} /> : view === "access" && manage ? (
+        <AccessLinks entities={entities} />
+      ) : view === "cap" ? (
         <CapTables entities={entities} selected={sp.e} manage={manage} />
       ) : (
         <Holdings entities={entities} manage={manage} />
@@ -291,5 +294,122 @@ async function CapTables({ entities, selected, manage }: { entities: Awaited<Ret
         </section>
       ) : null}
     </div>
+  );
+}
+
+async function AccessLinks({ entities }: { entities: Awaited<ReturnType<typeof listEntities>> }) {
+  const [scopes, users, ventures, holdings] = await Promise.all([listScopes(), externalUsers(), listVentures(null), listHoldings()]);
+  const roleLabel = (r: string) => (isRole(r) ? ROLE_META[r].label : r);
+  return (
+    <div className="space-y-8">
+      <p className="text-sm text-slate-400 max-w-2xl">
+        LPs, founders, operators and Co-Build partners see only what is linked here: an SPV or company (its cap table,
+        summary books and holdings), a venture (its monthly statements) or a single holding. Operators also see ventures they operate.
+      </p>
+      <section className={`${card} overflow-x-auto`}>
+        <table className="w-full">
+          <thead><tr><th className={th}>Person</th><th className={th}>Role</th><th className={th}>Sees</th><th className={th}></th></tr></thead>
+          <tbody>
+            {scopes.length === 0 ? <tr><td colSpan={4} className="px-3 py-6 text-sm text-slate-500">No links yet.</td></tr> : scopes.map((sc) => (
+              <tr key={sc.id} className="border-t border-slate-800" data-scope={`${sc.user_email} ${sc.ref_name}`}>
+                <td className={td}>{sc.user_email}</td><td className={td}>{roleLabel(sc.user_role)}</td>
+                <td className={td}>{SCOPE_LABEL[sc.scope_type]}: {sc.ref_name ?? "(removed)"}</td>
+                <td className={td}>
+                  <form action={dropAccess}><input type="hidden" name="scopeId" value={sc.id} /><button className="text-xs text-red-300 hover:text-red-200">Remove</button></form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+      <section className={`${card} p-6`}>
+        <h3 className="text-sm font-semibold text-white mb-4">Link a person</h3>
+        {users.length === 0 ? <p className="text-sm text-slate-500">Invite an LP, founder, operator or Co-Build partner under Access first.</p> : (
+          <form action={addAccess} className="grid gap-3 md:grid-cols-3">
+            <select name="userId" className={input} aria-label="Person">
+              {users.map((u) => <option key={u.id} value={u.id}>{u.email} ({roleLabel(u.role)})</option>)}
+            </select>
+            <select name="item" className={input} aria-label="Item">
+              <optgroup label="SPVs and companies">
+                {entities.filter((e) => e.kind !== "boring_pe").map((e) => <option key={e.id} value={`entity:${e.id}`}>{e.name}</option>)}
+              </optgroup>
+              <optgroup label="Ventures">{ventures.map((v) => <option key={v.id} value={`venture:${v.id}`}>{v.name}</option>)}</optgroup>
+              <optgroup label="Holdings">{holdings.map((h) => <option key={h.id} value={`holding:${h.id}`}>{h.name}</option>)}</optgroup>
+            </select>
+            <button className={btn}>Link</button>
+          </form>
+        )}
+      </section>
+    </div>
+  );
+}
+
+async function MyPortfolio({ userId }: { userId: string }) {
+  const view = await myView(userId);
+  const nothing = view.entities.length === 0 && view.holdings.length === 0;
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-white">Portfolio</h2>
+        <p className="mt-2 text-sm text-slate-400 max-w-2xl">The companies and investments linked to you.</p>
+      </div>
+      {nothing ? <p className="text-sm text-slate-500">Nothing is linked to you yet. Boring PE links your SPVs and holdings here.</p> : null}
+      {view.entities.map((e) => {
+        const table = capTable(e.cap.map((r) => ({ holder: r.holder_name, shares: Number(r.shares), invested: decimalToPaise(r.invested) })));
+        return (
+          <section key={e.id} className={`${card} p-6 space-y-5`} data-entity={e.name}>
+            <div>
+              <h3 className="text-lg font-semibold text-white">{e.name}</h3>
+              <p className="text-xs text-slate-500">{kindLabel(e.kind)} · figures for this financial year from {e.fyFrom}</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-4">
+              {[["Income", e.income], ["Expenses", e.expense], [e.net >= 0n ? "Profit" : "Loss", e.net], ["Cash", e.cash]].map(([label, v]) => (
+                <div key={label as string} className="rounded-lg border border-slate-800 p-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">{label as string}</div>
+                  <div className="mt-1 text-base font-semibold text-white">{rupees(v as bigint)}</div>
+                </div>
+              ))}
+            </div>
+            <table className="w-full">
+              <thead><tr><th className={th}>Shareholder</th><th className={`${th} text-right`}>Shares</th><th className={`${th} text-right`}>Ownership</th></tr></thead>
+              <tbody>
+                {table.holders.length === 0 ? <tr><td colSpan={3} className="px-3 py-3 text-sm text-slate-500">No shareholders recorded.</td></tr> : table.holders.map((h) => (
+                  <tr key={h.holder} className="border-t border-slate-800" data-holder={h.holder}>
+                    <td className={td}>{h.holder}</td><td className={num}>{h.shares.toLocaleString("en-IN")}</td><td className={num}>{h.percent.toFixed(2)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {e.holdings.length ? <HoldingList holdings={e.holdings} /> : null}
+          </section>
+        );
+      })}
+      {view.holdings.length ? (
+        <section className={`${card} p-6 space-y-3`}>
+          <h3 className="text-lg font-semibold text-white">Holdings</h3>
+          <HoldingList holdings={view.holdings} />
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function HoldingList({ holdings }: { holdings: HoldingRow[] }) {
+  return (
+    <table className="w-full">
+      <thead><tr><th className={th}>Holding</th><th className={th}>Class</th><th className={`${th} text-right`}>Invested</th><th className={`${th} text-right`}>Value</th><th className={`${th} text-right`}>Returned</th><th className={`${th} text-right`}>MOIC</th></tr></thead>
+      <tbody>
+        {holdings.map((h) => {
+          const p = position(toTxns(h));
+          return (
+            <tr key={h.id} className="border-t border-slate-800" data-holding={h.name}>
+              <td className={td}>{h.name}</td><td className={td}>{assetClassLabel(h.asset_class)}</td>
+              <td className={num}>{rupees(p.invested)}</td><td className={num}>{rupees(p.currentValue)}</td>
+              <td className={num}>{rupees(p.proceeds + p.income)}</td><td className={num}>{moic(p.moic)}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }

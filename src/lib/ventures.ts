@@ -20,12 +20,13 @@ const VENTURE_SELECT = `
          v.fee_fixed::text, v.fee_bps, v.status, v.notes
     from ventures v join entities e on e.id = v.entity_id`;
 
-/** All ventures, or only those where this operator is linked. */
+/** All ventures, or only those this person operates or is linked to. */
 export async function listVentures(onlyForUser: string | null) {
   const sql = await getSql();
   if (onlyForUser) {
     return sql.query<VentureRow>(
       `${VENTURE_SELECT} where exists (select 1 from venture_operators o where o.venture_id = v.id and o.user_id = $1)
+           or exists (select 1 from access_scopes s where s.scope_type = 'venture' and s.ref_id = v.id and s.user_id = $1)
         order by v.name`,
       [onlyForUser],
     );

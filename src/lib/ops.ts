@@ -123,13 +123,16 @@ export async function createEntry(e: {
 }
 
 // ---- tasks
-export async function listTasks() {
+/** All tasks, or only those assigned to or created by `onlyFor` (external people). */
+export async function listTasks(onlyFor: string | null = null) {
   const sql = await getSql();
   return sql.query<TaskRow>(
     `select t.id, t.title, t.deal_id, d.name as deal_name, t.assignee_id, u.email as assignee_email,
        t.due_date::text as due_date, t.done from tasks t
        left join deals d on d.id = t.deal_id left join users u on u.id = t.assignee_id
-       order by t.done, t.due_date nulls last, t.created_at desc limit 200`,
+      where $1::text is null or t.assignee_id = $1 or t.created_by = $1
+      order by t.done, t.due_date nulls last, t.created_at desc limit 200`,
+    [onlyFor],
   );
 }
 export async function createTask(t: { title: string; dealId: string | null; assigneeId: string | null; due: string | null; by: string }) {
@@ -139,9 +142,15 @@ export async function createTask(t: { title: string; dealId: string | null; assi
     [t.title, t.dealId, t.assigneeId, t.due, t.by],
   );
 }
-export async function setTaskDone(id: string, done: boolean) {
+export async function setTaskDone(id: string, done: boolean, onlyFor: string | null = null) {
   const sql = await getSql();
-  return (await sql.query("update tasks set done = $2 where id = $1 returning id", [id, done])).length > 0;
+  return (
+    await sql.query(
+      `update tasks set done = $2 where id = $1
+          and ($3::text is null or assignee_id = $3 or created_by = $3) returning id`,
+      [id, done, onlyFor],
+    )
+  ).length > 0;
 }
 export async function listAssignees() {
   const sql = await getSql();
