@@ -7,6 +7,7 @@ export type SectionId =
   | "integrations"
   | "content"
   | "dashboard"
+  | "intelligence"
   | "inbox"
   | "whatsapp"
   | "calendar"
@@ -28,48 +29,54 @@ export type SectionId =
   | "access"
   | "personal";
 
-export type Group = "super" | "firm" | "personal";
+export type Group = "super" | "intelligence" | "ventures" | "infrastructure" | "personal";
 
 export const GROUPS: { id: Group; label: string }[] = [
   { id: "super", label: "Super Admin" },
-  { id: "firm", label: "Boring PE" },
+  { id: "intelligence", label: "Intelligence" },
+  { id: "ventures", label: "Ventures" },
+  { id: "infrastructure", label: "Infrastructure" },
   { id: "personal", label: "Rahul Mane · private" },
 ];
 
 export const SECTIONS: { id: SectionId; href: string; label: string; group: Group }[] = [
   { id: "console", href: "/portal/console", label: "Console", group: "super" },
-  { id: "integrations", href: "/portal/integrations", label: "Integrations", group: "super" },
   { id: "content", href: "/portal/content", label: "Site content", group: "super" },
-  { id: "dashboard", href: "/portal/dashboard", label: "Dashboard", group: "firm" },
-  { id: "inbox", href: "/portal/inbox", label: "Inbox", group: "firm" },
-  { id: "calendar", href: "/portal/calendar", label: "Calendar", group: "firm" },
-  { id: "whatsapp", href: "/portal/whatsapp", label: "WhatsApp", group: "firm" },
-  { id: "portfolio", href: "/portal/portfolio", label: "Portfolio", group: "firm" },
-  { id: "ventures", href: "/portal/ventures", label: "Ventures", group: "firm" },
-  { id: "deals", href: "/portal/deals", label: "Deal Pipeline", group: "firm" },
-  { id: "money", href: "/portal/money", label: "Money", group: "firm" },
-  { id: "books", href: "/portal/books", label: "Books", group: "firm" },
-  { id: "invoices", href: "/portal/invoices", label: "Invoices", group: "firm" },
-  { id: "bank", href: "/portal/bank", label: "Bank reconciliation", group: "firm" },
-  { id: "assets", href: "/portal/assets", label: "Fixed assets", group: "firm" },
-  { id: "budgets", href: "/portal/budgets", label: "Budgets", group: "firm" },
-  { id: "tasks", href: "/portal/tasks", label: "Tasks", group: "firm" },
-  { id: "people", href: "/portal/people", label: "People", group: "firm" },
-  { id: "vault", href: "/portal/vault", label: "BIDU Vault", group: "firm" },
-  { id: "marrow", href: "/portal/marrow", label: "Impact Marrow", group: "firm" },
-  { id: "reports", href: "/portal/reports", label: "MIS reports", group: "firm" },
-  { id: "approvals", href: "/portal/approvals", label: "Approvals", group: "firm" },
-  { id: "access", href: "/portal/access", label: "Access", group: "firm" },
+  // Intelligence: what the numbers say.
+  { id: "dashboard", href: "/portal/dashboard", label: "Dashboard", group: "intelligence" },
+  { id: "intelligence", href: "/portal/intelligence", label: "Insights", group: "intelligence" },
+  { id: "reports", href: "/portal/reports", label: "MIS reports", group: "intelligence" },
+  { id: "budgets", href: "/portal/budgets", label: "Budgets", group: "intelligence" },
+  { id: "portfolio", href: "/portal/portfolio", label: "Portfolio", group: "intelligence" },
+  // Ventures: the businesses being built, co-built and backed.
+  { id: "ventures", href: "/portal/ventures", label: "Ventures", group: "ventures" },
+  { id: "deals", href: "/portal/deals", label: "Deal Pipeline", group: "ventures" },
+  { id: "marrow", href: "/portal/marrow", label: "Impact Marrow", group: "ventures" },
+  { id: "tasks", href: "/portal/tasks", label: "Tasks", group: "ventures" },
+  { id: "approvals", href: "/portal/approvals", label: "Approvals", group: "ventures" },
+  // Infrastructure: the systems every venture runs on.
+  { id: "books", href: "/portal/books", label: "Books", group: "infrastructure" },
+  { id: "invoices", href: "/portal/invoices", label: "Invoices", group: "infrastructure" },
+  { id: "bank", href: "/portal/bank", label: "Bank reconciliation", group: "infrastructure" },
+  { id: "money", href: "/portal/money", label: "Money", group: "infrastructure" },
+  { id: "assets", href: "/portal/assets", label: "Fixed assets", group: "infrastructure" },
+  { id: "people", href: "/portal/people", label: "People & payroll", group: "infrastructure" },
+  { id: "vault", href: "/portal/vault", label: "BIDU Vault", group: "infrastructure" },
+  { id: "inbox", href: "/portal/inbox", label: "Inbox", group: "infrastructure" },
+  { id: "calendar", href: "/portal/calendar", label: "Calendar", group: "infrastructure" },
+  { id: "whatsapp", href: "/portal/whatsapp", label: "WhatsApp", group: "infrastructure" },
+  { id: "integrations", href: "/portal/integrations", label: "Integrations", group: "infrastructure" },
+  { id: "access", href: "/portal/access", label: "Access", group: "infrastructure" },
   { id: "personal", href: "/portal/personal", label: "Personal desk", group: "personal" },
 ];
 
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
-    "console", "integrations", "content", "dashboard", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
+    "console", "integrations", "content", "dashboard", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
     "reports", "approvals", "access", "personal",
   ],
-  admin: ["dashboard", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "access"],
-  partner: ["dashboard", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals"],
+  admin: ["dashboard", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "access"],
+  partner: ["dashboard", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals"],
   operator: ["dashboard", "inbox", "calendar", "portfolio", "ventures", "tasks", "people", "vault", "marrow", "approvals"],
   cobuild_partner: ["dashboard", "inbox", "calendar", "portfolio", "ventures", "tasks", "vault"],
   founder: ["dashboard", "inbox", "calendar", "vault", "marrow"],

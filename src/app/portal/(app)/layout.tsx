@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   BarChart3, Bell, BookOpen, Building2, CalendarDays, ClipboardCheck, Crown, FileText, FolderKanban, HeartHandshake,
   Inbox as InboxIcon, LayoutDashboard, Landmark, ListChecks, Lock, LogOut, MessageCircle, Package, Pin, Plug, Receipt,
-  Rocket, ShieldCheck, Target, Crosshair, UserCircle, Users, Wallet,
+  Rocket, ShieldCheck, Sparkles, Target, Crosshair, UserCircle, Users, Wallet,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { unreadCount } from "@/lib/notify";
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 const ICONS: Record<SectionId, React.ElementType> = {
   console: Crown, integrations: Plug, content: FileText, approvals: ClipboardCheck, reports: BarChart3, personal: Lock,
-  dashboard: LayoutDashboard, inbox: InboxIcon, calendar: CalendarDays, whatsapp: MessageCircle, portfolio: Building2,
+  dashboard: LayoutDashboard, intelligence: Sparkles, inbox: InboxIcon, calendar: CalendarDays, whatsapp: MessageCircle, portfolio: Building2,
   ventures: Rocket, deals: Target, money: Wallet, books: BookOpen, invoices: Receipt, bank: Landmark, assets: Package,
   budgets: Crosshair, tasks: ListChecks, people: Users, vault: FolderKanban, marrow: HeartHandshake, access: ShieldCheck,
 };
@@ -43,6 +43,7 @@ const ACTIONS: { section: SectionId; label: string; href: string; hint: string }
   { section: "tasks", label: "Add a task", href: "/portal/tasks", hint: "Tasks" },
   { section: "people", label: "Prepare payroll", href: "/portal/people?view=payroll", hint: "People" },
   { section: "bank", label: "Import a bank statement", href: "/portal/bank", hint: "Bank" },
+  { section: "intelligence", label: "What needs attention", href: "/portal/intelligence", hint: "Insights" },
   { section: "reports", label: "Open MIS reports", href: "/portal/reports", hint: "Reports" },
 ];
 
