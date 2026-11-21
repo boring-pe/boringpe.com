@@ -823,14 +823,12 @@ await step("ventures: the owner invites an operator who signs in", async () => {
   await F.page.waitForURL(/\/portal\/dashboard/);
 });
 
-let cafeUrl = "";
 await step("ventures: a Build venture inside Boring PE pays no fee; the operator's profit share is computed", async () => {
   await A.page.goto("/portal/ventures");
   await A.page.waitForLoadState("networkidle");
   await A.page.fill('input[name="name"]', "Boring Cafe");
   await A.page.click('button:has-text("Add venture")');
   await A.page.waitForSelector("text=Venture added");
-  cafeUrl = A.page.url().replace(/&notice=.*/, "");
   await A.page.waitForLoadState("networkidle");
   await A.page.fill('input[name="name"]', "Cafe Operator");
   await A.page.fill('input[name="percent"]', "30");
@@ -901,6 +899,77 @@ await step("ventures: an operator sees only their venture and own share; an LP c
   await F.page.goto(alpha);
   assert.ok(/not found/.test(await F.page.locator("main").innerText()));
   await B.page.goto("/portal/ventures");
+  assert.match(B.page.url(), /\/portal\/dashboard$/);
+});
+
+// ---------------------------------------------------------------- People and HR
+await step("people: an Admin-managed record links the operator's login; leave balances and overlaps are enforced", async () => {
+  await A.page.goto("/portal/people?view=team");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="name"]', "Asha Patil");
+  await A.page.fill('input[name="joinDate"]', "2026-01-01");
+  await A.page.fill('input[name="monthlyGross"]', "60,000");
+  await A.page.fill('input[name="tdsPercent"]', "10");
+  await A.page.fill('input[name="otherDeduction"]', "1,800");
+  await A.page.selectOption('select[name="userId"]', { label: OPERATOR });
+  await A.page.click('button:has-text("Add employee")');
+  await A.page.waitForSelector("text=Employee added");
+
+  await F.page.goto("/portal/people");
+  assert.equal(await F.page.locator('nav[aria-label="People sections"]').count(), 0, "no team tab for an operator");
+  assert.ok(/12 of 12/.test(await F.page.locator('[data-balance="casual"]').innerText()));
+  const ask = async (kind, from, to) => {
+    await F.page.goto("/portal/people");
+    await F.page.waitForLoadState("networkidle");
+    await F.page.selectOption('select[name="kind"]', kind);
+    await F.page.fill('input[name="from"]', from);
+    await F.page.fill('input[name="to"]', to);
+    await F.page.click('button:has-text("Ask for leave")');
+    await F.page.waitForURL(/notice=/);
+    return F.page.url();
+  };
+  assert.match(await ask("casual", "2026-11-02", "2026-11-14"), /notice=balance/);
+  assert.match(await ask("unpaid", "2026-10-05", "2026-10-07"), /notice=leave-requested/);
+  assert.match(await ask("sick", "2026-10-07", "2026-10-08"), /notice=overlap/);
+  await F.page.goto("/portal/people?view=team");
+  assert.ok(!/Add an employee/.test(await F.page.locator("main").innerText()), "the team list stays hidden");
+});
+
+await step("people: an Admin approves the leave; the operator cannot decide leave", async () => {
+  await E.page.goto("/portal/people?view=leave");
+  await E.page.locator('tr[data-leave="Asha Patil 2026-10-05"] button:has-text("Approve")').click();
+  await E.page.waitForSelector("text=Leave approved");
+  assert.ok(/approved/i.test(await E.page.locator('tr[data-leave="Asha Patil 2026-10-05"]').innerText()));
+});
+
+await step("payroll: unpaid leave is deducted, posting books salaries, paying clears them", async () => {
+  await A.page.goto("/portal/people?view=payroll");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="month"]', "2026-10");
+  await A.page.click('button:has-text("Prepare")');
+  await A.page.waitForSelector("text=Draft pay run ready");
+  const slip = (await A.page.locator('article[data-run="Boring PE 2026-10"] tr[data-slip="Asha Patil"]').innerText()).replace(/\s+/g, " ");
+  assert.ok(/28\/31 \(3 unpaid\)/.test(slip) && /₹54,193\.55/.test(slip) && /₹46,974\.19/.test(slip), slip);
+  await A.page.locator('article[data-run="Boring PE 2026-10"] button:has-text("Post to books")').click();
+  await A.page.waitForSelector("text=Pay run posted");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="month"]', "2026-10");
+  await A.page.click('button:has-text("Prepare")');
+  await A.page.waitForSelector("text=already has a pay run");
+  await E.page.goto("/portal/people?view=payroll");
+  assert.equal(await E.page.locator('button:has-text("Mark salaries paid")').count(), 0);
+  await A.page.locator('article[data-run="Boring PE 2026-10"] button:has-text("Mark salaries paid")').click();
+  await A.page.waitForSelector("text=Salaries marked paid");
+  await A.page.goto("/portal/books?view=reports&from=2026-10-01&to=2026-10-31");
+  const pl = (await A.page.locator("main").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Salaries\s*₹54,193\.55/.test(pl), pl);
+});
+
+await step("people: the operator sees their own payslip; an LP cannot open People", async () => {
+  await F.page.goto("/portal/people");
+  const row = (await F.page.locator('tr[data-payslip="2026-10"]').innerText()).replace(/\s+/g, " ");
+  assert.ok(/₹46,974\.19/.test(row) && /paid/i.test(row), row);
+  await B.page.goto("/portal/people");
   assert.match(B.page.url(), /\/portal\/dashboard$/);
 });
 

@@ -12,6 +12,7 @@ export type SectionId =
   | "money"
   | "books"
   | "tasks"
+  | "people"
   | "vault"
   | "marrow"
   | "approvals"
@@ -36,6 +37,7 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
   { id: "money", href: "/portal/money", label: "Money", group: "firm" },
   { id: "books", href: "/portal/books", label: "Books", group: "firm" },
   { id: "tasks", href: "/portal/tasks", label: "Tasks", group: "firm" },
+  { id: "people", href: "/portal/people", label: "People", group: "firm" },
   { id: "vault", href: "/portal/vault", label: "BIDU Vault", group: "firm" },
   { id: "marrow", href: "/portal/marrow", label: "Impact Marrow", group: "firm" },
   { id: "approvals", href: "/portal/approvals", label: "Approvals", group: "firm" },
@@ -45,12 +47,12 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
 
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
-    "console", "content", "dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "vault", "marrow",
+    "console", "content", "dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "people", "vault", "marrow",
     "approvals", "access", "personal",
   ],
-  admin: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "vault", "marrow", "approvals", "access"],
-  partner: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "vault", "marrow", "approvals"],
-  operator: ["dashboard", "portfolio", "ventures", "tasks", "vault", "marrow", "approvals"],
+  admin: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "people", "vault", "marrow", "approvals", "access"],
+  partner: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "people", "vault", "marrow", "approvals"],
+  operator: ["dashboard", "portfolio", "ventures", "tasks", "people", "vault", "marrow", "approvals"],
   founder: ["dashboard", "marrow"],
   lp: ["dashboard", "portfolio"],
 };
@@ -127,3 +129,6 @@ export const canPostBooks = (role: Role) => role === "super_admin" || role === "
 export const canSeeFirmData = (role: Role) => role === "super_admin" || role === "admin" || role === "partner";
 /** Adding holdings, cap table rows, income and valuations. Moving money (invest, exit, contributions) is the Super Admin's alone. */
 export const canManagePortfolio = (role: Role) => role === "super_admin" || role === "admin";
+
+/** Salaries, everyone's leave and payroll. Others see only their own record. */
+export const canManagePeople = (role: Role) => role === "super_admin" || role === "admin";
