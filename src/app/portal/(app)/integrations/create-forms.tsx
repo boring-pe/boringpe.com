@@ -6,10 +6,10 @@ import type { Created } from "./actions";
 const input = "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none";
 
 function Shown({ state, what }: { state: Created; what: string }) {
-  if (state.error) return <p role="status" className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{state.error}</p>;
+  if (state.error) return <p role="status" data-persist className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{state.error}</p>;
   if (!state.secret) return null;
   return (
-    <div role="status" className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-100">
+    <div role="status" data-persist className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-100">
       Copy this {what} now. It will not be shown again.
       <code className="mt-2 block break-all rounded bg-slate-950 p-2 text-xs text-white" data-secret>{state.secret}</code>
     </div>

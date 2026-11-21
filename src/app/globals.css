@@ -15,3 +15,169 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* ------------------------------------------------------------------------------------------------
+ * Boring Portal design system. Scoped to pages that render the .portal shell, so the public sites
+ * keep their own look. Tailwind's palette is remapped to semantic tokens: every existing slate/blue
+ * class follows the theme (light, dark, device), the accent and the density each person chooses.
+ * ---------------------------------------------------------------------------------------------- */
+:root:has(.portal) {
+  --font-serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --p-bg: #f5f2ea;
+  --p-surface: #fffdf8;
+  --p-sunken: #faf8f2;
+  --p-line: #e7e1d4;
+  --p-line-strong: #d5ccb9;
+  --p-hover: #f0ebe0;
+  --p-ink: #14213d;
+  --p-text: #2a2824;
+  --p-text-2: #4b473f;
+  --p-muted: #6c665a;
+  --p-faint: #8e8776;
+  --p-shadow: 0 1px 2px rgb(20 33 61 / 0.05), 0 2px 8px -2px rgb(20 33 61 / 0.06);
+  --p-good: #15803d;
+  --p-bad: #b42318;
+  --p-warn: #a15c07;
+  --color-green-200: #166534; --color-green-300: #15803d; --color-green-400: #15803d;
+  --color-red-200: #b42318; --color-red-300: #b42318; --color-red-400: #b42318;
+  --color-amber-100: #7a4a06; --color-amber-200: #8a5307; --color-amber-300: #a15c07; --color-amber-400: #a15c07;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:has(.portal:not([data-theme="light"])) {
+    --p-bg: #0a0f1a;
+    --p-surface: #111827;
+    --p-sunken: #0d1320;
+    --p-line: #1e293b;
+    --p-line-strong: #2c3a52;
+    --p-hover: #172133;
+    --p-ink: #f4efe4;
+    --p-text: #e1dbcf;
+    --p-text-2: #b8b1a3;
+    --p-muted: #8b8578;
+    --p-faint: #69655d;
+    --p-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px -4px rgb(0 0 0 / 0.4);
+    --p-good: #4ade80;
+    --p-bad: #f87171;
+    --p-warn: #fbbf24;
+    --color-green-200: #bbf7d0; --color-green-300: #86efac; --color-green-400: #4ade80;
+    --color-red-200: #fecaca; --color-red-300: #fca5a5; --color-red-400: #f87171;
+    --color-amber-100: #fef3c7; --color-amber-200: #fde68a; --color-amber-300: #fcd34d; --color-amber-400: #fbbf24;
+    color-scheme: dark;
+  }
+}
+:root:has(.portal[data-theme="dark"]) {
+  --p-bg: #0a0f1a;
+  --p-surface: #111827;
+  --p-sunken: #0d1320;
+  --p-line: #1e293b;
+  --p-line-strong: #2c3a52;
+  --p-hover: #172133;
+  --p-ink: #f4efe4;
+  --p-text: #e1dbcf;
+  --p-text-2: #b8b1a3;
+  --p-muted: #8b8578;
+  --p-faint: #69655d;
+  --p-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px -4px rgb(0 0 0 / 0.4);
+  --p-good: #4ade80;
+  --p-bad: #f87171;
+  --p-warn: #fbbf24;
+  --color-green-200: #bbf7d0; --color-green-300: #86efac; --color-green-400: #4ade80;
+  --color-red-200: #fecaca; --color-red-300: #fca5a5; --color-red-400: #f87171;
+  --color-amber-100: #fef3c7; --color-amber-200: #fde68a; --color-amber-300: #fcd34d; --color-amber-400: #fbbf24;
+  color-scheme: dark;
+}
+
+/* Surfaces and text, through Tailwind's slate scale. */
+:root:has(.portal) {
+  --color-slate-950: var(--p-sunken);
+  --color-slate-900: var(--p-surface);
+  --color-slate-800: var(--p-line);
+  --color-slate-700: var(--p-line-strong);
+  --color-slate-600: var(--p-faint);
+  --color-slate-500: var(--p-muted);
+  --color-slate-400: var(--p-text-2);
+  --color-slate-300: var(--p-text);
+  --color-slate-200: var(--p-text);
+  --color-slate-100: var(--p-ink);
+  --color-slate-50: var(--p-ink);
+  --color-white: var(--p-ink);
+  --color-blue-950: var(--a-700);
+  --color-blue-700: var(--a-700);
+  --color-blue-600: var(--a-600);
+  --color-blue-500: var(--a-500);
+  --color-blue-400: var(--a-text);
+  --color-blue-300: var(--a-text);
+  --color-blue-200: var(--a-text);
+  --color-blue-100: var(--a-text);
+}
+:root:has(.portal) { --a-500: #2f7a55; --a-600: #1f5f41; --a-700: #174a33; --a-text: #1f5f41; }
+@media (prefers-color-scheme: dark) { :root:has(.portal:not([data-theme="light"])) { --a-text: #86cfa9; } }
+:root:has(.portal[data-theme="dark"]) { --a-text: #86cfa9; }
+:root:has(.portal[data-accent="navy"]) { --a-500: #3a5a9a; --a-600: #22407a; --a-700: #182f5c; --a-text: #22407a; }
+@media (prefers-color-scheme: dark) { :root:has(.portal:not([data-theme="light"])[data-accent="navy"]) { --a-text: #a7c0f0; } }
+:root:has(.portal[data-theme="dark"][data-accent="navy"]) { --a-text: #a7c0f0; }
+:root:has(.portal[data-accent="indigo"]) { --a-500: #5b5bd6; --a-600: #4646c2; --a-700: #3636a0; --a-text: #4040b8; }
+@media (prefers-color-scheme: dark) { :root:has(.portal:not([data-theme="light"])[data-accent="indigo"]) { --a-text: #b9b9ff; } }
+:root:has(.portal[data-theme="dark"][data-accent="indigo"]) { --a-text: #b9b9ff; }
+:root:has(.portal[data-accent="teal"]) { --a-500: #1f8a8a; --a-600: #146b6b; --a-700: #0f5454; --a-text: #0f6262; }
+@media (prefers-color-scheme: dark) { :root:has(.portal:not([data-theme="light"])[data-accent="teal"]) { --a-text: #86d8d8; } }
+:root:has(.portal[data-theme="dark"][data-accent="teal"]) { --a-text: #86d8d8; }
+:root:has(.portal[data-accent="maroon"]) { --a-500: #a3424f; --a-600: #7d2a38; --a-700: #63202c; --a-text: #7d2a38; }
+@media (prefers-color-scheme: dark) { :root:has(.portal:not([data-theme="light"])[data-accent="maroon"]) { --a-text: #eaa9b3; } }
+:root:has(.portal[data-theme="dark"][data-accent="maroon"]) { --a-text: #eaa9b3; }
+:root:has(.portal[data-accent="gold"]) { --a-500: #b7862a; --a-600: #946a17; --a-700: #75530f; --a-text: #7a560f; }
+@media (prefers-color-scheme: dark) { :root:has(.portal:not([data-theme="light"])[data-accent="gold"]) { --a-text: #ebc675; } }
+:root:has(.portal[data-theme="dark"][data-accent="gold"]) { --a-text: #ebc675; }
+
+/* Compact density tightens every Tailwind spacing step. */
+:root:has(.portal[data-density="compact"]) { --spacing: 0.2rem; }
+
+:root:has(.portal) body { background: var(--p-bg); color: var(--p-text); }
+.portal { font-variant-numeric: tabular-nums; }
+.portal :is(h1, h2) { font-family: var(--font-serif); font-weight: 600; letter-spacing: -0.015em; color: var(--p-ink); }
+.portal h2 { font-size: clamp(1.5rem, 1.2rem + 1vw, 1.9rem); }
+.portal ::selection { background: color-mix(in oklab, var(--a-500) 25%, transparent); }
+
+/* White text stays white on accent and status buttons. */
+.portal :is(.bg-blue-500, .bg-blue-600, .bg-blue-700, .bg-green-600, .bg-green-700, .bg-red-600) { --color-white: #fff; }
+
+/* Cards: a quiet lift in light mode, hover response everywhere. */
+.portal .rounded-xl.bg-slate-900 { box-shadow: var(--p-shadow); }
+.portal a.rounded-xl.bg-slate-900, .portal details.rounded-xl { transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+.portal a.rounded-xl.bg-slate-900:hover { border-color: color-mix(in oklab, var(--a-500) 45%, var(--p-line)); transform: translateY(-1px); }
+.portal :is(input, select, textarea):focus-visible { outline: 2px solid color-mix(in oklab, var(--a-500) 55%, transparent); outline-offset: 1px; }
+.portal [data-palette] input:focus-visible { outline: none; }
+.portal :is(button, a):focus-visible { outline: 2px solid var(--a-500); outline-offset: 2px; border-radius: 6px; }
+.portal table thead { background: color-mix(in oklab, var(--p-hover) 70%, transparent); }
+.portal tbody tr { transition: background-color .15s ease; }
+.portal tbody tr:hover { background: color-mix(in oklab, var(--p-hover) 60%, transparent); }
+
+/* Printed paper (invoices) and email frames keep their own true colours in any theme. */
+.portal .paper {
+  --color-white: #fff; --color-slate-900: #0f172a; --color-slate-600: #475569; --color-slate-500: #64748b;
+  --color-slate-300: #cbd5e1; --color-slate-200: #e2e8f0; color-scheme: light;
+}
+
+/* Notices become toasts: successes fade away, problems stay until clicked. */
+.portal main [role="status"]:not([data-persist]) {
+  position: fixed; z-index: 60; right: 1rem; top: 5.5rem; max-width: min(26rem, calc(100vw - 2rem));
+  box-shadow: 0 10px 30px -10px rgb(0 0 0 / 0.35); backdrop-filter: blur(8px); cursor: pointer;
+  background-color: color-mix(in oklab, var(--p-surface) 92%, transparent);
+  animation: portal-toast-in .28s cubic-bezier(.2,.8,.2,1), portal-toast-out .4s ease 7s forwards;
+}
+.portal main [role="status"][class*="border-red"]:not([data-persist]) { animation: portal-toast-in .28s cubic-bezier(.2,.8,.2,1); }
+.portal main [role="status"].is-dismissed { display: none; }
+@media (max-width: 767px) { .portal main [role="status"]:not([data-persist]) { top: auto; bottom: 1rem; left: 1rem; right: 1rem; max-width: none; } }
+@keyframes portal-toast-in { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes portal-toast-out { to { opacity: 0; transform: translateY(-6px); visibility: hidden; } }
+
+/* Each page eases in; loading shows shimmering placeholders. */
+.portal main > * { animation: portal-enter .32s cubic-bezier(.2,.8,.2,1); }
+@keyframes portal-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.portal .skeleton { background: linear-gradient(90deg, var(--p-hover) 0%, color-mix(in oklab, var(--p-hover) 40%, var(--p-surface)) 50%, var(--p-hover) 100%); background-size: 200% 100%; animation: portal-shimmer 1.2s linear infinite; border-radius: .75rem; }
+@keyframes portal-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .portal *, .portal *::before, .portal *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; }
+  .portal main [role="status"]:not([data-persist]):not([class*="border-red"]) { animation: portal-toast-out .01ms ease 7s forwards !important; }
+}

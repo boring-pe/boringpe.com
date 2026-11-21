@@ -42,7 +42,10 @@ const th = "px-3 py-2 text-left text-xs uppercase tracking-wide text-slate-500";
 const td = "px-3 py-2 text-sm text-slate-300";
 const num = "px-3 py-2 text-sm text-right tabular-nums text-slate-200";
 const r = (d: string) => rupees(decimalToPaise(d));
-const STATUS: Record<string, string> = { draft: "text-slate-400", issued: "text-amber-400", paid: "text-green-400", cancelled: "text-red-400" };
+const STATUS: Record<string, string> = {
+  draft: "border-slate-700 text-slate-400", issued: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+  paid: "border-green-500/40 bg-green-500/10 text-green-300", cancelled: "border-red-500/30 bg-red-500/10 text-red-300",
+};
 const VIEWS = [["list", "Invoices"], ["new", "New invoice"], ["receivables", "Receivables"], ["gst", "GST summary"], ["settings", "GST settings"]] as const;
 
 export default async function InvoicesPage({
@@ -95,7 +98,7 @@ async function List() {
                 <td className={td}><Link href={`/portal/invoices?inv=${i.id}`} className="text-blue-300 hover:text-blue-200">{i.number ?? "Draft"}</Link></td>
                 <td className={td}>{i.issue_date}</td><td className={td}>{i.entity_name}</td><td className={td}>{i.party_name}</td>
                 <td className={num}>{r(i.total)}</td><td className={num}>{i.status === "issued" ? rupees(out) : ""}</td>
-                <td className={`${td} capitalize ${STATUS[i.status]}`}>{i.status}</td>
+                <td className={td}><span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${STATUS[i.status]}`}>{i.status}</span></td>
               </tr>
             );
           })}
@@ -159,7 +162,7 @@ async function Detail({ id, post, owner }: { id: string; post: boolean; owner: b
   const today = new Date().toISOString().slice(0, 10);
   return (
     <div className="space-y-6">
-      <article className="rounded-xl border border-slate-800 bg-white p-8 text-slate-900 print:border-0 print:p-0" data-invoice-doc>
+      <article className="paper rounded-xl border border-slate-800 bg-white p-8 text-slate-900 print:border-0 print:p-0" data-invoice-doc>
         <div className="flex flex-wrap justify-between gap-4">
           <div>
             <div className="text-xl font-bold">{inv.seller.name}</div>
