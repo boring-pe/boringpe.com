@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 const nextConfig: NextConfig = {
   // Embedded Postgres is only used in local development and must not be bundled.
   serverExternalPackages: ["@electric-sql/pglite", "pg"],
+  // Vault uploads are up to 4 MB; Vercel functions accept request bodies up to 4.5 MB.
+  experimental: { serverActions: { bodySizeLimit: "4.5mb" } },
   turbopack: {
     root: path.dirname(fileURLToPath(import.meta.url)),
     rules: {

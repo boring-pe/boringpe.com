@@ -1,0 +1,75 @@
+import { createHash } from "node:crypto";
+import { getSql } from "./db";
+import type { DocCategory } from "./vault-fields";
+
+export type DocRow = {
+  id: string; title: string; category: DocCategory; visibility: "firm" | "linked";
+  entity_id: string | null; venture_id: string | null; holding_id: string | null; linked_name: string | null;
+  file_name: string; mime: string; size: number; uploaded_by_email: string | null; created_at: string;
+};
+
+/** Which documents an external person may see: shared ones linked to something they are linked to. */
+const EXTERNAL_FILTER = `
+  d.visibility = 'linked' and (
+    (d.entity_id is not null and exists (select 1 from access_scopes s where s.user_id = $1 and s.scope_type = 'entity' and s.ref_id = d.entity_id))
+    or (d.venture_id is not null and (
+         exists (select 1 from access_scopes s where s.user_id = $1 and s.scope_type = 'venture' and s.ref_id = d.venture_id)
+         or exists (select 1 from venture_operators o where o.venture_id = d.venture_id and o.user_id = $1)))
+    or (d.holding_id is not null and exists (select 1 from access_scopes s where s.user_id = $1 and s.scope_type = 'holding' and s.ref_id = d.holding_id))
+  )`;
+
+const DOC_SELECT = `
+  select d.id, d.title, d.category, d.visibility, d.entity_id, d.venture_id, d.holding_id,
+         coalesce(e.name, v.name, h.name) as linked_name, d.file_name, d.mime, d.size, u.email as uploaded_by_email,
+         to_char(d.created_at, 'YYYY-MM-DD') as created_at
+    from documents d left join entities e on e.id = d.entity_id left join ventures v on v.id = d.venture_id
+    left join holdings h on h.id = d.holding_id left join users u on u.id = d.uploaded_by`;
+
+/** firmView: the whole vault. Otherwise only what `userId` may see. */
+export async function listDocuments(userId: string, firmView: boolean) {
+  const sql = await getSql();
+  return firmView
+    ? sql.query<DocRow>(`${DOC_SELECT} order by d.created_at desc limit 500`)
+    : sql.query<DocRow>(`${DOC_SELECT} where ${EXTERNAL_FILTER} order by d.created_at desc limit 500`, [userId]);
+}
+
+/** The file, only if this person may download it. */
+export async function readDocument(id: string, userId: string, firmView: boolean) {
+  const sql = await getSql();
+  const rows = await sql.query<{ file_name: string; mime: string; content: Uint8Array }>(
+    `select d.file_name, d.mime, d.content from documents d where d.id = $2 and ($3::boolean or (${EXTERNAL_FILTER}))`,
+    [userId, id, firmView],
+  );
+  return rows[0] ?? null;
+}
+
+export async function createDocument(d: {
+  title: string; category: DocCategory; visibility: "firm" | "linked"; link: { type: "entity" | "venture" | "holding"; id: string } | null;
+  fileName: string; mime: string; content: Uint8Array; by: string;
+}) {
+  const sql = await getSql();
+  const sha256 = createHash("sha256").update(d.content).digest("hex");
+  const rows = await sql.query<{ id: string }>(
+    `insert into documents (title, category, visibility, entity_id, venture_id, holding_id, file_name, mime, size, sha256, content, uploaded_by)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) returning id`,
+    [
+      d.title, d.category, d.visibility,
+      d.link?.type === "entity" ? d.link.id : null, d.link?.type === "venture" ? d.link.id : null, d.link?.type === "holding" ? d.link.id : null,
+      d.fileName, d.mime, d.content.byteLength, sha256, Buffer.from(d.content), d.by,
+    ],
+  );
+  return rows[0].id;
+}
+
+export async function deleteDocument(id: string) {
+  const sql = await getSql();
+  const rows = await sql.query<{ title: string }>("delete from documents where id = $1 returning title", [id]);
+  return rows[0]?.title ?? null;
+}
+
+/** Checks that a link target exists. */
+export async function linkExists(type: "entity" | "venture" | "holding", id: string) {
+  const sql = await getSql();
+  const table = type === "entity" ? "entities" : type === "venture" ? "ventures" : "holdings";
+  return (await sql.query(`select 1 from ${table} where id = $1`, [id])).length > 0;
+}

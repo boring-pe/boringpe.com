@@ -19,6 +19,7 @@ import {
   BookOpen,
   Rocket,
   Users,
+  BarChart3,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
@@ -33,6 +34,7 @@ const ICONS: Record<SectionId, React.ElementType> = {
   console: Crown,
   content: FileText,
   approvals: ClipboardCheck,
+  reports: BarChart3,
   personal: Lock,
   dashboard: LayoutDashboard,
   portfolio: Building2,
