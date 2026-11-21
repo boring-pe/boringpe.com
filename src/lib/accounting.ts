@@ -43,6 +43,8 @@ export const DEFAULT_CHART: ChartSeed[] = [
   { code: "1300", name: "Loans and advances", type: "asset" },
   { code: "1400", name: "GST input credit", type: "asset" },
   { code: "1500", name: "TDS receivable", type: "asset" },
+  { code: "1600", name: "Fixed assets", type: "asset" },
+  { code: "1690", name: "Accumulated depreciation", type: "asset" },
   { code: "2010", name: "Payables", type: "liability" },
   { code: "2100", name: "GST payable", type: "liability" },
   { code: "2110", name: "Output CGST", type: "liability" },
@@ -59,6 +61,7 @@ export const DEFAULT_CHART: ChartSeed[] = [
   { code: "4030", name: "Investment income", type: "income" },
   { code: "4040", name: "Venture revenue", type: "income" },
   { code: "4900", name: "Other income", type: "income" },
+  { code: "4910", name: "Exchange gain", type: "income" },
   { code: "5010", name: "Salaries", type: "expense" },
   { code: "5020", name: "Professional fees", type: "expense" },
   { code: "5030", name: "Rent", type: "expense" },
@@ -69,7 +72,9 @@ export const DEFAULT_CHART: ChartSeed[] = [
   { code: "5080", name: "Operator revenue share", type: "expense" },
   { code: "5090", name: "Impact contributions", type: "expense" },
   { code: "5100", name: "Business House fee", type: "expense" },
+  { code: "5200", name: "Depreciation", type: "expense" },
   { code: "5900", name: "Other expenses", type: "expense" },
+  { code: "5910", name: "Exchange loss", type: "expense" },
 ];
 
 // ---- amounts

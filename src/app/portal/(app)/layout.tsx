@@ -23,6 +23,9 @@ import {
   Receipt,
   Landmark,
   Bell,
+  Package,
+  Plug,
+  Target as TargetIcon,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
@@ -37,6 +40,7 @@ export const metadata: Metadata = {
 
 const ICONS: Record<SectionId, React.ElementType> = {
   console: Crown,
+  integrations: Plug,
   content: FileText,
   approvals: ClipboardCheck,
   reports: BarChart3,
@@ -49,6 +53,8 @@ const ICONS: Record<SectionId, React.ElementType> = {
   books: BookOpen,
   invoices: Receipt,
   bank: Landmark,
+  assets: Package,
+  budgets: TargetIcon,
   tasks: ListChecks,
   people: Users,
   vault: FolderKanban,

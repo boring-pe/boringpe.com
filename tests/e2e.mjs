@@ -1336,6 +1336,153 @@ await step("phones: the menu is a drawer, it closes after choosing, and no page 
   await M.close();
 });
 
+// ---------------------------------------------------------------- Fixed assets, budgets, foreign currency
+const txt = async (page, sel = "main") => (await page.locator(sel).innerText()).replace(/\s+/g, " ");
+
+await step("assets: buying, monthly depreciation once per month, and disposal all post to the books", async () => {
+  await A.page.goto("/portal/assets");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="name"]', "Laptop");
+  await A.page.fill('input[name="purchaseDate"]', "2026-04-01");
+  await A.page.fill('input[name="cost"]', "1,20,000");
+  await A.page.click('button:has-text("Add asset")');
+  await A.page.waitForSelector("text=Asset added");
+  for (const [month, notice] of [["2026-04", "Depreciation posted"], ["2026-04", "already posted"], ["2026-05", "Depreciation posted"]]) {
+    await A.page.waitForLoadState("networkidle");
+    await A.page.fill('input[name="month"]', month);
+    await A.page.click('button:has-text("Post depreciation")');
+    await A.page.waitForSelector(`text=${notice}`);
+  }
+  const row = await txt(A.page, 'tr[data-asset="Laptop"]');
+  assert.ok(/₹6,666\.66/.test(row) && /₹1,13,333\.34/.test(row), row);
+  await A.page.locator('tr[data-asset="Laptop"] input[name="proceeds"]').fill("1,00,000");
+  await A.page.locator('tr[data-asset="Laptop"] button:has-text("Dispose")').click();
+  await A.page.waitForSelector("text=Asset disposed");
+  assert.ok(/Disposed/.test(await txt(A.page, 'tr[data-asset="Laptop"]')));
+  assert.ok(/Book value ₹0\.00/i.test(await txt(A.page, "[data-asset-totals]")));
+  await A.page.goto("/portal/books?view=reports&from=2026-04-01&to=2026-05-31");
+  const pl = await txt(A.page);
+  assert.ok(/Depreciation\s*₹6,666\.66/.test(pl), pl);
+});
+
+await step("budgets: a yearly budget spreads over months and compares with the books", async () => {
+  await A.page.goto("/portal/budgets?fy=2026&to=2026-10-31");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="accountId"]', { label: "4010 Management fees" });
+  await A.page.fill('input[name="annual"]', "1,20,000");
+  await A.page.click('button:has-text("Save")');
+  await A.page.waitForSelector("text=Budget saved");
+  await A.page.goto("/portal/budgets?fy=2026&to=2026-10-31");
+  const row = await txt(A.page, 'tr[data-budget="Management fees"]');
+  assert.ok(/₹70,000\.00/.test(row) && /₹5,000\.00/.test(row) && /−?-?₹65,000\.00/.test(row), row);
+});
+
+await step("currency: money, journals and invoices in dollars land in rupees, with exchange gain on payment", async () => {
+  await A.page.goto("/portal/money");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="entityId"]', { label: "Books of Impact Marrow" });
+  await A.page.fill('input[name="amount"]', "1,000");
+  await A.page.selectOption('select[name="currency"]', "USD");
+  await A.page.fill('input[name="fxRate"]', "83.50");
+  await A.page.fill('input[name="memo"]', "Grant from abroad");
+  await A.page.click('button:has-text("Save")');
+  await A.page.waitForSelector("text=Recorded.");
+  const entry = await txt(A.page, "li[data-entry='Grant from abroad']");
+  assert.ok(/₹83,500\.00/.test(entry) && /USD 1000\.00/.test(entry), entry);
+
+  await A.page.goto("/portal/invoices?view=new");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="partyId"]', { label: "To Acme Supplies (29AAGCB7383J1Z4)" });
+  await A.page.selectOption('select[name="currency"]', "USD");
+  await A.page.fill('input[name="fxRate"]', "83");
+  await A.page.fill('input[name="desc0"]', "Cross-border advisory");
+  await A.page.fill('input[name="rate0"]', "1,000");
+  await A.page.selectOption('select[name="gst0"]', "0");
+  await A.page.click('button:has-text("Save draft")');
+  await A.page.waitForSelector("text=Draft saved");
+  const doc = await txt(A.page, "[data-invoice-doc]");
+  assert.ok(/Total USD 1000\.00/.test(doc) && /In rupees at 83\.000000 ₹83,000\.00/.test(doc), doc);
+  await A.page.click('button:has-text("Issue invoice")');
+  await A.page.waitForSelector("text=Invoice issued");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="amount"]', "84,000");
+  await A.page.fill('input[name="fxSettled"]', "1,000");
+  await A.page.click('button:has-text("Record receipt")');
+  await A.page.waitForSelector("text=Receipt recorded");
+  assert.ok(/paid/i.test(await txt(A.page, "[data-invoice-doc]")));
+  await A.page.goto("/portal/books?view=overview");
+  assert.ok(/Exchange gain\s*₹1,000\.00/.test(await txt(A.page)));
+});
+
+// ---------------------------------------------------------------- Integrations hub, API keys, webhooks
+await step("integrations: secrets are saved but never shown again; disconnecting removes them", async () => {
+  await A.page.goto("/portal/integrations?view=services&p=razorpay");
+  await A.page.waitForLoadState("networkidle");
+  const rp = A.page.locator('details[data-provider="razorpay"]');
+  await rp.locator('input[name="keyId"]').fill("rzp_test_ABCDEF123456");
+  await rp.locator('input[name="keySecret"]').fill("super-secret-value-123");
+  await rp.locator('input[name="webhookSecret"]').fill("hook-secret-456");
+  await rp.locator('button:has-text("Save and test")').click();
+  await A.page.waitForURL(/notice=/);
+  const html = await A.page.content();
+  assert.ok(!html.includes("super-secret-value-123") && !html.includes("hook-secret-456"), "secrets never come back to the page");
+  assert.ok(html.includes("rzp_test_ABCDEF123456"), "non-secret settings do");
+  assert.equal(await A.page.locator('details[data-provider="razorpay"] input[name="keySecret"]').getAttribute("placeholder"), "•••••• saved (leave blank to keep)");
+  await A.page.goto("/portal/integrations?view=log");
+  assert.ok(/razorpay/.test(await A.page.locator("main").innerText()));
+  await A.page.goto("/portal/integrations?view=services&p=razorpay");
+  await A.page.locator('details[data-provider="razorpay"] button:has-text("Disconnect")').click();
+  await A.page.waitForSelector("text=Disconnected and its secrets removed");
+  assert.match(await A.page.locator('details[data-provider="razorpay"] [data-status]').innerText(), /disconnected/i);
+  await E.page.goto("/portal/integrations");
+  assert.ok(!/\/portal\/integrations/.test(E.page.url()), "Admins cannot open integrations");
+});
+
+await step("API: keys authenticate, scopes limit them, money in posts to the books, revoking stops them", async () => {
+  await A.page.goto("/portal/integrations?view=api");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="name"]', "Zapier");
+  await A.page.check('input[name="scopes"][value="write:money"]');
+  await A.page.click('button:has-text("Create key")');
+  const key = (await A.page.locator("[data-secret]").innerText()).trim();
+  assert.match(key, /^bpe_/);
+  const api = await browser.newContext({ baseURL: BASE });
+  const auth = { Authorization: `Bearer ${key}` };
+  assert.equal((await api.request.get("/api/v1/me")).status(), 401);
+  assert.equal((await api.request.get("/api/v1/me", { headers: { Authorization: "Bearer bpe_wrongwrongwrongwrongwrong" } })).status(), 401);
+  const me = await (await api.request.get("/api/v1/me", { headers: auth })).json();
+  assert.equal(me.key, "Zapier");
+  const ents = await (await api.request.get("/api/v1/entities", { headers: auth })).json();
+  assert.ok(ents.data.some((e) => e.name === "Boring PE"));
+  const made = await api.request.post("/api/v1/money", { headers: auth, data: { amount: "5,000", category: "fee", memo: "Paid via API" } });
+  assert.equal(made.status(), 201);
+  assert.equal((await api.request.post("/api/v1/tasks", { headers: auth, data: { title: "From API" } })).status(), 403, "no write:tasks scope");
+  await A.page.goto("/portal/money");
+  assert.ok(/in books/.test(await A.page.locator("li[data-entry='Paid via API']").innerText()));
+  await A.page.goto("/portal/integrations?view=api");
+  await A.page.locator('tr[data-key="Zapier"] button:has-text("Revoke")').click();
+  await A.page.waitForSelector("text=Key revoked");
+  assert.equal((await api.request.get("/api/v1/me", { headers: auth })).status(), 401);
+  await api.close();
+});
+
+await step("webhooks: private addresses are refused; a public endpoint gets a signing secret and its deliveries are recorded", async () => {
+  await A.page.goto("/portal/integrations?view=webhooks");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="url"]', "https://169.254.169.254/latest/meta-data");
+  await A.page.check('input[name="events"][value="invoice.issued"]');
+  await A.page.click('button:has-text("Add endpoint")');
+  await A.page.waitForSelector("text=Use a public https:// address");
+  await A.page.fill('input[name="url"]', "https://hooks.example.com/boring");
+  await A.page.check('input[name="events"][value="invoice.issued"]');
+  await A.page.click('button:has-text("Add endpoint")');
+  assert.match((await A.page.locator("[data-secret]").innerText()).trim(), /^whsec_/);
+  await A.page.goto("/portal/integrations?view=webhooks");
+  await A.page.locator('tr[data-webhook="https://hooks.example.com/boring"] button:has-text("Send test")').click();
+  await A.page.waitForURL(/notice=ping-/);
+  assert.ok(/failed|ok/.test(await A.page.locator('tr[data-webhook="https://hooks.example.com/boring"]').innerText()), "the delivery is recorded either way");
+});
+
 await step("sign out clears the session", async () => {
   await A.page.click('button:has-text("Sign out")');
   await A.page.waitForURL(/\/portal\/login/);

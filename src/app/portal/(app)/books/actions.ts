@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { requireSection } from "@/lib/dal";
-import { isAccountType, isEntityKind, validateJournal, type LineInput } from "@/lib/accounting";
+import { isAccountType, isEntityKind, paiseToDecimal, validateJournal, type LineInput } from "@/lib/accounting";
+import { convertLines, isCurrency, parseRate, rateText } from "@/lib/assets-calc";
 import { createAccount, createEntity, listAccounts, listEntities, postEntry, reverseEntry } from "@/lib/books";
 import { canPostBooks } from "@/lib/rbac";
 import { oneLine, parseDate } from "@/lib/ops-fields";
@@ -38,11 +39,26 @@ export async function postJournal(formData: FormData) {
       credit: String(formData.get(`credit${i}`) ?? ""),
     });
   }
-  const { lines, errors } = validateJournal(rows);
+  const { lines: entered, errors } = validateJournal(rows);
   if (errors.length > 0) back(entity.id, "journal", "unbalanced");
-  if (lines.some((l) => !accounts.has(l.accountId))) back(entity.id, "journal", "details");
+  if (entered.some((l) => !accounts.has(l.accountId))) back(entity.id, "journal", "details");
 
-  const result = await postEntry({ entityId: entity.id, date, memo, lines, by: user.id });
+  // In another currency the amounts are converted to rupees at the given rate; the books stay in rupees.
+  const currency = String(formData.get("currency") ?? "INR");
+  if (!isCurrency(currency)) back(entity.id, "journal", "details");
+  let lines = entered;
+  let fxRate: string | null = null;
+  let note = memo;
+  if (currency !== "INR") {
+    const rate = parseRate(String(formData.get("fxRate") ?? ""));
+    if (!rate) back(entity.id, "journal", "rate");
+    lines = convertLines(entered, rate);
+    fxRate = rateText(rate);
+    const total = entered.reduce((s, l) => s + l.debit, 0n);
+    note = `${memo} (${currency} ${paiseToDecimal(total)} @ ${fxRate})`.slice(0, 300);
+  }
+
+  const result = await postEntry({ entityId: entity.id, date, memo: note, lines, by: user.id, currency, fxRate });
   if (!result.ok) back(entity.id, "journal", "failed");
   await audit({
     actorId: user.id, actorEmail: user.email, action: "journal_posted", detail: `${entity.name}: ${memo}`,

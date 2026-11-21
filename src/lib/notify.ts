@@ -1,4 +1,5 @@
 import { getSql } from "./db";
+import { credentials } from "./integrations";
 
 export type NotificationRow = { id: string; kind: string; title: string; body: string; href: string; read_at: string | null; created_at: string };
 
@@ -7,8 +8,10 @@ const internal = (href: string) => (href.startsWith("/portal") && !href.startsWi
 
 /** Sends one email through Resend when it is configured. Never throws: a notification must not break the action. */
 async function sendEmail(to: string, subject: string, text: string, href: string) {
-  const key = process.env.AUTH_RESEND_KEY;
-  const from = process.env.AUTH_EMAIL_FROM;
+  // The integrations hub wins; the environment variables used for sign-in email are the fallback.
+  const hub = await credentials("resend").catch(() => null);
+  const key = hub?.apiKey || process.env.AUTH_RESEND_KEY;
+  const from = hub?.from || process.env.AUTH_EMAIL_FROM;
   if (!key || !from) return false;
   const base = (process.env.AUTH_URL ?? "").replace(/\/$/, "");
   const link = base ? `${base}${href}` : "";
@@ -113,4 +116,7 @@ export async function emailPreference(userId: string) {
   return (await sql.query<{ notify_email: boolean }>("select notify_email from users where id = $1", [userId]))[0]?.notify_email ?? true;
 }
 
-export const emailConfigured = () => Boolean(process.env.AUTH_RESEND_KEY && process.env.AUTH_EMAIL_FROM);
+export async function emailConfigured() {
+  const hub = await credentials("resend").catch(() => null);
+  return Boolean((hub?.apiKey && hub?.from) || (process.env.AUTH_RESEND_KEY && process.env.AUTH_EMAIL_FROM));
+}
