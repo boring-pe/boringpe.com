@@ -29,7 +29,7 @@ export function PortalFrame({ sidebar, headerEnd, prefs, children }: {
       <aside
         id="portal-nav"
         onClick={(e) => { if ((e.target as HTMLElement).closest("a")) setOpen(false); }}
-        className={`print:hidden fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] transform flex-col border-r border-slate-800 bg-slate-900 transition-transform duration-300 md:sticky md:top-0 md:h-screen md:w-64 md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`print:hidden fixed inset-y-0 left-0 z-40 flex w-[18rem] max-w-[85vw] transform flex-col border-r border-slate-800 bg-slate-900 transition-transform duration-300 md:sticky md:top-0 md:h-screen md:w-[16rem] md:shrink-0 md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         {sidebar}
       </aside>
