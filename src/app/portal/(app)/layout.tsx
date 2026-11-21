@@ -20,6 +20,7 @@ import {
   Rocket,
   Users,
   BarChart3,
+  Receipt,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
@@ -42,6 +43,7 @@ const ICONS: Record<SectionId, React.ElementType> = {
   deals: Target,
   money: Wallet,
   books: BookOpen,
+  invoices: Receipt,
   tasks: ListChecks,
   people: Users,
   vault: FolderKanban,
@@ -60,7 +62,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 flex">
-      <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
+      <aside className="print:hidden w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
         <div className="h-20 flex items-center gap-2 px-6 border-b border-slate-800">
           <Building2 className="w-7 h-7 text-blue-500" />
           <div>
@@ -116,7 +118,7 @@ export default async function PortalLayout({ children }: { children: React.React
       </aside>
 
       <div className="flex-1 flex flex-col">
-        <header className="h-20 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-8">
+        <header className="print:hidden h-20 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-8">
           <div>
             <h1 className="text-lg font-semibold text-white">Enterprise Command</h1>
             <p className="text-xs text-slate-500">{user.email}</p>
