@@ -606,6 +606,75 @@ await step("tasks: add, see overdue, mark done; the dashboard now shows real fig
   assert.ok(!/Nothing to report yet/.test(text));
 });
 
+// ---------------------------------------------------------------- Books
+async function postRows(page, memo, rows) {
+  await page.waitForLoadState("networkidle");
+  await page.fill('input[name="memo"]', memo);
+  for (const [i, [account, debit, credit]] of rows.entries()) {
+    await page.selectOption(`select[name="account${i}"]`, { label: account });
+    if (debit) await page.fill(`input[name="debit${i}"]`, debit);
+    if (credit) await page.fill(`input[name="credit${i}"]`, credit);
+  }
+  await page.click('button:has-text("Post entry")');
+}
+
+await step("books: both entities exist; an unbalanced entry is refused, a balanced one posts", async () => {
+  await A.page.goto("/portal/books?view=journal");
+  const nav = await A.page.locator('nav[aria-label="Entities"]').innerText();
+  assert.ok(/Boring PE/.test(nav) && /Impact Marrow/.test(nav), nav);
+  await postRows(A.page, "Bad entry", [["1010 Bank", "1000", ""], ["3010 Capital", "", "900"]]);
+  await A.page.waitForSelector("text=not valid or debits and credits are not equal");
+  await postRows(A.page, "Capital introduced", [["1010 Bank", "1,00,000", ""], ["3010 Capital", "", "1,00,000"]]);
+  await A.page.waitForSelector("text=Entry posted.");
+  await A.page.goto("/portal/books?view=overview");
+  const tb = (await A.page.locator("main").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Bank\s*₹1,00,000\.00/.test(tb) && /Total \(balanced\)/.test(tb), tb);
+  assert.ok(!tb.includes("Bad entry"));
+});
+
+await step("books: income and expense flow into the profit and loss and a balanced balance sheet", async () => {
+  await A.page.goto("/portal/books?view=journal");
+  await postRows(A.page, "Fee received", [["1010 Bank", "30,000", ""], ["4010 Management fees", "", "30,000"]]);
+  await A.page.waitForSelector("text=Entry posted.");
+  await A.page.goto("/portal/books?view=journal");
+  await postRows(A.page, "Office rent", [["5030 Rent", "10,000", ""], ["1010 Bank", "", "10,000"]]);
+  await A.page.waitForSelector("text=Entry posted.");
+  await A.page.goto("/portal/books?view=reports&from=2000-01-01&to=2999-12-31");
+  const text = (await A.page.locator("main").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Net profit\s*₹20,000\.00/.test(text), text);
+  assert.ok(/Total assets\s*₹1,20,000\.00/.test(text), text);
+  assert.ok(/Assets equal liabilities plus equity/.test(text), text);
+});
+
+await step("books: an Admin can post but not reverse or create entities; the Super Admin reverses once", async () => {
+  await E.page.goto("/portal/books?view=journal");
+  await E.page.waitForLoadState("networkidle");
+  assert.equal(await E.page.locator('button:has-text("Reverse this entry")').count(), 0);
+  assert.equal(await E.page.locator('button:has-text("Create entity")').count(), 0);
+  await postRows(E.page, "Admin posted", [["5040 Software and tools", "500", ""], ["1020 Cash", "", "500"]]);
+  await E.page.waitForSelector("text=Entry posted.");
+  await A.page.goto("/portal/books?view=journal");
+  await A.page.locator('article:has-text("Admin posted") button:has-text("Reverse this entry")').click();
+  await A.page.waitForSelector("text=Entry reversed");
+  assert.equal(await A.page.locator('article:has-text("Admin posted") button:has-text("Reverse this entry")').count(), 0);
+  await A.page.goto("/portal/books?view=reports&from=2000-01-01&to=2999-12-31");
+  const text = (await A.page.locator("main").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Net profit\s*₹20,000\.00/.test(text), "the reversal cancels the posting: " + text);
+});
+
+await step("books: a new SPV has its own empty books; an LP cannot open Books", async () => {
+  await A.page.goto("/portal/books?view=overview");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="name"]', "Alpha SPV");
+  await A.page.selectOption('select[name="kind"]', { label: "SPV" });
+  await A.page.click('button:has-text("Create entity")');
+  await A.page.waitForSelector("text=Entity created");
+  assert.ok(/Alpha SPV/.test(await A.page.locator('nav[aria-label="Entities"]').innerText()));
+  assert.ok(/No entries yet/.test(await A.page.locator("main").innerText()));
+  await B.page.goto("/portal/books");
+  assert.match(B.page.url(), /\/portal\/dashboard$/);
+});
+
 await step("sign out clears the session", async () => {
   await A.page.click('button:has-text("Sign out")');
   await A.page.waitForURL(/\/portal\/login/);

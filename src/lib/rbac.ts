@@ -9,6 +9,7 @@ export type SectionId =
   | "portfolio"
   | "deals"
   | "money"
+  | "books"
   | "tasks"
   | "vault"
   | "marrow"
@@ -31,6 +32,7 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
   { id: "portfolio", href: "/portal/portfolio", label: "Portfolio (SPVs)", group: "firm" },
   { id: "deals", href: "/portal/deals", label: "Deal Pipeline", group: "firm" },
   { id: "money", href: "/portal/money", label: "Money", group: "firm" },
+  { id: "books", href: "/portal/books", label: "Books", group: "firm" },
   { id: "tasks", href: "/portal/tasks", label: "Tasks", group: "firm" },
   { id: "vault", href: "/portal/vault", label: "BIDU Vault", group: "firm" },
   { id: "marrow", href: "/portal/marrow", label: "Impact Marrow", group: "firm" },
@@ -41,11 +43,11 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
 
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
-    "console", "content", "dashboard", "portfolio", "deals", "money", "tasks", "vault", "marrow",
+    "console", "content", "dashboard", "portfolio", "deals", "money", "books", "tasks", "vault", "marrow",
     "approvals", "access", "personal",
   ],
-  admin: ["dashboard", "portfolio", "deals", "money", "tasks", "vault", "marrow", "approvals", "access"],
-  partner: ["dashboard", "portfolio", "deals", "money", "tasks", "vault", "marrow", "approvals"],
+  admin: ["dashboard", "portfolio", "deals", "money", "books", "tasks", "vault", "marrow", "approvals", "access"],
+  partner: ["dashboard", "portfolio", "deals", "money", "books", "tasks", "vault", "marrow", "approvals"],
   operator: ["dashboard", "portfolio", "tasks", "vault", "marrow", "approvals"],
   founder: ["dashboard", "marrow"],
   lp: ["dashboard", "portfolio"],
@@ -115,3 +117,6 @@ export function allowedSections(role: Role) {
 export function firstAllowedHref(role: Role) {
   return allowedSections(role)[0]?.href ?? "/portal/dashboard";
 }
+
+/** Posting to the books is limited to the Super Admin and Admins; partners can read. */
+export const canPostBooks = (role: Role) => role === "super_admin" || role === "admin";
