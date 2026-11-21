@@ -36,7 +36,7 @@ const chartArrays = () => [
   DEFAULT_CHART.map((a) => a.type),
 ];
 
-/** Entities created by the migration have no accounts yet: give each the default chart once. */
+/** Gives every entity any default-chart account it lacks (by code). Safe to run on every request. */
 export async function ensureCharts() {
   const sql = await getSql();
   const [codes, names, types] = chartArrays();
@@ -44,7 +44,7 @@ export async function ensureCharts() {
     `insert into ledger_accounts (entity_id, code, name, type)
        select e.id, c.code, c.name, c.type
          from entities e, unnest($1::text[], $2::text[], $3::text[]) as c(code, name, type)
-        where not exists (select 1 from ledger_accounts a where a.entity_id = e.id)
+        where not exists (select 1 from ledger_accounts a where a.entity_id = e.id and a.code = c.code)
      on conflict do nothing`,
     [codes, names, types],
   );

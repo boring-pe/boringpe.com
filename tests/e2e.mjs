@@ -520,10 +520,14 @@ await step("money: bad amounts are refused, money in is recorded, a payment out 
   await E.page.goto("/portal/money");
   await E.page.waitForLoadState("networkidle");
   for (const bad of ["abc", "-5", "0"]) {
+    await E.page.goto("/portal/money");
+    await E.page.waitForLoadState("networkidle");
     await E.page.fill('input[name="amount"]', bad);
     await E.page.click('button:has-text("Save")');
     await E.page.waitForSelector("text=That was not valid");
   }
+  await E.page.goto("/portal/money");
+  await E.page.waitForLoadState("networkidle");
   await E.page.fill('input[name="amount"]', "2,00,000");
   await E.page.fill('input[name="memo"]', "Seed from Acme");
   await E.page.click('button:has-text("Save")');
@@ -793,6 +797,111 @@ await step("an LP sees no firm holdings", async () => {
   await B.page.goto("/portal/portfolio");
   const text = await flat(B.page);
   assert.ok(!/Acme Foods/.test(text) && /once your access is linked/.test(text), text);
+});
+
+// ---------------------------------------------------------------- Ventures and operators
+const OPERATOR = "operator@example.test";
+const OPERATOR_NEW = "operator chosen passphrase 31!";
+const F = await ctx();
+
+await step("ventures: the owner invites an operator who signs in", async () => {
+  await A.page.goto("/portal/access");
+  await A.page.fill('input[name="email"]', OPERATOR);
+  await A.page.selectOption('select[name="role"]', "operator");
+  await A.page.selectOption('select[name="passwordMode"]', "generate");
+  await A.page.click('button:has-text("Invite")');
+  await A.page.waitForSelector("code");
+  const temp = (await A.page.locator("code").first().innerText()).trim();
+  await login(F.page, OPERATOR, temp);
+  await F.page.waitForURL(/\/portal\/account/);
+  await F.page.fill('input[name="current"]', temp);
+  await F.page.fill('input[name="next"]', OPERATOR_NEW);
+  await F.page.fill('input[name="confirm"]', OPERATOR_NEW);
+  await F.page.click('button:has-text("Save password")');
+  await F.page.waitForURL(/changed=1/);
+  await login(F.page, OPERATOR, OPERATOR_NEW);
+  await F.page.waitForURL(/\/portal\/dashboard/);
+});
+
+let cafeUrl = "";
+await step("ventures: a Build venture inside Boring PE pays no fee; the operator's profit share is computed", async () => {
+  await A.page.goto("/portal/ventures");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="name"]', "Boring Cafe");
+  await A.page.click('button:has-text("Add venture")');
+  await A.page.waitForSelector("text=Venture added");
+  cafeUrl = A.page.url().replace(/&notice=.*/, "");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="name"]', "Cafe Operator");
+  await A.page.fill('input[name="percent"]', "30");
+  await A.page.selectOption('select[name="userId"]', { label: OPERATOR });
+  await A.page.click('button:has-text("Add operator")');
+  await A.page.waitForSelector("text=Operator added");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="month"]', "2026-10");
+  await A.page.fill('input[name="revenue"]', "2,00,000");
+  await A.page.fill('input[name="costs"]', "1,20,000");
+  await A.page.click('button:has-text("Close month")');
+  await A.page.waitForSelector("text=Month closed");
+  const text = (await A.page.locator('article[data-period="2026-10"]').innerText()).replace(/\s+/g, " ");
+  assert.ok(/Business House fee ₹0\.00/i.test(text) && /Net to venture ₹56,000\.00/i.test(text), text);
+  assert.ok(/Cafe Operator ₹24,000\.00/.test(text), text);
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="month"]', "2026-10");
+  await A.page.fill('input[name="revenue"]', "1");
+  await A.page.click('button:has-text("Close month")');
+  await A.page.waitForSelector("text=already closed");
+});
+
+await step("ventures: a Co-Build venture in its SPV pays the fee to Boring PE; shares cannot pass 100%", async () => {
+  await A.page.goto("/portal/ventures");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="name"]', "Alpha Co-Build");
+  await A.page.selectOption('select[name="pillar"]', "co_build");
+  await A.page.selectOption('select[name="entityId"]', { label: "Books of Alpha SPV" });
+  await A.page.selectOption('select[name="feeType"]', "percent");
+  await A.page.fill('input[name="feePercent"]', "5");
+  await A.page.click('button:has-text("Add venture")');
+  await A.page.waitForSelector("text=Venture added");
+  for (const [name, pct, notice] of [["Alpha Operator", "20", "Operator added"], ["Too Much", "85", "more than 100%"]]) {
+    await A.page.waitForLoadState("networkidle");
+    await A.page.fill('input[name="name"]', name);
+    await A.page.fill('input[name="percent"]', pct);
+    await A.page.click('button:has-text("Add operator")');
+    await A.page.waitForSelector(`text=${notice}`);
+  }
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="month"]', "2026-10");
+  await A.page.fill('input[name="revenue"]', "1,00,000");
+  await A.page.fill('input[name="costs"]', "30,000");
+  await A.page.click('button:has-text("Close month")');
+  await A.page.waitForSelector("text=Month closed");
+  const text = (await A.page.locator('article[data-period="2026-10"]').innerText()).replace(/\s+/g, " ");
+  assert.ok(/Business House fee ₹5,000\.00/i.test(text) && /Net to venture ₹52,000\.00/i.test(text), text);
+  await A.page.locator('tr[data-payout="Alpha Operator"] button:has-text("Mark paid")').click();
+  await A.page.waitForSelector("text=Operator paid");
+  assert.ok(/Paid/.test(await A.page.locator('tr[data-payout="Alpha Operator"]').innerText()));
+  await A.page.goto("/portal/books?view=reports&from=2026-10-01&to=2026-10-31");
+  const pl = (await A.page.locator("main").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Management fees\s*₹5,000\.00/.test(pl) && /Venture revenue\s*₹2,00,000\.00/.test(pl), pl);
+});
+
+await step("ventures: an operator sees only their venture and own share; an LP cannot open Ventures", async () => {
+  await F.page.goto("/portal/ventures");
+  const list = (await F.page.locator("main").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Boring Cafe/.test(list) && !/Alpha Co-Build/.test(list), list);
+  assert.equal(await F.page.locator('button:has-text("Add venture")').count(), 0);
+  await F.page.click('a:has-text("Boring Cafe")');
+  await F.page.waitForSelector('article[data-period="2026-10"]');
+  const text = (await F.page.locator("main").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Cafe Operator ₹24,000\.00 Due/.test(text) && !/Net to venture/i.test(text), text);
+  assert.equal(await F.page.locator('button:has-text("Close month")').count(), 0);
+  await A.page.goto("/portal/ventures");
+  const alpha = await A.page.locator('a:has-text("Alpha Co-Build")').getAttribute("href");
+  await F.page.goto(alpha);
+  assert.ok(/not found/.test(await F.page.locator("main").innerText()));
+  await B.page.goto("/portal/ventures");
+  assert.match(B.page.url(), /\/portal\/dashboard$/);
 });
 
 await step("sign out clears the session", async () => {

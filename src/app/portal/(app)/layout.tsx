@@ -17,6 +17,7 @@ import {
   Wallet,
   ListChecks,
   BookOpen,
+  Rocket,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
@@ -34,6 +35,7 @@ const ICONS: Record<SectionId, React.ElementType> = {
   personal: Lock,
   dashboard: LayoutDashboard,
   portfolio: Building2,
+  ventures: Rocket,
   deals: Target,
   money: Wallet,
   books: BookOpen,
