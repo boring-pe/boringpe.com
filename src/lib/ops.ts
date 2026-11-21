@@ -1,4 +1,6 @@
-import { getSql } from "./db";
+import { getSql, type Sql } from "./db";
+import { decimalToPaise, ensureCharts, postByCodes } from "./books";
+import { counts, moneyLines } from "./money-books";
 import type { ApprovalRow } from "./approvals";
 import type { Category, PartyKind, Pillar, Stage } from "./ops-fields";
 
@@ -27,6 +29,9 @@ export type MoneyRow = {
   status: "recorded" | "awaiting_approval" | "approved" | "rejected" | "withdrawn";
   entry_date: string;
   created_by_email: string | null;
+  entity_id: string | null;
+  entity_name: string | null;
+  journal_entry_id: string | null;
 };
 export type TaskRow = {
   id: string;
@@ -101,25 +106,72 @@ export async function parkStage(id: string, stage: "closing" | "closed") {
 // ---- money
 const MONEY_SELECT = `select m.id, m.direction, m.category, m.amount::text as amount, m.memo, m.deal_id,
   d.name as deal_name, p.name as party_name, m.status, m.entry_date::text as entry_date,
-  u.email as created_by_email from money_entries m
+  u.email as created_by_email, m.entity_id, en.name as entity_name, m.journal_entry_id from money_entries m
   left join deals d on d.id = m.deal_id left join parties p on p.id = m.party_id
-  left join users u on u.id = m.created_by`;
+  left join users u on u.id = m.created_by left join entities en on en.id = m.entity_id`;
 
 export async function listMoney(limit = 100) {
   const sql = await getSql();
   return sql.query<MoneyRow>(`${MONEY_SELECT} order by m.created_at desc limit $1`, [limit]);
 }
+/**
+ * Posts one counted Money entry to its entity's books, once. Runs inside the caller's transaction,
+ * so the entry and its journal commit together.
+ */
+async function postMoney(db: Sql, id: string, by: string | null): Promise<boolean> {
+  const row = (await db.query<{ id: string; direction: "in" | "out"; category: string; amount: string; memo: string; status: string; entity_id: string | null; entry_date: string; created_by: string | null }>(
+    `select id, direction, category, amount::text, memo, status, entity_id, entry_date::text, created_by
+       from money_entries where id = $1 and journal_entry_id is null for update`,
+    [id],
+  ))[0];
+  if (!row || !row.entity_id || !counts(row.status)) return false;
+  const journal = await postByCodes(db, {
+    entityId: row.entity_id, date: row.entry_date, by: by ?? row.created_by ?? "", sourceType: "money", sourceId: row.id,
+    memo: `${row.direction === "in" ? "Money in" : "Payment"}: ${row.memo || row.category}`,
+    lines: moneyLines(row.direction, row.category, decimalToPaise(row.amount)),
+  });
+  await db.query("update money_entries set journal_entry_id = $2 where id = $1", [row.id, journal]);
+  return true;
+}
+
 export async function createEntry(e: {
   direction: "in" | "out"; category: Category; amount: string; memo: string; dealId: string | null;
-  partyId: string | null; status: "recorded" | "awaiting_approval" | "approved"; date: string; by: string;
+  partyId: string | null; status: "recorded" | "awaiting_approval" | "approved"; date: string; by: string; entityId: string;
 }) {
+  await ensureCharts();
   const sql = await getSql();
-  const rows = await sql.query<{ id: string }>(
-    `insert into money_entries (direction, category, amount, memo, deal_id, party_id, status, entry_date, created_by)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`,
-    [e.direction, e.category, e.amount, e.memo, e.dealId, e.partyId, e.status, e.date, e.by],
+  return sql.tx(async (db) => {
+    const rows = await db.query<{ id: string }>(
+      `insert into money_entries (direction, category, amount, memo, deal_id, party_id, status, entry_date, created_by, entity_id)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id`,
+      [e.direction, e.category, e.amount, e.memo, e.dealId, e.partyId, e.status, e.date, e.by, e.entityId],
+    );
+    if (counts(e.status)) await postMoney(db, rows[0].id, e.by);
+    return rows[0].id;
+  });
+}
+
+/** Entries that count but were recorded before Money was connected to the books. */
+export async function unpostedMoneyCount() {
+  const sql = await getSql();
+  const rows = await sql.query<{ n: number }>(
+    "select count(*)::int as n from money_entries where journal_entry_id is null and status in ('recorded', 'approved')",
   );
-  return rows[0].id;
+  return rows[0].n;
+}
+
+/** Posts every counted entry that has no journal yet. Each one in its own transaction. */
+export async function postUnpostedMoney(by: string) {
+  await ensureCharts();
+  const sql = await getSql();
+  const ids = await sql.query<{ id: string }>(
+    "select id from money_entries where journal_entry_id is null and status in ('recorded', 'approved') order by entry_date, created_at",
+  );
+  let posted = 0;
+  for (const { id } of ids) {
+    if (await sql.tx((db) => postMoney(db, id, by))) posted += 1;
+  }
+  return posted;
 }
 
 // ---- tasks
@@ -180,12 +232,20 @@ export async function summary() {
 }
 
 // ---- what an approval decision does to the thing it gates
-export async function applyDecision(row: ApprovalRow, outcome: "approved" | "rejected" | "withdrawn") {
+export async function applyDecision(row: ApprovalRow, outcome: "approved" | "rejected" | "withdrawn", actorId: string | null = null) {
   if (!row.ref_id) return;
   const sql = await getSql();
   if (row.ref_type === "money_entry") {
     const status = outcome === "approved" ? "approved" : outcome === "rejected" ? "rejected" : "withdrawn";
-    await sql.query("update money_entries set status = $2 where id = $1 and status = 'awaiting_approval'", [row.ref_id, status]);
+    if (status === "approved") await ensureCharts();
+    // The payment and its posting to the books happen together or not at all.
+    await sql.tx(async (db) => {
+      const changed = await db.query(
+        "update money_entries set status = $2 where id = $1 and status = 'awaiting_approval' returning id",
+        [row.ref_id, status],
+      );
+      if (changed.length && status === "approved") await postMoney(db, row.ref_id!, actorId);
+    });
   } else if (row.ref_type === "deal_stage") {
     if (outcome === "approved") {
       await sql.query(

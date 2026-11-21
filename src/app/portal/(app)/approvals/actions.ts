@@ -42,7 +42,7 @@ export async function withdrawRequest(formData: FormData) {
   const user = await requireSection("approvals");
   const row = await withdrawApproval(String(formData.get("id") ?? ""), user.id);
   if (!row) back("gone");
-  await applyDecision(row, "withdrawn");
+  await applyDecision(row, "withdrawn", user.id);
   await audit({
     actorId: user.id,
     actorEmail: user.email,
@@ -60,7 +60,7 @@ export async function decide(formData: FormData) {
   const note = String(formData.get("note") ?? "").trim().slice(0, 500) || null;
   const row = await decideApproval({ id: existing.id, status, deciderEmail: owner.email, note });
   if (!row) back("gone");
-  await applyDecision(row, status);
+  await applyDecision(row, status, owner.id);
   await audit({
     actorId: owner.id,
     actorEmail: owner.email,

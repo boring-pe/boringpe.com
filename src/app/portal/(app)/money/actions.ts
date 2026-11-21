@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import { createApproval } from "@/lib/approvals";
 import { requireSection } from "@/lib/dal";
-import { createEntry, dropEntry, getDeal, partyExists } from "@/lib/ops";
+import { listEntities } from "@/lib/books";
+import { createEntry, dropEntry, getDeal, partyExists, postUnpostedMoney } from "@/lib/ops";
 import { categoryLabel, inr, isCategory, oneLine, parseAmount, parseDate } from "@/lib/ops-fields";
 import { audit } from "@/lib/users";
 
@@ -25,6 +26,10 @@ export async function addEntry(formData: FormData) {
   const dealRaw = String(formData.get("dealId") ?? "");
   const partyRaw = String(formData.get("partyId") ?? "");
   if ((direction !== "in" && direction !== "out") || !isCategory(category) || !amount) back("invalid");
+  const entities = await listEntities();
+  const entityRaw = String(formData.get("entityId") ?? "");
+  const entity = entities.find((x) => x.id === entityRaw) ?? (entityRaw ? undefined : entities.find((x) => x.kind === "boring_pe"));
+  if (!entity) back("invalid");
   if (direction === "out" && memo.length < 3) back("memo");
 
   let dealId: string | null = null;
@@ -40,7 +45,12 @@ export async function addEntry(formData: FormData) {
 
   const owner = user.role === "super_admin";
   const status = direction === "in" ? "recorded" : owner ? "approved" : "awaiting_approval";
-  const id = await createEntry({ direction, category, amount, memo, dealId, partyId, status, date, by: user.id });
+  let id: string;
+  try {
+    id = await createEntry({ direction, category, amount, memo, dealId, partyId, status, date, by: user.id, entityId: entity.id });
+  } catch {
+    back("books-refused");
+  }
 
   if (status === "awaiting_approval") {
     const created = await createApproval({
@@ -64,4 +74,13 @@ export async function addEntry(formData: FormData) {
     detail: `${inr(amount)} ${categoryLabel(category)}${memo ? `: ${memo}` : ""}`,
   });
   back(status === "awaiting_approval" ? "requested" : "saved");
+}
+
+/** Posts entries recorded before Money was connected to the books. Super Admin only. */
+export async function postOlderEntries() {
+  const user = await requireSection("money");
+  if (user.role !== "super_admin") back("invalid");
+  const n = await postUnpostedMoney(user.id);
+  await audit({ actorId: user.id, actorEmail: user.email, action: "money_backfilled", detail: `${n} entries` });
+  back("backfilled");
 }

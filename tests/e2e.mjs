@@ -528,10 +528,12 @@ await step("money: bad amounts are refused, money in is recorded, a payment out 
   }
   await E.page.goto("/portal/money");
   await E.page.waitForLoadState("networkidle");
+  await E.page.selectOption('select[name="entityId"]', { label: "Books of Impact Marrow" });
   await E.page.fill('input[name="amount"]', "2,00,000");
   await E.page.fill('input[name="memo"]', "Seed from Acme");
   await E.page.click('button:has-text("Save")');
   await E.page.waitForSelector("text=Recorded.");
+  await E.page.selectOption('select[name="entityId"]', { label: "Books of Impact Marrow" });
   await E.page.selectOption('select[name="direction"]', "out");
   await E.page.selectOption('select[name="category"]', "expense");
   await E.page.fill('input[name="amount"]', "25000");
@@ -546,6 +548,7 @@ await step("money: bad amounts are refused, money in is recorded, a payment out 
 });
 
 await step("the owner approving a payment makes it count; rejecting one never does", async () => {
+  await E.page.selectOption('select[name="entityId"]', { label: "Books of Impact Marrow" });
   await E.page.selectOption('select[name="direction"]', "out");
   await E.page.fill('input[name="amount"]', "9999");
   await E.page.fill('input[name="memo"]', "Rejected spend");
@@ -565,12 +568,28 @@ await step("the owner approving a payment makes it count; rejecting one never do
 
 await step("the owner's own payment counts at once, without asking anyone", async () => {
   await A.page.goto("/portal/money");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="entityId"]', { label: "Books of Impact Marrow" });
   await A.page.selectOption('select[name="direction"]', "out");
   await A.page.fill('input[name="amount"]', "1000");
   await A.page.fill('input[name="memo"]', "Owner paid");
   await A.page.click('button:has-text("Save")');
   await A.page.waitForSelector("text=Recorded.");
   assert.ok(/approved/.test(await A.page.locator("li[data-entry='Owner paid']").innerText()));
+});
+
+await step("money posts to the chosen entity's books when it counts, and never before", async () => {
+  await A.page.goto("/portal/money");
+  assert.ok(/in books/.test(await A.page.locator("li[data-entry='Owner paid']").innerText()));
+  assert.ok(/in books/.test(await A.page.locator("li[data-entry='Seed from Acme']").innerText()));
+  assert.ok(!/in books/.test(await A.page.locator("li[data-entry='Rejected spend']").innerText()));
+  assert.equal(await A.page.locator('button:has-text("Post them to the books")').count(), 0);
+  await A.page.goto("/portal/books?view=overview");
+  await A.page.click('nav[aria-label="Entities"] a:has-text("Impact Marrow")');
+  await A.page.waitForURL(/[?&]e=/);
+  const tb = (await A.page.locator("main").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Bank\s*₹1,74,000\.00/.test(tb) && /Capital\s*₹2,00,000\.00/.test(tb) && /Other expenses\s*₹25,000\.00/.test(tb), tb);
+  assert.ok(/Total \(balanced\)/.test(tb));
 });
 
 await step("an LP cannot open Money, Tasks or Deals, nor replay the forms", async () => {

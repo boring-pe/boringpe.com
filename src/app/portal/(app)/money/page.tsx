@@ -1,13 +1,16 @@
 import { requireSection } from "@/lib/dal";
-import { listDeals, listMoney, listParties } from "@/lib/ops";
+import { listEntities } from "@/lib/books";
+import { listDeals, listMoney, listParties, unpostedMoneyCount } from "@/lib/ops";
 import { CATEGORIES, categoryLabel, inr } from "@/lib/ops-fields";
-import { addEntry } from "./actions";
+import { addEntry, postOlderEntries } from "./actions";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   saved: { text: "Recorded." },
   requested: { text: "Payment sent to the Super Admin. It counts once approved." },
   invalid: { text: "That was not valid. Check the amount and category.", bad: true },
   memo: { text: "Say what the payment is for.", bad: true },
+  backfilled: { text: "Older entries posted to the books." },
+  "books-refused": { text: "The books refused that entry. Nothing was saved.", bad: true },
   "too-many": { text: "You already have 20 requests waiting.", bad: true },
 };
 const STATUS_STYLE: Record<string, string> = {
@@ -24,7 +27,9 @@ const input =
 export default async function MoneyPage({ searchParams }: { searchParams: Promise<{ notice?: string }> }) {
   const user = await requireSection("money");
   const { notice } = await searchParams;
-  const [entries, deals, parties] = await Promise.all([listMoney(), listDeals(), listParties()]);
+  const [entries, deals, parties, entities, unposted] = await Promise.all([
+    listMoney(), listDeals(), listParties(), listEntities(), unpostedMoneyCount(),
+  ]);
   const banner = notice ? NOTICES[notice] : undefined;
   const owner = user.role === "super_admin";
 
@@ -39,7 +44,7 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
       <div>
         <h2 className="text-2xl font-bold text-white">Money</h2>
         <p className="mt-2 text-sm text-slate-400 max-w-2xl">
-          Money in is recorded as it happens. Money out is a payment
+          Money in is recorded as it happens and posts to the chosen entity&apos;s books. Money out is a payment
           {owner ? "; as Super Admin yours count immediately." : " and waits for the Super Admin before it counts."}
         </p>
       </div>
@@ -63,6 +68,13 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
         ))}
       </div>
 
+      {owner && unposted > 0 ? (
+        <form action={postOlderEntries} className={`${card} p-4 flex flex-wrap items-center justify-between gap-3`}>
+          <span className="text-sm text-amber-300">{unposted} older {unposted === 1 ? "entry counts" : "entries count"} but {unposted === 1 ? "is" : "are"} not in the books yet.</span>
+          <button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Post them to the books</button>
+        </form>
+      ) : null}
+
       <section className={`${card} p-6`}>
         <h3 className="text-sm font-semibold text-white mb-4">Add an entry</h3>
         <form action={addEntry} className="grid gap-3 md:grid-cols-4">
@@ -75,7 +87,10 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
           </select>
           <input name="amount" required inputMode="decimal" placeholder="Amount in ₹" className={input} />
           <input name="date" type="date" className={input} aria-label="Date" />
-          <input name="memo" maxLength={300} placeholder="What is it for?" className={`${input} md:col-span-2`} />
+          <select name="entityId" defaultValue={entities.find((x) => x.kind === "boring_pe")?.id} className={input} aria-label="Entity">
+            {entities.map((x) => <option key={x.id} value={x.id}>Books of {x.name}</option>)}
+          </select>
+          <input name="memo" maxLength={300} placeholder="What is it for?" className={input} />
           <select name="dealId" defaultValue="" className={input} aria-label="Deal">
             <option value="">No deal</option>
             {deals.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -111,6 +126,8 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
                 {e.deal_name ? <span className="text-xs text-slate-500">{e.deal_name}</span> : null}
                 {e.party_name ? <span className="text-xs text-slate-500">{e.party_name}</span> : null}
                 <span className={`text-xs font-semibold ${STATUS_STYLE[e.status]}`}>{e.status.replace("_", " ")}</span>
+                {e.entity_name ? <span className="text-xs text-slate-500">{e.entity_name}</span> : null}
+                {e.journal_entry_id ? <span className="text-xs text-green-400">in books</span> : null}
               </li>
             ))}
           </ul>

@@ -47,3 +47,19 @@ test("rupees format with Indian grouping", () => {
   assert.match(inr("1500000"), /15,00,000/);
   assert.equal(inr(null), "-");
 });
+
+test("money entries post to the right accounts and balance", async () => {
+  const { moneyLines, counts } = await import("../src/lib/money-books.ts");
+  const inLines = moneyLines("in", "investment", 100n);
+  assert.deepEqual(inLines.map((l) => l.code), ["1010", "3010"]);
+  const out = moneyLines("out", "salary", 50n);
+  assert.deepEqual(out.map((l) => [l.code, l.debit, l.credit]), [["5010", 50n, 0n], ["1010", 0n, 50n]]);
+  for (const dir of ["in", "out"] as const) {
+    for (const c of ["investment", "fee", "expense", "payout", "salary", "other", "unknown"]) {
+      const lines = moneyLines(dir, c, 7n);
+      assert.equal(lines.reduce((s, l) => s + l.debit, 0n), lines.reduce((s, l) => s + l.credit, 0n));
+    }
+  }
+  assert.equal(counts("recorded") && counts("approved"), true);
+  assert.equal(counts("awaiting_approval") || counts("rejected") || counts("withdrawn"), false);
+});
