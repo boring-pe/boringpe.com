@@ -1,4 +1,4 @@
-export const ROLES = ["super_admin", "admin", "partner", "operator", "founder", "lp"] as const;
+export const ROLES = ["super_admin", "admin", "partner", "operator", "cobuild_partner", "founder", "lp"] as const;
 
 export type Role = (typeof ROLES)[number];
 
@@ -53,6 +53,7 @@ const GRANTS: Record<Role, SectionId[]> = {
   admin: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "people", "vault", "marrow", "approvals", "access"],
   partner: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "people", "vault", "marrow", "approvals"],
   operator: ["dashboard", "portfolio", "ventures", "tasks", "people", "vault", "marrow", "approvals"],
+  cobuild_partner: ["dashboard", "portfolio", "ventures", "tasks", "vault"],
   founder: ["dashboard", "marrow"],
   lp: ["dashboard", "portfolio"],
 };
@@ -75,22 +76,27 @@ export const ROLE_META: Record<Role, { label: string; detail: string; initials: 
   },
   operator: {
     label: "Operator",
-    detail: "Runs portfolio, vault, and impact. No deal pipeline.",
+    detail: "Runs a venture on revenue or profit share. Sees only their ventures, own tasks and own record.",
     initials: "OP",
+  },
+  cobuild_partner: {
+    label: "Co-Build partner",
+    detail: "Partner in a Co-Build venture or SPV. Sees only what is linked to them.",
+    initials: "CB",
   },
   founder: {
     label: "Founder",
-    detail: "Own company dashboard and impact only.",
+    detail: "Founder of a company we back. Sees only what is linked to them.",
     initials: "FD",
   },
   lp: {
     label: "Limited Partner",
-    detail: "Read-only dashboard and portfolio.",
+    detail: "Investor. Sees only the SPVs and holdings linked to them.",
     initials: "LP",
   },
 };
 
-const ADMIN_MAY_MANAGE: readonly Role[] = ["partner", "operator", "founder", "lp"];
+const ADMIN_MAY_MANAGE: readonly Role[] = ["partner", "operator", "cobuild_partner", "founder", "lp"];
 
 /** Roles this actor may hand out. Only the Super Admin can create admins or other super admins. */
 export function assignableRoles(actor: Role): Role[] {

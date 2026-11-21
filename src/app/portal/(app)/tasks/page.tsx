@@ -1,6 +1,6 @@
 import { requireSection } from "@/lib/dal";
 import { listAssignees, listDeals, listTasks } from "@/lib/ops";
-import { can } from "@/lib/rbac";
+import { can, canSeeFirmData } from "@/lib/rbac";
 import { addTask, toggleTask } from "./actions";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
@@ -17,11 +17,14 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   const user = await requireSection("tasks");
   const { notice } = await searchParams;
   const seeDeals = can(user.role, "deals");
-  const [tasks, assignees, deals] = await Promise.all([
-    listTasks(),
+  const firm = canSeeFirmData(user.role);
+  const [tasks, allAssignees, deals] = await Promise.all([
+    listTasks(firm ? null : user.id),
     listAssignees(),
     seeDeals ? listDeals() : Promise.resolve([]),
   ]);
+  // External people see and assign only their own tasks, not the team list.
+  const assignees = firm ? allAssignees : allAssignees.filter((a) => a.id === user.id);
   const banner = notice ? NOTICES[notice] : undefined;
   const today = new Date().toISOString().slice(0, 10);
 

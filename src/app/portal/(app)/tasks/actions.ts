@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { requireSection } from "@/lib/dal";
 import { createTask, getDeal, listAssignees, setTaskDone } from "@/lib/ops";
 import { oneLine, parseDate } from "@/lib/ops-fields";
-import { can } from "@/lib/rbac";
+import { can, canSeeFirmData } from "@/lib/rbac";
 import { audit } from "@/lib/users";
 
 function back(notice: string): never {
@@ -28,6 +28,8 @@ export async function addTask(formData: FormData) {
   let assigneeId: string | null = null;
   const assigneeRaw = String(formData.get("assigneeId") ?? "");
   if (assigneeRaw) {
+    // External people can only give tasks to themselves.
+    if (!canSeeFirmData(user.role) && assigneeRaw !== user.id) back("invalid");
     if (!(await listAssignees()).some((a) => a.id === assigneeRaw)) back("invalid");
     assigneeId = assigneeRaw;
   }
@@ -39,7 +41,8 @@ export async function addTask(formData: FormData) {
 export async function toggleTask(formData: FormData) {
   const user = await requireSection("tasks");
   const done = formData.get("done") === "true";
-  if (!(await setTaskDone(String(formData.get("id") ?? ""), done))) back("invalid");
+  const onlyFor = canSeeFirmData(user.role) ? null : user.id;
+  if (!(await setTaskDone(String(formData.get("id") ?? ""), done, onlyFor))) back("invalid");
   await audit({ actorId: user.id, actorEmail: user.email, action: done ? "task_done" : "task_reopened" });
   back(done ? "done" : "reopened");
 }
