@@ -129,10 +129,10 @@ await step("LP signs in with the temporary password and must replace it", async 
   await B.page.waitForURL(/\/portal\/dashboard/);
 });
 
-await step("LP is held to its role: portfolio yes, deals / vault / access no", async () => {
+await step("LP is held to its role: portfolio and shared vault yes, deals / marrow / access / reports no", async () => {
   await B.page.goto("/portal/portfolio");
   assert.match(B.page.url(), /\/portal\/portfolio$/);
-  for (const path of ["/portal/deals", "/portal/vault", "/portal/marrow", "/portal/access"]) {
+  for (const path of ["/portal/deals", "/portal/marrow", "/portal/access", "/portal/reports"]) {
     await B.page.goto(path);
     assert.match(B.page.url(), /\/portal\/dashboard$/, path);
   }
@@ -1069,6 +1069,69 @@ await step("tasks: an operator sees and changes only their own tasks", async () 
   assert.ok(await A.page.locator('li[data-task="Send term sheet"] .line-through').count(), "still done");
   await F.page.goto("/portal/dashboard");
   assert.ok(/Open tasks\s*1/i.test(await F.page.locator("main").innerText()));
+});
+
+// ---------------------------------------------------------------- Vault and MIS
+await step("vault: shared documents reach linked people only; team-only ones never do", async () => {
+  const up = async (title, name, visibility, notice) => {
+    await A.page.goto("/portal/vault");
+    await A.page.waitForLoadState("networkidle");
+    await A.page.setInputFiles('input[name="file"]', { name, mimeType: "application/octet-stream", buffer: Buffer.from(`content of ${title}`) });
+    await A.page.fill('input[name="title"]', title);
+    await A.page.selectOption('select[name="link"]', { label: "Alpha SPV" });
+    await A.page.selectOption('select[name="visibility"]', visibility);
+    await A.page.click('button:has-text("Upload")');
+    await A.page.waitForSelector(`text=${notice}`);
+  };
+  await up("Alpha SHA", "alpha-sha.pdf", "linked", "Document added");
+  await up("Board notes", "board.pdf", "firm", "Document added");
+  await up("Bad file", "evil.html", "firm", "Allowed types");
+
+  await B.page.goto("/portal/vault");
+  const lp = await B.page.locator("main").innerText();
+  assert.ok(/Alpha SHA/.test(lp) && !/Board notes/.test(lp) && !/Bad file/.test(lp), lp);
+  const href = await B.page.locator('tr[data-doc="Alpha SHA"] a').getAttribute("href");
+  const res = await B.page.request.get(href);
+  assert.equal(res.status(), 200);
+  assert.equal(await res.text(), "content of Alpha SHA");
+  assert.match(res.headers()["content-disposition"], /attachment; filename="alpha-sha\.pdf"/);
+
+  await A.page.goto("/portal/vault");
+  const privateHref = await A.page.locator('tr[data-doc="Board notes"] a').getAttribute("href");
+  assert.equal((await B.page.request.get(privateHref)).status(), 404, "team-only document by direct link");
+  assert.equal((await G.page.request.get(href)).status(), 404, "someone not linked to Alpha SPV");
+  await G.page.goto("/portal/vault");
+  assert.ok(/No documents/.test(await G.page.locator("main").innerText()));
+
+  await E.page.goto("/portal/vault");
+  assert.equal(await E.page.locator('button:has-text("Delete")').count(), 0);
+  await A.page.locator('tr[data-doc="Board notes"] button:has-text("Delete")').click();
+  await A.page.waitForSelector("text=Document deleted");
+});
+
+await step("MIS: group figures remove fees between our own entities; verticals and CSV agree", async () => {
+  await A.page.goto("/portal/reports?from=2026-10-01&to=2026-10-31");
+  const fee = (await A.page.locator('tr[data-entity-row="Fees between our entities"]').innerText()).replace(/\s+/g, " ");
+  assert.ok(/−₹5,000\.00/.test(fee), fee);
+  assert.ok(/₹2,00,000\.00/.test(await A.page.locator('tr[data-vertical="build"]').innerText()));
+  assert.ok(/₹1,00,000\.00/.test(await A.page.locator('tr[data-vertical="co_build"]').innerText()));
+  const ent = async (name) => (await A.page.locator(`tr[data-entity-row="${name}"] td`).nth(1).innerText()).replace(/[₹,]/g, "");
+  const incomes = await Promise.all(["Boring PE", "Impact Marrow", "Alpha SPV", "Impact Marrow Fund"].map(ent));
+  const group = Number(await ent("Group"));
+  assert.equal(Math.round(group * 100), Math.round((incomes.reduce((a, b) => a + Number(b), 0) - 5000) * 100), `${incomes} ${group}`);
+
+  const csv = await (await A.page.request.get("/portal/reports/export?from=2026-10-01&to=2026-10-31")).text();
+  assert.ok(csv.includes("Less: fees between our entities,,-5000.00,-5000.00"), csv.slice(0, 600));
+  assert.ok(/\r\nGroup,,/.test(csv));
+
+  await E.page.goto("/portal/reports");
+  assert.match(E.page.url(), /\/portal\/reports/);
+  for (const page of [F.page, B.page, G.page]) {
+    await page.goto("/portal/reports");
+    assert.match(page.url(), /\/portal\/dashboard$/);
+    const res = await page.request.get("/portal/reports/export", { maxRedirects: 0 });
+    assert.notEqual(res.status(), 200, "CSV is not for external people");
+  }
 });
 
 await step("sign out clears the session", async () => {

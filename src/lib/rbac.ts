@@ -15,6 +15,7 @@ export type SectionId =
   | "people"
   | "vault"
   | "marrow"
+  | "reports"
   | "approvals"
   | "access"
   | "personal";
@@ -40,6 +41,7 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
   { id: "people", href: "/portal/people", label: "People", group: "firm" },
   { id: "vault", href: "/portal/vault", label: "BIDU Vault", group: "firm" },
   { id: "marrow", href: "/portal/marrow", label: "Impact Marrow", group: "firm" },
+  { id: "reports", href: "/portal/reports", label: "MIS reports", group: "firm" },
   { id: "approvals", href: "/portal/approvals", label: "Approvals", group: "firm" },
   { id: "access", href: "/portal/access", label: "Access", group: "firm" },
   { id: "personal", href: "/portal/personal", label: "Personal desk", group: "personal" },
@@ -48,14 +50,14 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
     "console", "content", "dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "people", "vault", "marrow",
-    "approvals", "access", "personal",
+    "reports", "approvals", "access", "personal",
   ],
-  admin: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "people", "vault", "marrow", "approvals", "access"],
-  partner: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "people", "vault", "marrow", "approvals"],
+  admin: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "people", "vault", "marrow", "reports", "approvals", "access"],
+  partner: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "tasks", "people", "vault", "marrow", "reports", "approvals"],
   operator: ["dashboard", "portfolio", "ventures", "tasks", "people", "vault", "marrow", "approvals"],
   cobuild_partner: ["dashboard", "portfolio", "ventures", "tasks", "vault"],
-  founder: ["dashboard", "marrow"],
-  lp: ["dashboard", "portfolio"],
+  founder: ["dashboard", "vault", "marrow"],
+  lp: ["dashboard", "portfolio", "vault"],
 };
 
 export const ROLE_META: Record<Role, { label: string; detail: string; initials: string }> = {

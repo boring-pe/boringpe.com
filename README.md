@@ -86,3 +86,18 @@ pillars (Build, Own, Co-Build, Enable). Rules, all enforced on the server:
 - Money in is recorded as it happens. A payment out by anyone but the Super Admin waits for
   approval and is not counted until then. Rejected and withdrawn payments never count.
 - Money and Deals are open to the Super Admin, Admin and Partner; Tasks also to Operators.
+
+## ERP modules
+
+| Module | Where | What it does |
+| --- | --- | --- |
+| Books | `/portal/books` | Double-entry books per entity (Boring PE, Impact Marrow, its fund, SPVs, ventures). Balanced, immutable entries enforced in the database; corrections by reversal. Trial balance, P&L, balance sheet. |
+| Portfolio | `/portal/portfolio` | Holdings across asset classes, invest / income / exit / valuation posting to the holder's books, MOIC; cap tables; access links for external people. |
+| Ventures | `/portal/ventures` | Build and Co-Build ventures, operators on revenue or profit share, monthly close posting revenue, costs, operator payables and the Business House fee. |
+| People | `/portal/people` | Employees per entity, leave with yearly balances, pay runs (draft, post, pay) posting to the books; self-service "My record". |
+| Impact Marrow | `/portal/marrow` | Contributions from Boring PE or Rahul personally into the Impact Marrow Fund's books. |
+| BIDU Vault | `/portal/vault` | Documents up to 4 MB stored in Postgres, team-only or shared with people linked to an SPV, venture or holding; always downloaded, never rendered. |
+| MIS reports | `/portal/reports` | Group P&L with fees between our own entities removed, month-by-month trend, verticals, people, Impact Marrow; CSV export. |
+
+Money that leaves the firm (investing, exits, contributions, operator payouts, salaries) is recorded only by the Super Admin.
+External roles (LP, founder, operator, Co-Build partner) see only what is linked to them.
