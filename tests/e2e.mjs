@@ -2,6 +2,7 @@
 // Needs SUPER_ADMIN_EMAILS / ADMIN_BOOTSTRAP_PASSWORD matching the server's environment.
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 
 const BASE = process.env.BASE_URL ?? "http://127.0.0.1:3100";
 const ADMIN = process.env.E2E_ADMIN_EMAIL ?? "admin@example.test"; // the Super Admin
@@ -1534,6 +1535,91 @@ await step("inbox: mailboxes are private until shared, and never shared outside 
   assert.match(E.page.url(), /notice=not-setup/);
   await E.page.goto("/api/integrations/oauth/google/callback?code=abc&state=forged-state-value");
   assert.match(E.page.url(), /notice=connect-failed/);
+});
+
+// ---------------------------------------------------------------- WhatsApp shared inbox
+const WA_SECRET = "app-secret-xyz";
+const waPost = async (payload, secret = WA_SECRET) => {
+  const body = JSON.stringify(payload);
+  const sig = secret === null ? {} : { "X-Hub-Signature-256": `sha256=${createHmac("sha256", secret).update(body).digest("hex")}` };
+  const ctxt = await browser.newContext({ baseURL: BASE });
+  const res = await ctxt.request.post("/api/webhooks/whatsapp", { data: body, headers: { "Content-Type": "application/json", ...sig } });
+  await ctxt.close();
+  return res.status();
+};
+const waText = (from, name, id, text, secondsAgo = 60) => ({
+  object: "whatsapp_business_account",
+  entry: [{ id: "WABA1", changes: [{ field: "messages", value: {
+    messaging_product: "whatsapp", metadata: { display_phone_number: "91 22 0000", phone_number_id: "PN123" },
+    contacts: [{ profile: { name }, wa_id: from }],
+    messages: [{ from, id, timestamp: String(Math.floor(Date.now() / 1000) - secondsAgo), type: "text", text: { body: text } }],
+  } }] }],
+});
+
+await step("whatsapp: Meta's checks hold: the verify handshake, signed webhooks only, duplicates ignored", async () => {
+  await A.page.goto("/portal/integrations?view=services&p=whatsapp");
+  await A.page.waitForLoadState("networkidle");
+  const wa = A.page.locator('details[data-provider="whatsapp"]');
+  for (const [k, v] of [["phoneNumberId", "PN123"], ["businessAccountId", "WABA1"], ["accessToken", "token-abc"], ["appSecret", WA_SECRET], ["verifyToken", "verify-me"]]) {
+    await wa.locator(`input[name="${k}"]`).fill(v);
+  }
+  await wa.locator('button:has-text("Save and test")').click();
+  await A.page.waitForURL(/notice=/);
+  const anon = await browser.newContext({ baseURL: BASE });
+  const ok = await anon.request.get("/api/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=verify-me&hub.challenge=8675309");
+  assert.equal(await ok.text(), "8675309");
+  assert.equal((await anon.request.get("/api/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=1")).status(), 403);
+  await anon.close();
+  assert.equal(await waPost(waText("919800000001", "Meera", "wamid.IN1", "Is the deck ready?"), null), 401, "unsigned");
+  assert.equal(await waPost(waText("919800000001", "Meera", "wamid.IN1", "Is the deck ready?"), "wrong-secret"), 401, "forged");
+  assert.equal(await waPost(waText("919800000001", "Meera", "wamid.IN1", "Is the deck ready?")), 200);
+  assert.equal(await waPost(waText("919800000001", "Meera", "wamid.IN1", "Is the deck ready?")), 200, "a repeat delivery");
+  await A.page.goto("/portal/whatsapp");
+  const chat = await A.page.locator('li[data-chat="Meera"]').innerText();
+  assert.ok(/Is the deck ready\?/.test(chat) && /\b1\b/.test(chat), `one unread, not two: ${chat}`);
+  await A.page.goto("/portal/notifications");
+  assert.ok(/WhatsApp from Meera/.test(await A.page.locator("main").innerText()));
+});
+
+await step("whatsapp: replies inside 24 hours; after that only templates; assignment routes notifications", async () => {
+  await A.page.goto("/portal/whatsapp");
+  await A.page.locator('li[data-chat="Meera"] a').click();
+  await A.page.waitForSelector("[data-thread]");
+  await A.page.fill('textarea[name="text"]', "Yes, sending it today.");
+  await A.page.click('button:has-text("Send")');
+  await A.page.waitForSelector("text=Sent.");
+  assert.ok(/✓/.test(await A.page.locator('li[data-message="Yes, sending it today."]').innerText()));
+
+  assert.equal(await waPost(waText("919800000002", "Old Lead", "wamid.OLD", "Hello from last week", 3 * 86400)), 200);
+  await A.page.goto("/portal/whatsapp?c=919800000002");
+  assert.equal(await A.page.locator('textarea[name="text"]').count(), 0, "no free text after 24 hours");
+  await A.page.selectOption('select[name="template"]', "follow_up|en");
+  await A.page.fill('input[name="p1"]', "Old Lead");
+  await A.page.fill('input[name="p2"]', "our proposal");
+  await A.page.click('button:has-text("Send template")');
+  await A.page.waitForSelector("text=Sent.");
+  assert.ok(/\[template follow_up\] Old Lead · our proposal/.test(await A.page.locator("[data-thread]").innerText()));
+
+  await A.page.goto("/portal/whatsapp?c=919800000001");
+  await A.page.selectOption('select[name="userId"]', { label: MANAGER });
+  await A.page.click('button:has-text("Assign")');
+  await A.page.waitForSelector("text=Conversation assigned");
+  assert.equal(await waPost(waText("919800000001", "Meera", "wamid.IN2", "Thanks!")), 200);
+  await E.page.goto("/portal/notifications");
+  assert.ok(/WhatsApp from Meera/.test(await E.page.locator("main").innerText()), "the assignee hears about it");
+
+  await A.page.goto("/portal/whatsapp?start=1");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="waId"]', "+91 98111 22233");
+  await A.page.fill('input[name="name"]', "New Founder");
+  await A.page.selectOption('select[name="template"]', "hello_world|en_US");
+  await A.page.click('button:has-text("Send template")');
+  await A.page.waitForSelector("text=Sent.");
+  assert.match(A.page.url(), /c=919811122233/);
+  for (const page of [F.page, B.page, G.page]) {
+    await page.goto("/portal/whatsapp");
+    assert.match(page.url(), /\/portal\/dashboard$/);
+  }
 });
 
 await step("sign out clears the session", async () => {

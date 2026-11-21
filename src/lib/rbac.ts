@@ -8,6 +8,7 @@ export type SectionId =
   | "content"
   | "dashboard"
   | "inbox"
+  | "whatsapp"
   | "portfolio"
   | "ventures"
   | "deals"
@@ -40,6 +41,7 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
   { id: "content", href: "/portal/content", label: "Site content", group: "super" },
   { id: "dashboard", href: "/portal/dashboard", label: "Dashboard", group: "firm" },
   { id: "inbox", href: "/portal/inbox", label: "Inbox", group: "firm" },
+  { id: "whatsapp", href: "/portal/whatsapp", label: "WhatsApp", group: "firm" },
   { id: "portfolio", href: "/portal/portfolio", label: "Portfolio", group: "firm" },
   { id: "ventures", href: "/portal/ventures", label: "Ventures", group: "firm" },
   { id: "deals", href: "/portal/deals", label: "Deal Pipeline", group: "firm" },
@@ -61,11 +63,11 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
 
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
-    "console", "integrations", "content", "dashboard", "inbox", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
+    "console", "integrations", "content", "dashboard", "inbox", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
     "reports", "approvals", "access", "personal",
   ],
-  admin: ["dashboard", "inbox", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "access"],
-  partner: ["dashboard", "inbox", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals"],
+  admin: ["dashboard", "inbox", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "access"],
+  partner: ["dashboard", "inbox", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals"],
   operator: ["dashboard", "inbox", "portfolio", "ventures", "tasks", "people", "vault", "marrow", "approvals"],
   cobuild_partner: ["dashboard", "inbox", "portfolio", "ventures", "tasks", "vault"],
   founder: ["dashboard", "inbox", "vault", "marrow"],
