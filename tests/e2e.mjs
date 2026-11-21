@@ -1483,6 +1483,59 @@ await step("webhooks: private addresses are refused; a public endpoint gets a si
   assert.ok(/failed|ok/.test(await A.page.locator('tr[data-webhook="https://hooks.example.com/boring"]').innerText()), "the delivery is recorded either way");
 });
 
+// ---------------------------------------------------------------- Unified inbox
+await step("inbox: a mailbox connects; mail lists, opens sandboxed, searches, and replies", async () => {
+  await A.page.goto("/portal/inbox?view=accounts");
+  assert.ok(/Gmail \/ Google Workspace: not set up/.test(await A.page.locator("main").innerText()), "providers wait for the hub");
+  await A.page.click('button:has-text("Connect test mailbox")');
+  await A.page.waitForSelector("text=Mailbox connected");
+  await A.page.goto("/portal/inbox");
+  assert.ok(/Term sheet draft/.test(await A.page.locator("main").innerText()));
+  await A.page.goto("/portal/inbox?q=statement");
+  const found = await A.page.locator("main").innerText();
+  assert.ok(/Statement ready/.test(found) && !/Term sheet draft/.test(found), found);
+  await A.page.goto("/portal/inbox");
+  await A.page.locator('li[data-mail="Term sheet draft"] a').click();
+  const frame = A.page.locator("[data-mail-frame]");
+  await frame.waitFor();
+  const sandbox = await frame.getAttribute("sandbox");
+  assert.ok(!/allow-scripts|allow-same-origin/.test(sandbox ?? ""), `sandbox: ${sandbox}`);
+  assert.ok((await frame.getAttribute("srcdoc")).includes("default-src 'none'"));
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="to"]', "not-an-email");
+  await A.page.fill('textarea[name="body"]', "Thanks");
+  await A.page.click('button:has-text("Send reply")');
+  await A.page.waitForSelector("text=Recipients must be email addresses");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('textarea[name="body"]', "Thanks, reviewing today.");
+  await A.page.click('button:has-text("Send reply")');
+  await A.page.waitForSelector("text=Sent.");
+  assert.ok(/Re: Term sheet draft/.test(await A.page.locator("main").innerText()));
+});
+
+await step("inbox: mailboxes are private until shared, and never shared outside the team; OAuth state is bound to its starter", async () => {
+  await E.page.goto("/portal/inbox");
+  assert.ok(/No mailbox connected yet/.test(await E.page.locator("main").innerText()), "an Admin cannot read the owner's mail");
+  await A.page.goto("/portal/inbox?view=accounts");
+  await A.page.locator(`li[data-mailbox="${ADMIN}"] button:has-text("Share with team")`).click();
+  await A.page.waitForSelector("text=Shared with the Boring PE team");
+  await E.page.goto("/portal/inbox");
+  assert.ok(/Term sheet draft/.test(await E.page.locator("main").innerText()), "shared with the team");
+  await E.page.goto("/portal/inbox?view=accounts");
+  assert.equal(await E.page.locator(`li[data-mailbox="${ADMIN}"] button`).count(), 0, "only the owner manages it");
+  await F.page.goto("/portal/inbox");
+  assert.ok(/No mailbox connected yet/.test(await F.page.locator("main").innerText()), "operators never see team mailboxes");
+  await A.page.locator(`li[data-mailbox="${ADMIN}"] button:has-text("Make private")`).click();
+  await A.page.waitForSelector("text=Now private to you");
+  await E.page.goto("/portal/inbox");
+  assert.ok(/No mailbox connected yet/.test(await E.page.locator("main").innerText()));
+
+  await E.page.goto("/api/integrations/oauth/google/start");
+  assert.match(E.page.url(), /notice=not-setup/);
+  await E.page.goto("/api/integrations/oauth/google/callback?code=abc&state=forged-state-value");
+  assert.match(E.page.url(), /notice=connect-failed/);
+});
+
 await step("sign out clears the session", async () => {
   await A.page.click('button:has-text("Sign out")');
   await A.page.waitForURL(/\/portal\/login/);

@@ -122,7 +122,7 @@ export async function testIntegration(provider: string): Promise<{ ok: boolean; 
   return result;
 }
 
-export const WHATSAPP_API_VERSION = "v23.0";
+export const WHATSAPP_API_VERSION = "v26.0";
 
 // ---- API keys
 

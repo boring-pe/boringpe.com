@@ -62,7 +62,7 @@ test("admins cannot touch admins or the Super Admin; the Super Admin can touch a
 test("every section belongs to a known group and allowedSections follows the grants", () => {
   const groups = GROUPS.map((g) => g.id);
   for (const section of SECTIONS) assert.ok(groups.includes(section.group));
-  assert.deepEqual(allowedSections("lp").map((s) => s.id), ["dashboard", "portfolio", "vault"]);
+  assert.deepEqual(allowedSections("lp").map((s) => s.id), ["dashboard", "inbox", "portfolio", "vault"]);
 });
 
 test("MIS reports are for the Super Admin, Admins and partners only", () => {
