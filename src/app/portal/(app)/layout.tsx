@@ -18,6 +18,7 @@ import {
   ListChecks,
   BookOpen,
   Rocket,
+  Users,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
@@ -40,6 +41,7 @@ const ICONS: Record<SectionId, React.ElementType> = {
   money: Wallet,
   books: BookOpen,
   tasks: ListChecks,
+  people: Users,
   vault: FolderKanban,
   marrow: HeartHandshake,
   access: ShieldCheck,

@@ -47,6 +47,7 @@ export const DEFAULT_CHART: ChartSeed[] = [
   { code: "2100", name: "GST payable", type: "liability" },
   { code: "2200", name: "TDS payable", type: "liability" },
   { code: "2300", name: "Salaries payable", type: "liability" },
+  { code: "2400", name: "Other deductions payable", type: "liability" },
   { code: "2900", name: "Loans taken", type: "liability" },
   { code: "3010", name: "Capital", type: "equity" },
   { code: "3200", name: "Owner drawings", type: "equity" },
