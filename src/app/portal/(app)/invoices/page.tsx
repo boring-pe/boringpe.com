@@ -7,6 +7,7 @@ import { AGEING, GST_RATES, STATES, stateName } from "@/lib/invoice-calc";
 import {
   INCOME_ACCOUNTS, getInvoice, gstProfiles, gstSummary, listInvoices, listPartiesGst, receivables,
 } from "@/lib/invoices";
+import { CURRENCIES } from "@/lib/assets-calc";
 import { canPostBooks } from "@/lib/rbac";
 import { monthEnd } from "@/lib/venture-calc";
 import { invoiceAction, newInvoice, saveEntityGst, savePartyGst } from "./actions";
@@ -24,6 +25,8 @@ const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   lines: { text: "Each line needs a description, a quantity, a rate and a GST rate.", bad: true },
   gstin: { text: "That GSTIN or state is not valid. A GSTIN has 15 characters and a check character that must match.", bad: true },
   "too-much": { text: "That is more than is still outstanding on this invoice.", bad: true },
+  "needs-fx": { text: "Say how much of the invoice's currency this payment settles.", bad: true },
+  rate: { text: "Give the exchange rate in rupees per unit, for example 83.45.", bad: true },
   "not-open": { text: "This invoice is not open for receipts.", bad: true },
   forbidden: { text: "You do not have permission for that.", bad: true },
   "books-refused": { text: "The books refused that posting.", bad: true },
@@ -123,6 +126,10 @@ async function NewInvoice() {
           <select name="incomeCode" defaultValue="4010" className={input} aria-label="Income account">
             {INCOME_ACCOUNTS.map((a) => <option key={a.code} value={a.code}>Income: {a.label}</option>)}
           </select>
+          <select name="currency" defaultValue="INR" className={input} aria-label="Currency">
+            {CURRENCIES.map((c) => <option key={c} value={c}>{c === "INR" ? "Invoice in rupees" : `Invoice in ${c}`}</option>)}
+          </select>
+          <input name="fxRate" inputMode="decimal" placeholder="Rate: ₹ per unit (if not INR)" className={input} />
         </div>
         {[0, 1, 2, 3, 4].map((i) => (
           <div key={i} className="grid gap-3 md:grid-cols-[3fr_1fr_1fr_1.5fr_1fr]">
@@ -176,7 +183,8 @@ async function Detail({ id, post, owner }: { id: string; post: boolean; owner: b
             {inv.lines.map((l, i) => (
               <tr key={i} className="border-b border-slate-200">
                 <td className="py-2">{l.description}</td><td>{l.sac}</td><td className="text-right">{Number(l.qty_milli) / 1000}</td>
-                <td className="text-right">{r(l.rate)}</td><td className="text-right">{l.gst_bps / 100}%</td><td className="text-right">{r(l.amount)}</td>
+                <td className="text-right">{l.fx_rate_amount ? `${inv.currency} ${l.fx_rate_amount}` : r(l.rate)}</td><td className="text-right">{l.gst_bps / 100}%</td>
+                <td className="text-right">{l.fx_amount ? <>{inv.currency} {l.fx_amount}<div className="text-xs text-slate-500">{r(l.amount)}</div></> : r(l.amount)}</td>
               </tr>
             ))}
           </tbody>
@@ -186,7 +194,8 @@ async function Detail({ id, post, owner }: { id: string; post: boolean; owner: b
           {decimalToPaise(inv.cgst) ? <div className="flex justify-between"><span>CGST</span><span>{r(inv.cgst)}</span></div> : null}
           {decimalToPaise(inv.sgst) ? <div className="flex justify-between"><span>SGST</span><span>{r(inv.sgst)}</span></div> : null}
           {decimalToPaise(inv.igst) ? <div className="flex justify-between"><span>IGST</span><span>{r(inv.igst)}</span></div> : null}
-          <div className="flex justify-between border-t border-slate-300 pt-1 text-base font-bold" data-total><span>Total</span><span>{r(inv.total)}</span></div>
+          {inv.currency !== "INR" && inv.fx_total ? <div className="flex justify-between border-t border-slate-300 pt-1 text-base font-bold" data-fx-total><span>Total</span><span>{inv.currency} {inv.fx_total}</span></div> : null}
+          <div className={`flex justify-between ${inv.currency !== "INR" ? "text-slate-600" : "border-t border-slate-300 pt-1 text-base font-bold"}`} data-total><span>{inv.currency !== "INR" ? `In rupees at ${inv.fx_rate}` : "Total"}</span><span>{r(inv.total)}</span></div>
           {inv.status !== "draft" ? <div className="flex justify-between" data-outstanding><span>Outstanding</span><span>{rupees(inv.status === "issued" ? outstanding : 0n)}</span></div> : null}
         </div>
         {inv.notes ? <p className="mt-6 text-sm text-slate-600">{inv.notes}</p> : null}
@@ -231,7 +240,8 @@ async function Detail({ id, post, owner }: { id: string; post: boolean; owner: b
           <form action={invoiceAction} className="grid gap-3 md:grid-cols-4">
             <input type="hidden" name="id" value={inv.id} />
             <input name="date" type="date" defaultValue={today} className={input} aria-label="Date" />
-            <input name="amount" inputMode="decimal" placeholder="Amount received ₹" className={input} />
+            <input name="amount" inputMode="decimal" placeholder="Rupees received ₹" className={input} />
+            {inv.currency !== "INR" ? <input name="fxSettled" inputMode="decimal" placeholder={`${inv.currency} settled (of ${inv.fx_total})`} className={input} /> : null}
             <input name="tds" inputMode="decimal" placeholder="TDS deducted ₹" className={input} />
             <button name="what" value="receipt" className={btn}>Record receipt</button>
           </form>

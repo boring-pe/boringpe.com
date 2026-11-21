@@ -1336,6 +1336,84 @@ await step("phones: the menu is a drawer, it closes after choosing, and no page 
   await M.close();
 });
 
+// ---------------------------------------------------------------- Fixed assets, budgets, foreign currency
+const txt = async (page, sel = "main") => (await page.locator(sel).innerText()).replace(/\s+/g, " ");
+
+await step("assets: buying, monthly depreciation once per month, and disposal all post to the books", async () => {
+  await A.page.goto("/portal/assets");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="name"]', "Laptop");
+  await A.page.fill('input[name="purchaseDate"]', "2026-04-01");
+  await A.page.fill('input[name="cost"]', "1,20,000");
+  await A.page.click('button:has-text("Add asset")');
+  await A.page.waitForSelector("text=Asset added");
+  for (const [month, notice] of [["2026-04", "Depreciation posted"], ["2026-04", "already posted"], ["2026-05", "Depreciation posted"]]) {
+    await A.page.waitForLoadState("networkidle");
+    await A.page.fill('input[name="month"]', month);
+    await A.page.click('button:has-text("Post depreciation")');
+    await A.page.waitForSelector(`text=${notice}`);
+  }
+  const row = await txt(A.page, 'tr[data-asset="Laptop"]');
+  assert.ok(/₹6,666\.66/.test(row) && /₹1,13,333\.34/.test(row), row);
+  await A.page.locator('tr[data-asset="Laptop"] input[name="proceeds"]').fill("1,00,000");
+  await A.page.locator('tr[data-asset="Laptop"] button:has-text("Dispose")').click();
+  await A.page.waitForSelector("text=Asset disposed");
+  assert.ok(/Disposed/.test(await txt(A.page, 'tr[data-asset="Laptop"]')));
+  assert.ok(/Book value ₹0\.00/i.test(await txt(A.page, "[data-asset-totals]")));
+  await A.page.goto("/portal/books?view=reports&from=2026-04-01&to=2026-05-31");
+  const pl = await txt(A.page);
+  assert.ok(/Depreciation\s*₹6,666\.66/.test(pl), pl);
+});
+
+await step("budgets: a yearly budget spreads over months and compares with the books", async () => {
+  await A.page.goto("/portal/budgets?fy=2026&to=2026-10-31");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="accountId"]', { label: "4010 Management fees" });
+  await A.page.fill('input[name="annual"]', "1,20,000");
+  await A.page.click('button:has-text("Save")');
+  await A.page.waitForSelector("text=Budget saved");
+  await A.page.goto("/portal/budgets?fy=2026&to=2026-10-31");
+  const row = await txt(A.page, 'tr[data-budget="Management fees"]');
+  assert.ok(/₹70,000\.00/.test(row) && /₹5,000\.00/.test(row) && /−?-?₹65,000\.00/.test(row), row);
+});
+
+await step("currency: money, journals and invoices in dollars land in rupees, with exchange gain on payment", async () => {
+  await A.page.goto("/portal/money");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="entityId"]', { label: "Books of Impact Marrow" });
+  await A.page.fill('input[name="amount"]', "1,000");
+  await A.page.selectOption('select[name="currency"]', "USD");
+  await A.page.fill('input[name="fxRate"]', "83.50");
+  await A.page.fill('input[name="memo"]', "Grant from abroad");
+  await A.page.click('button:has-text("Save")');
+  await A.page.waitForSelector("text=Recorded.");
+  const entry = await txt(A.page, "li[data-entry='Grant from abroad']");
+  assert.ok(/₹83,500\.00/.test(entry) && /USD 1000\.00/.test(entry), entry);
+
+  await A.page.goto("/portal/invoices?view=new");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="partyId"]', { label: "To Acme Supplies (29AAGCB7383J1Z4)" });
+  await A.page.selectOption('select[name="currency"]', "USD");
+  await A.page.fill('input[name="fxRate"]', "83");
+  await A.page.fill('input[name="desc0"]', "Cross-border advisory");
+  await A.page.fill('input[name="rate0"]', "1,000");
+  await A.page.selectOption('select[name="gst0"]', "0");
+  await A.page.click('button:has-text("Save draft")');
+  await A.page.waitForSelector("text=Draft saved");
+  const doc = await txt(A.page, "[data-invoice-doc]");
+  assert.ok(/Total USD 1000\.00/.test(doc) && /In rupees at 83\.000000 ₹83,000\.00/.test(doc), doc);
+  await A.page.click('button:has-text("Issue invoice")');
+  await A.page.waitForSelector("text=Invoice issued");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="amount"]', "84,000");
+  await A.page.fill('input[name="fxSettled"]', "1,000");
+  await A.page.click('button:has-text("Record receipt")');
+  await A.page.waitForSelector("text=Receipt recorded");
+  assert.ok(/paid/i.test(await txt(A.page, "[data-invoice-doc]")));
+  await A.page.goto("/portal/books?view=overview");
+  assert.ok(/Exchange gain\s*₹1,000\.00/.test(await txt(A.page)));
+});
+
 await step("sign out clears the session", async () => {
   await A.page.click('button:has-text("Sign out")');
   await A.page.waitForURL(/\/portal\/login/);

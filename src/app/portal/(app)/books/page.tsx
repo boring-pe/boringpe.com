@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireSection } from "@/lib/dal";
 import { ACCOUNT_TYPES, ENTITY_KINDS, balanceSheet, entityKindLabel, profitAndLoss, rupees, trialBalance } from "@/lib/accounting";
 import { balances, decimalToPaise, listAccounts, listEntities, listJournal } from "@/lib/books";
+import { CURRENCIES } from "@/lib/assets-calc";
 import { canPostBooks } from "@/lib/rbac";
 import { addAccount, addEntity, postJournal, reverseJournal } from "./actions";
 
@@ -14,6 +15,7 @@ const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   details: { text: "Add a date, a description of at least three characters, and active accounts of this entity.", bad: true },
   unbalanced: { text: "The entry is not valid or debits and credits are not equal.", bad: true },
   failed: { text: "The books refused that entry.", bad: true },
+  rate: { text: "Give the exchange rate in rupees per unit, for example 83.45.", bad: true },
   forbidden: { text: "You do not have permission for that.", bad: true },
   "cannot-reverse": { text: "That entry cannot be reversed (already reversed, or itself a reversal).", bad: true },
   "code-taken": { text: "That account code is already used in this entity.", bad: true },
@@ -170,6 +172,10 @@ async function Journal({ entityId, entityName, active, mayPost, owner, today }: 
             <div className="grid gap-3 md:grid-cols-4">
               <input name="date" type="date" required defaultValue={today} className={input} aria-label="Date" />
               <input name="memo" required maxLength={300} placeholder="Description" className={`${input} md:col-span-3`} />
+              <select name="currency" defaultValue="INR" className={input} aria-label="Currency">
+                {CURRENCIES.map((c) => <option key={c} value={c}>{c === "INR" ? "Rupees (INR)" : `Amounts in ${c}`}</option>)}
+              </select>
+              <input name="fxRate" inputMode="decimal" placeholder="Rate: ₹ per unit (if not INR)" className={input} />
             </div>
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="grid gap-3 md:grid-cols-4">

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireSection } from "@/lib/dal";
 import { parsePaise } from "@/lib/accounting";
 import { GST_RATES, isStateCode, parseQty, validGstin } from "@/lib/invoice-calc";
+import { isCurrency, parseRate } from "@/lib/assets-calc";
 import {
   INCOME_ACCOUNTS, cancelInvoice, createInvoice, deleteDraft, gstProfiles, issueInvoice, listPartiesGst, recordReceipt,
   settleIntercompany, updateEntityGst, updatePartyGst,
@@ -46,8 +47,13 @@ export async function newInvoice(formData: FormData) {
     lines.push({ description, sac: oneLine(formData.get(`sac${i}`), 10), qtyMilli, rate, gstBps });
   }
   if (lines.length === 0) back("view=new", "lines");
+  const currency = String(formData.get("currency") ?? "INR");
+  if (!isCurrency(currency)) back("view=new", "invalid");
+  const fxRate = currency === "INR" ? null : parseRate(String(formData.get("fxRate") ?? ""));
+  if (currency !== "INR" && !fxRate) back("view=new", "rate");
   const id = await createInvoice({
     entityId, partyId, issueDate, dueDate, placeOfSupply: place, incomeCode, notes: oneLine(formData.get("notes"), 500), lines, by: user.id,
+    currency, fxRate,
   });
   await audit({ actorId: user.id, actorEmail: user.email, action: "invoice_drafted", detail: id });
   back(`inv=${id}`, "drafted");
@@ -64,13 +70,15 @@ export async function invoiceAction(formData: FormData) {
   if ((what === "cancel" || what === "settle") && user.role !== "super_admin") back(q, "forbidden");
   const amount = parsePaise(String(formData.get("amount") ?? ""));
   const tds = parsePaise(String(formData.get("tds") ?? ""));
-  if (what === "receipt" && (amount === null || tds === null || amount + tds === 0n)) back(q, "invalid");
+  const fxRaw = String(formData.get("fxSettled") ?? "").trim();
+  const fxSettled = fxRaw ? parsePaise(fxRaw) : null;
+  if (what === "receipt" && (amount === null || tds === null || amount + tds === 0n || (fxRaw && fxSettled === null))) back(q, "invalid");
 
   let outcome: string;
   try {
     if (what === "issue") outcome = (await issueInvoice(id, user.id)) ? "ok" : "invalid";
     else if (what === "delete") outcome = (await deleteDraft(id)) ? "deleted" : "invalid";
-    else if (what === "receipt") outcome = await recordReceipt(id, { date, amount: amount!, tds: tds!, by: user.id });
+    else if (what === "receipt") outcome = await recordReceipt(id, { date, amount: amount!, tds: tds!, by: user.id, fxSettled });
     else if (what === "cancel") outcome = (await cancelInvoice(id, date, user.id)) ? "ok" : "invalid";
     else if (what === "settle") outcome = (await settleIntercompany(id, date, user.id)) ? "ok" : "invalid";
     else outcome = "invalid";

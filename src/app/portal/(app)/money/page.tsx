@@ -2,6 +2,7 @@ import { requireSection } from "@/lib/dal";
 import { listEntities } from "@/lib/books";
 import { listDeals, listMoney, listParties, unpostedMoneyCount } from "@/lib/ops";
 import { CATEGORIES, categoryLabel, inr } from "@/lib/ops-fields";
+import { CURRENCIES } from "@/lib/assets-calc";
 import { addEntry, postOlderEntries } from "./actions";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
@@ -9,6 +10,7 @@ const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   requested: { text: "Payment sent to the Super Admin. It counts once approved." },
   invalid: { text: "That was not valid. Check the amount and category.", bad: true },
   memo: { text: "Say what the payment is for.", bad: true },
+  rate: { text: "Give the amount and the rate in rupees per unit, for example 83.45.", bad: true },
   backfilled: { text: "Older entries posted to the books." },
   "books-refused": { text: "The books refused that entry. Nothing was saved.", bad: true },
   "too-many": { text: "You already have 20 requests waiting.", bad: true },
@@ -85,7 +87,11 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
           <select name="category" defaultValue="investment" className={input} aria-label="Category">
             {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
-          <input name="amount" required inputMode="decimal" placeholder="Amount in ₹" className={input} />
+          <input name="amount" required inputMode="decimal" placeholder="Amount" className={input} />
+          <select name="currency" defaultValue="INR" className={input} aria-label="Currency">
+            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <input name="fxRate" inputMode="decimal" placeholder="₹ per unit (if not INR)" className={input} />
           <input name="date" type="date" className={input} aria-label="Date" />
           <select name="entityId" defaultValue={entities.find((x) => x.kind === "boring_pe")?.id} className={input} aria-label="Entity">
             {entities.map((x) => <option key={x.id} value={x.id}>Books of {x.name}</option>)}
@@ -121,6 +127,7 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
                 <span className={e.direction === "in" ? "text-green-400" : "text-slate-200"}>
                   {e.direction === "in" ? "+" : "-"}{inr(e.amount)}
                 </span>
+                {e.currency !== "INR" && e.fx_amount ? <span className="text-xs text-slate-400">{e.currency} {e.fx_amount}</span> : null}
                 <span className="text-slate-300">{categoryLabel(e.category)}</span>
                 {e.memo ? <span className="text-slate-400">{e.memo}</span> : null}
                 {e.deal_name ? <span className="text-xs text-slate-500">{e.deal_name}</span> : null}

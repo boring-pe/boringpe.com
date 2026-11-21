@@ -106,14 +106,16 @@ export async function createAccount(a: { entityId: string; code: string; name: s
 
 type EntryInput = {
   entityId: string; date: string; memo: string; lines: Line[]; by: string; sourceType?: string; sourceId?: string | null;
+  /** When the entry started in another currency: its code and rupees per unit. Amounts are already in rupees. */
+  currency?: string; fxRate?: string | null;
 };
 
 /** Inserts one entry and its lines as a single statement. Throws if the books refuse it. */
 async function insertEntry(db: Sql, e: EntryInput): Promise<string> {
   const rows = await db.query<{ entry_id: string }>(
     `with e as (
-       insert into journal_entries (entity_id, entry_date, memo, source_type, source_id, created_by)
-       values ($1, $2::date, $3, $4, $5, $6) returning id
+       insert into journal_entries (entity_id, entry_date, memo, source_type, source_id, created_by, currency, fx_rate)
+       values ($1, $2::date, $3, $4, $5, $6, $10, $11::numeric) returning id
      )
      insert into journal_lines (entry_id, account_id, debit, credit)
        select e.id, l.a, l.d, l.c from e, unnest($7::text[], $8::numeric[], $9::numeric[]) as l(a, d, c)
@@ -123,6 +125,7 @@ async function insertEntry(db: Sql, e: EntryInput): Promise<string> {
       e.lines.map((l) => l.accountId),
       e.lines.map((l) => paiseToDecimal(l.debit)),
       e.lines.map((l) => paiseToDecimal(l.credit)),
+      e.currency ?? "INR", e.fxRate ?? null,
     ],
   );
   return rows[0].entry_id;

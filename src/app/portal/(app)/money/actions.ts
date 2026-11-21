@@ -6,6 +6,8 @@ import { requireSection } from "@/lib/dal";
 import { listEntities } from "@/lib/books";
 import { createEntry, dropEntry, getDeal, partyExists, postUnpostedMoney } from "@/lib/ops";
 import { categoryLabel, inr, isCategory, oneLine, parseAmount, parseDate } from "@/lib/ops-fields";
+import { paiseToDecimal, parsePaise } from "@/lib/accounting";
+import { isCurrency, parseRate, rateText, toInr } from "@/lib/assets-calc";
 import { audit } from "@/lib/users";
 
 function back(notice: string): never {
@@ -20,7 +22,20 @@ export async function addEntry(formData: FormData) {
   const user = await requireSection("money");
   const direction = formData.get("direction");
   const category = formData.get("category");
-  const amount = parseAmount(formData.get("amount"));
+  // Amounts in another currency become rupees at the given rate; the original is kept beside them.
+  const currency = String(formData.get("currency") ?? "INR");
+  if (!isCurrency(currency)) back("invalid");
+  let amount = parseAmount(formData.get("amount"));
+  let fxAmount: string | null = null;
+  let fxRate: string | null = null;
+  if (currency !== "INR") {
+    const rate = parseRate(String(formData.get("fxRate") ?? ""));
+    const foreign = parsePaise(String(formData.get("amount") ?? ""));
+    if (!rate || !foreign) back("rate");
+    fxAmount = paiseToDecimal(foreign);
+    fxRate = rateText(rate);
+    amount = paiseToDecimal(toInr(foreign, rate));
+  }
   const date = parseDate(formData.get("date")) ?? new Date().toISOString().slice(0, 10);
   const memo = oneLine(formData.get("memo"), 300);
   const dealRaw = String(formData.get("dealId") ?? "");
@@ -47,7 +62,7 @@ export async function addEntry(formData: FormData) {
   const status = direction === "in" ? "recorded" : owner ? "approved" : "awaiting_approval";
   let id: string;
   try {
-    id = await createEntry({ direction, category, amount, memo, dealId, partyId, status, date, by: user.id, entityId: entity.id });
+    id = await createEntry({ direction, category, amount, memo, dealId, partyId, status, date, by: user.id, entityId: entity.id, currency, fxAmount, fxRate });
   } catch {
     back("books-refused");
   }
@@ -55,7 +70,7 @@ export async function addEntry(formData: FormData) {
   if (status === "awaiting_approval") {
     const created = await createApproval({
       kind: "payment",
-      title: `Pay ${inr(amount)} (${categoryLabel(category)})`,
+      title: `Pay ${inr(amount)}${fxAmount ? ` (${currency} ${fxAmount})` : ""} (${categoryLabel(category)})`,
       detail: memo,
       requestedBy: user.id,
       requestedByEmail: user.email,

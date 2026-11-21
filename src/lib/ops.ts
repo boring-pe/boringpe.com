@@ -32,6 +32,8 @@ export type MoneyRow = {
   entity_id: string | null;
   entity_name: string | null;
   journal_entry_id: string | null;
+  currency: string;
+  fx_amount: string | null;
 };
 export type TaskRow = {
   id: string;
@@ -106,7 +108,8 @@ export async function parkStage(id: string, stage: "closing" | "closed") {
 // ---- money
 const MONEY_SELECT = `select m.id, m.direction, m.category, m.amount::text as amount, m.memo, m.deal_id,
   d.name as deal_name, p.name as party_name, m.status, m.entry_date::text as entry_date,
-  u.email as created_by_email, m.entity_id, en.name as entity_name, m.journal_entry_id from money_entries m
+  u.email as created_by_email, m.entity_id, en.name as entity_name, m.journal_entry_id, m.currency, m.fx_amount::text as fx_amount
+  from money_entries m
   left join deals d on d.id = m.deal_id left join parties p on p.id = m.party_id
   left join users u on u.id = m.created_by left join entities en on en.id = m.entity_id`;
 
@@ -137,14 +140,17 @@ async function postMoney(db: Sql, id: string, by: string | null): Promise<boolea
 export async function createEntry(e: {
   direction: "in" | "out"; category: Category; amount: string; memo: string; dealId: string | null;
   partyId: string | null; status: "recorded" | "awaiting_approval" | "approved"; date: string; by: string; entityId: string;
+  currency?: string; fxAmount?: string | null; fxRate?: string | null;
 }) {
   await ensureCharts();
   const sql = await getSql();
   return sql.tx(async (db) => {
     const rows = await db.query<{ id: string }>(
-      `insert into money_entries (direction, category, amount, memo, deal_id, party_id, status, entry_date, created_by, entity_id)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id`,
-      [e.direction, e.category, e.amount, e.memo, e.dealId, e.partyId, e.status, e.date, e.by, e.entityId],
+      `insert into money_entries (direction, category, amount, memo, deal_id, party_id, status, entry_date, created_by, entity_id,
+                                  currency, fx_amount, fx_rate)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::numeric,$13::numeric) returning id`,
+      [e.direction, e.category, e.amount, e.memo, e.dealId, e.partyId, e.status, e.date, e.by, e.entityId,
+        e.currency ?? "INR", e.fxAmount ?? null, e.fxRate ?? null],
     );
     if (counts(e.status)) await postMoney(db, rows[0].id, e.by);
     return rows[0].id;

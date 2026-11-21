@@ -13,6 +13,8 @@ export type SectionId =
   | "books"
   | "invoices"
   | "bank"
+  | "assets"
+  | "budgets"
   | "tasks"
   | "people"
   | "vault"
@@ -41,6 +43,8 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
   { id: "books", href: "/portal/books", label: "Books", group: "firm" },
   { id: "invoices", href: "/portal/invoices", label: "Invoices", group: "firm" },
   { id: "bank", href: "/portal/bank", label: "Bank reconciliation", group: "firm" },
+  { id: "assets", href: "/portal/assets", label: "Fixed assets", group: "firm" },
+  { id: "budgets", href: "/portal/budgets", label: "Budgets", group: "firm" },
   { id: "tasks", href: "/portal/tasks", label: "Tasks", group: "firm" },
   { id: "people", href: "/portal/people", label: "People", group: "firm" },
   { id: "vault", href: "/portal/vault", label: "BIDU Vault", group: "firm" },
@@ -53,11 +57,11 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
 
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
-    "console", "content", "dashboard", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "tasks", "people", "vault", "marrow",
+    "console", "content", "dashboard", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
     "reports", "approvals", "access", "personal",
   ],
-  admin: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "tasks", "people", "vault", "marrow", "reports", "approvals", "access"],
-  partner: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "tasks", "people", "vault", "marrow", "reports", "approvals"],
+  admin: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "access"],
+  partner: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals"],
   operator: ["dashboard", "portfolio", "ventures", "tasks", "people", "vault", "marrow", "approvals"],
   cobuild_partner: ["dashboard", "portfolio", "ventures", "tasks", "vault"],
   founder: ["dashboard", "vault", "marrow"],
