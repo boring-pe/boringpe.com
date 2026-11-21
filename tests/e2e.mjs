@@ -675,6 +675,126 @@ await step("books: a new SPV has its own empty books; an LP cannot open Books", 
   assert.match(B.page.url(), /\/portal\/dashboard$/);
 });
 
+// ---------------------------------------------------------------- Portfolio and Impact Marrow
+const flat = async (page) => (await page.locator("main").innerText()).replace(/\s+/g, " ");
+
+await step("portfolio: the owner adds a holding, invests, and an Admin marks a valuation", async () => {
+  await A.page.goto("/portal/portfolio");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="name"]', "Acme Foods");
+  await A.page.click('button:has-text("Add holding")');
+  await A.page.waitForSelector("text=Holding added");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="kind"]', "invest");
+  await A.page.fill('input[name="amount"]', "10,00,000");
+  await A.page.fill('input[name="date"]', "2026-04-10");
+  await A.page.click('button:has-text("Record")');
+  await A.page.waitForSelector("text=Investment recorded");
+  await A.page.goto("/portal/books?view=overview");
+  assert.ok(/Investments\s*₹10,00,000\.00/.test(await flat(A.page)), "posted to Boring PE's books");
+
+  await E.page.goto("/portal/portfolio");
+  await E.page.click('a:has-text("Acme Foods")');
+  await E.page.waitForLoadState("networkidle");
+  const kinds = await E.page.locator('select[name="kind"] option').allInnerTexts();
+  assert.ok(!kinds.some((k) => /Invest|Exit/.test(k)), kinds.join());
+  await E.page.selectOption('select[name="kind"]', "valuation");
+  await E.page.fill('input[name="amount"]', "15,00,000");
+  await E.page.fill('input[name="date"]', "2026-09-30");
+  await E.page.click('button:has-text("Record")');
+  await E.page.waitForSelector("text=Valuation recorded");
+  assert.ok(/MOIC\s*1\.50x/.test(await flat(E.page)), await flat(E.page));
+});
+
+await step("portfolio: an Admin cannot replay the form to invest", async () => {
+  const url = E.page.url();
+  // The hidden action id is only in the server-rendered HTML, so read it from there.
+  const html = await (await E.page.request.get(url)).text();
+  const formHtml = html.match(/<form[^>]*>(?:(?!<\/form>)[\s\S])*name="holdingId"(?:(?!<\/form>)[\s\S])*<\/form>/)[0];
+  const actionField = formHtml.match(/name="(\$ACTION_ID_[^"]+)"/)[1];
+  const holdingId = formHtml.match(/value="([^"]+)" name="holdingId"|name="holdingId" value="([^"]+)"/).slice(1).find(Boolean);
+  await E.page.request.post(url, {
+    multipart: { [actionField]: "", holdingId, kind: "invest", amount: "99999", date: "2026-05-01", memo: "replayed" },
+    maxRedirects: 0,
+  });
+  await A.page.goto(url);
+  assert.ok(!(await flat(A.page)).includes("replayed"));
+});
+
+await step("portfolio: an exit cannot recover more than cost; a full exit books the gain", async () => {
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="kind"]', "exit");
+  await A.page.fill('input[name="amount"]', "12,00,000");
+  await A.page.fill('input[name="costRecovered"]', "11,00,000");
+  await A.page.click('button:has-text("Record")');
+  await A.page.waitForSelector("text=cannot recover more cost");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="kind"]', "exit");
+  await A.page.fill('input[name="amount"]', "12,00,000");
+  await A.page.fill('input[name="costRecovered"]', "10,00,000");
+  await A.page.check('input[name="markExited"]');
+  await A.page.click('button:has-text("Record")');
+  await A.page.waitForSelector("text=Exit recorded");
+  const text = await flat(A.page);
+  assert.ok(/Realised gain\s*₹2,00,000\.00/i.test(text) && /exited/i.test(text), text);
+  await A.page.goto("/portal/books?view=reports&from=2000-01-01&to=2999-12-31");
+  assert.ok(/Investment income\s*₹2,00,000\.00/.test(await flat(A.page)));
+});
+
+await step("portfolio: investing into our own SPV posts its capital and fills its cap table", async () => {
+  await A.page.goto("/portal/portfolio");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="name"]', "Alpha SPV stake");
+  await A.page.selectOption('select[name="targetEntityId"]', { label: "Into Alpha SPV (SPV)" });
+  await A.page.click('button:has-text("Add holding")');
+  await A.page.waitForSelector("text=Holding added");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="kind"]', "invest");
+  await A.page.fill('input[name="amount"]', "80,000");
+  await A.page.fill('input[name="shares"]', "8000");
+  await A.page.click('button:has-text("Record")');
+  await A.page.waitForSelector("text=Investment recorded");
+  await E.page.goto("/portal/portfolio?view=cap");
+  await E.page.waitForLoadState("networkidle");
+  await E.page.fill('input[name="holderName"]', "Operator Partner");
+  await E.page.selectOption('select[name="instrument"]', "sweat");
+  await E.page.fill('input[name="shares"]', "2000");
+  await E.page.click('button:has-text("Add shareholder")');
+  await E.page.waitForSelector("text=Cap table updated");
+  assert.ok(/80\.00%/.test(await E.page.locator('tr[data-holder="Boring PE"]').innerText()));
+  assert.ok(/20\.00%/.test(await E.page.locator('tr[data-holder="Operator Partner"]').innerText()));
+  await A.page.goto("/portal/books?view=overview");
+  await A.page.click('nav[aria-label="Entities"] a:has-text("Alpha SPV")');
+  await A.page.waitForURL(/[?&]e=/);
+  assert.ok(/Capital\s*₹80,000\.00/.test(await flat(A.page)));
+});
+
+await step("Impact Marrow: contributions from Boring PE and Rahul personally land in the fund's books", async () => {
+  await A.page.goto("/portal/marrow");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="fromEntityId"]', { label: "From Boring PE" });
+  await A.page.fill('input[name="amount"]', "50,000");
+  await A.page.fill('input[name="memo"]', "Q3 corpus");
+  await A.page.click('button:has-text("Record contribution")');
+  await A.page.waitForSelector("text=Contribution recorded");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="amount"]', "10,000");
+  await A.page.click('button:has-text("Record contribution")');
+  await A.page.waitForSelector('td:has-text("Rahul Mane (personal)")');
+  const text = await flat(A.page);
+  assert.ok(/Contributed in total\s*₹60,000\.00/i.test(text), text);
+  assert.ok(/Impact Marrow Fund · cash\s*₹60,000\.00/i.test(text), text);
+  assert.ok(/Rahul Mane \(personal\)/.test(text));
+  await E.page.goto("/portal/marrow");
+  assert.equal(await E.page.locator('button:has-text("Record contribution")').count(), 0);
+});
+
+await step("an LP sees no firm holdings", async () => {
+  await B.page.goto("/portal/portfolio");
+  const text = await flat(B.page);
+  assert.ok(!/Acme Foods/.test(text) && /once your access is linked/.test(text), text);
+});
+
 await step("sign out clears the session", async () => {
   await A.page.click('button:has-text("Sign out")');
   await A.page.waitForURL(/\/portal\/login/);

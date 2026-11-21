@@ -1,4 +1,4 @@
-import { getSql } from "./db";
+import { getSql, type Sql } from "./db";
 import { DEFAULT_CHART, paiseToDecimal, type AccountType, type BalanceRow, type EntityKind, type Line } from "./accounting";
 
 export type EntityRow = {
@@ -104,31 +104,65 @@ export async function createAccount(a: { entityId: string; code: string; name: s
   }
 }
 
-/** Posts one balanced entry atomically: the entry and all its lines are a single statement. */
-export async function postEntry(e: {
+type EntryInput = {
   entityId: string; date: string; memo: string; lines: Line[]; by: string; sourceType?: string; sourceId?: string | null;
-}): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
-  const sql = await getSql();
+};
+
+/** Inserts one entry and its lines as a single statement. Throws if the books refuse it. */
+async function insertEntry(db: Sql, e: EntryInput): Promise<string> {
+  const rows = await db.query<{ entry_id: string }>(
+    `with e as (
+       insert into journal_entries (entity_id, entry_date, memo, source_type, source_id, created_by)
+       values ($1, $2::date, $3, $4, $5, $6) returning id
+     )
+     insert into journal_lines (entry_id, account_id, debit, credit)
+       select e.id, l.a, l.d, l.c from e, unnest($7::text[], $8::numeric[], $9::numeric[]) as l(a, d, c)
+     returning entry_id`,
+    [
+      e.entityId, e.date, e.memo, e.sourceType ?? "manual", e.sourceId ?? null, e.by,
+      e.lines.map((l) => l.accountId),
+      e.lines.map((l) => paiseToDecimal(l.debit)),
+      e.lines.map((l) => paiseToDecimal(l.credit)),
+    ],
+  );
+  return rows[0].entry_id;
+}
+
+/** Posts one balanced entry atomically: the entry and all its lines are a single statement. */
+export async function postEntry(e: EntryInput): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
   try {
-    const rows = await sql.query<{ entry_id: string }>(
-      `with e as (
-         insert into journal_entries (entity_id, entry_date, memo, source_type, source_id, created_by)
-         values ($1, $2::date, $3, $4, $5, $6) returning id
-       )
-       insert into journal_lines (entry_id, account_id, debit, credit)
-         select e.id, l.a, l.d, l.c from e, unnest($7::text[], $8::numeric[], $9::numeric[]) as l(a, d, c)
-       returning entry_id`,
-      [
-        e.entityId, e.date, e.memo, e.sourceType ?? "manual", e.sourceId ?? null, e.by,
-        e.lines.map((l) => l.accountId),
-        e.lines.map((l) => paiseToDecimal(l.debit)),
-        e.lines.map((l) => paiseToDecimal(l.credit)),
-      ],
-    );
-    return { ok: true, id: rows[0].entry_id };
+    return { ok: true, id: await insertEntry(await getSql(), e) };
   } catch (err) {
     return { ok: false, reason: String((err as Error).message) };
   }
+}
+
+export type CodeLine = { code: string; debit: bigint; credit: bigint };
+
+/**
+ * Posts an entry from account codes of the entity's chart, inside the caller's transaction.
+ * Zero lines are dropped. Throws when an account is missing or the entry does not balance,
+ * which rolls back everything else the caller did.
+ */
+export async function postByCodes(
+  db: Sql,
+  e: Omit<EntryInput, "lines"> & { lines: CodeLine[] },
+): Promise<string> {
+  const used = e.lines.filter((l) => l.debit > 0n || l.credit > 0n);
+  const accounts = await db.query<{ id: string; code: string }>(
+    "select id, code from ledger_accounts where entity_id = $1 and active and code = any($2::text[])",
+    [e.entityId, used.map((l) => l.code)],
+  );
+  const byCode = new Map(accounts.map((a) => [a.code, a.id]));
+  const lines = used.map((l) => {
+    const accountId = byCode.get(l.code);
+    if (!accountId) throw new Error(`Account ${l.code} is missing from this entity's chart.`);
+    return { accountId, debit: l.debit, credit: l.credit };
+  });
+  const d = lines.reduce((s, l) => s + l.debit, 0n);
+  const c = lines.reduce((s, l) => s + l.credit, 0n);
+  if (lines.length < 2 || d !== c) throw new Error("Entry does not balance.");
+  return insertEntry(db, { ...e, lines });
 }
 
 /** Reverses a posted entry by posting its mirror image. Each entry can be reversed once. */
