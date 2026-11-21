@@ -25,6 +25,7 @@ import {
   Bell,
   Package,
   Plug,
+  Inbox as InboxIcon,
   Target as TargetIcon,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
@@ -46,6 +47,7 @@ const ICONS: Record<SectionId, React.ElementType> = {
   reports: BarChart3,
   personal: Lock,
   dashboard: LayoutDashboard,
+  inbox: InboxIcon,
   portfolio: Building2,
   ventures: Rocket,
   deals: Target,
