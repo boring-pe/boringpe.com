@@ -1249,6 +1249,45 @@ await step("invoicing: the Business House fee is a real invoice; settling it mov
   }
 });
 
+// ---------------------------------------------------------------- Bank reconciliation
+await step("bank: a statement imports, matches the books, posts charges, reconciles, and never imports twice", async () => {
+  const d = new Date().toISOString().slice(0, 10).split("-").reverse().join("/");
+  const csv = [
+    "Impact Marrow Fund - Savings,,,,,",
+    "Date,Narration,Chq./Ref.No.,Withdrawal Amt.,Deposit Amt.,Closing Balance",
+    `${d},NEFT BORING PE CORPUS,UTR11,,"50,000.00","50,000.00"`,
+    `${d},IMPS RAHUL MANE,UTR12,,"10,000.00","60,000.00"`,
+    `${d},SMS AND SERVICE CHARGES,,59.00,,"59,941.00"`,
+  ].join("\n");
+  const send = async () => {
+    await A.page.goto("/portal/bank");
+    await A.page.click('nav[aria-label="Entities"] a:has-text("Impact Marrow Fund")');
+    await A.page.waitForURL(/[?&]e=/);
+    await A.page.waitForLoadState("networkidle");
+    await A.page.setInputFiles('input[name="file"]', { name: "statement.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+    await A.page.click('button:has-text("Import statement")');
+    await A.page.waitForSelector("text=Statement imported");
+    return (await A.page.locator('[role="status"]').innerText()).replace(/\s+/g, " ");
+  };
+  const first = await send();
+  assert.ok(/3 new lines, 0 already imported, 0 rows skipped, 2 matched automatically/.test(first), first);
+  assert.ok(/matched/i.test(await A.page.locator('tr[data-bank-line="NEFT BORING PE CORPUS"]').innerText()));
+  await A.page.locator('tr[data-bank-line="SMS AND SERVICE CHARGES"] button:has-text("Post")').click();
+  await A.page.waitForSelector("text=Posted to the books and matched");
+  const recon = (await A.page.locator("[data-recon]").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Difference ₹0\.00/i.test(recon) && /0 unmatched/.test(recon), recon);
+  const again = await send();
+  assert.ok(/0 new lines, 3 already imported/.test(again), again);
+  await A.page.goto("/portal/books?view=overview");
+  await A.page.click('nav[aria-label="Entities"] a:has-text("Impact Marrow Fund")');
+  await A.page.waitForURL(/[?&]e=/);
+  assert.ok(/Bank charges\s*₹59\.00/.test((await A.page.locator("main").innerText()).replace(/\s+/g, " ")));
+  for (const page of [B.page, F.page]) {
+    await page.goto("/portal/bank");
+    assert.match(page.url(), /\/portal\/dashboard$/);
+  }
+});
+
 await step("sign out clears the session", async () => {
   await A.page.click('button:has-text("Sign out")');
   await A.page.waitForURL(/\/portal\/login/);

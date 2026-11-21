@@ -21,6 +21,7 @@ import {
   Users,
   BarChart3,
   Receipt,
+  Landmark,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
@@ -44,6 +45,7 @@ const ICONS: Record<SectionId, React.ElementType> = {
   money: Wallet,
   books: BookOpen,
   invoices: Receipt,
+  bank: Landmark,
   tasks: ListChecks,
   people: Users,
   vault: FolderKanban,
