@@ -6,11 +6,14 @@ import { hashPassword, MIN_PASSWORD_LENGTH } from "./password";
 export interface Sql {
   <T = Record<string, unknown>>(strings: TemplateStringsArray, ...values: unknown[]): Promise<T[]>;
   query<T = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T[]>;
+  /** Runs `fn` in one transaction: everything it does commits together or not at all. Nested calls join the outer one. */
+  tx<R>(fn: (t: Sql) => Promise<R>): Promise<R>;
 }
 
 type Run = <T>(text: string, params: unknown[]) => Promise<T[]>;
+type Tx = <R>(fn: (t: Sql) => Promise<R>) => Promise<R>;
 
-function toSql(run: Run): Sql {
+function toSql(run: Run, tx?: Tx): Sql {
   const sql = (async <T = Record<string, unknown>>(
     strings: TemplateStringsArray,
     ...values: unknown[]
@@ -21,6 +24,7 @@ function toSql(run: Run): Sql {
   }) as unknown as Sql;
   sql.query = <T = Record<string, unknown>>(text: string, params: unknown[] = []) =>
     run<T>(text, params);
+  sql.tx = tx ?? (<R>(fn: (t: Sql) => Promise<R>) => fn(sql));
   return sql;
 }
 
@@ -39,10 +43,28 @@ async function connect(): Promise<Sql> {
   if (url) {
     const { Pool } = await import("pg");
     const pool = new Pool({ connectionString: url, max: 5 });
-    return toSql(async <T>(text: string, params: unknown[]) => {
-      const result = await pool.query(text, params);
-      return result.rows as T[];
-    });
+    return toSql(
+      async <T>(text: string, params: unknown[]) => {
+        const result = await pool.query(text, params);
+        return result.rows as T[];
+      },
+      async (fn) => {
+        const client = await pool.connect();
+        try {
+          await client.query("begin");
+          const result = await fn(
+            toSql(async <T>(text: string, params: unknown[]) => (await client.query(text, params)).rows as T[]),
+          );
+          await client.query("commit");
+          return result;
+        } catch (error) {
+          await client.query("rollback").catch(() => {});
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+    );
   }
 
   if (process.env.NODE_ENV === "production" && !process.env.PGLITE_DIR) {
@@ -66,7 +88,10 @@ async function connect(): Promise<Sql> {
       await tx.query("insert into _migrations (name) values ($1)", [name]);
     });
   }
-  return toSql(async <T>(text: string, params: unknown[]) => (await pg.query<T>(text, params)).rows);
+  return toSql(
+    async <T>(text: string, params: unknown[]) => (await pg.query<T>(text, params)).rows,
+    (fn) => pg.transaction((t) => fn(toSql(async <T>(text: string, params: unknown[]) => (await t.query<T>(text, params)).rows))),
+  );
 }
 
 /**

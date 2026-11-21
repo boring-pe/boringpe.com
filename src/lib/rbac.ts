@@ -29,7 +29,7 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
   { id: "console", href: "/portal/console", label: "Console", group: "super" },
   { id: "content", href: "/portal/content", label: "Site content", group: "super" },
   { id: "dashboard", href: "/portal/dashboard", label: "Dashboard", group: "firm" },
-  { id: "portfolio", href: "/portal/portfolio", label: "Portfolio (SPVs)", group: "firm" },
+  { id: "portfolio", href: "/portal/portfolio", label: "Portfolio", group: "firm" },
   { id: "deals", href: "/portal/deals", label: "Deal Pipeline", group: "firm" },
   { id: "money", href: "/portal/money", label: "Money", group: "firm" },
   { id: "books", href: "/portal/books", label: "Books", group: "firm" },
@@ -120,3 +120,8 @@ export function firstAllowedHref(role: Role) {
 
 /** Posting to the books is limited to the Super Admin and Admins; partners can read. */
 export const canPostBooks = (role: Role) => role === "super_admin" || role === "admin";
+
+/** Firm-wide holdings, cap tables and fund figures. External roles get scoped views later. */
+export const canSeeFirmData = (role: Role) => role === "super_admin" || role === "admin" || role === "partner";
+/** Adding holdings, cap table rows, income and valuations. Moving money (invest, exit, contributions) is the Super Admin's alone. */
+export const canManagePortfolio = (role: Role) => role === "super_admin" || role === "admin";
