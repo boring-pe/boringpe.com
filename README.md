@@ -87,6 +87,24 @@ pillars (Build, Own, Co-Build, Enable). Rules, all enforced on the server:
   approval and is not counted until then. Rejected and withdrawn payments never count.
 - Money and Deals are open to the Super Admin, Admin and Partner; Tasks also to Operators.
 
+## The Business Stack
+
+The portal is the infrastructure and intelligence every Boring PE venture runs on. The menu
+follows that shape:
+
+| Group | Pages |
+| --- | --- |
+| Intelligence | Dashboard, Insights, MIS reports, Budgets, Portfolio |
+| Ventures | Ventures, Deal Pipeline, Impact Marrow, Tasks, Approvals |
+| Infrastructure | Books, Invoices, Bank reconciliation, Money, Fixed assets, People & payroll, BIDU Vault, Inbox, Calendar, WhatsApp, Integrations, Access |
+
+**Insights** (`/portal/intelligence`, Super Admin, Admins and partners) turns the records into
+plain-language findings for the whole group, each entity and each venture: cash runway from the
+average burn of the last three whole months, overdue receivables by customer, income behind or
+spending over budget this financial year, venture revenue falls, losses and unclosed months, and
+expense accounts that jumped well above their usual month. The rules live in
+`src/lib/insights-calc.ts` (pure, unit-tested); the most pressing ones also show on the dashboard.
+
 ## ERP modules
 
 | Module | Where | What it does |

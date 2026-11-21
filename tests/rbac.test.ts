@@ -62,7 +62,20 @@ test("admins cannot touch admins or the Super Admin; the Super Admin can touch a
 test("every section belongs to a known group and allowedSections follows the grants", () => {
   const groups = GROUPS.map((g) => g.id);
   for (const section of SECTIONS) assert.ok(groups.includes(section.group));
-  assert.deepEqual(allowedSections("lp").map((s) => s.id), ["dashboard", "inbox", "calendar", "portfolio", "vault"]);
+  assert.deepEqual(allowedSections("lp").map((s) => s.id), ["dashboard", "portfolio", "vault", "inbox", "calendar"]);
+});
+
+test("the menu reads as the Business Stack: Intelligence, Ventures, Infrastructure", () => {
+  assert.deepEqual(GROUPS.map((g) => g.label), ["Super Admin", "Intelligence", "Ventures", "Infrastructure", "Rahul Mane · private"]);
+  const groupOf = (id: string) => SECTIONS.find((s) => s.id === id)?.group;
+  for (const id of ["dashboard", "intelligence", "reports", "budgets", "portfolio"]) assert.equal(groupOf(id), "intelligence", id);
+  for (const id of ["ventures", "deals", "marrow"]) assert.equal(groupOf(id), "ventures", id);
+  for (const id of ["books", "invoices", "bank", "people", "inbox", "whatsapp", "integrations"]) assert.equal(groupOf(id), "infrastructure", id);
+  for (const g of GROUPS) assert.ok(SECTIONS.some((s) => s.group === g.id), `${g.label} is not empty`);
+});
+
+test("firm-wide insights are for the Super Admin, Admins and partners only", () => {
+  for (const r of ROLES) assert.equal(can(r, "intelligence"), ["super_admin", "admin", "partner"].includes(r), r);
 });
 
 test("MIS reports are for the Super Admin, Admins and partners only", () => {

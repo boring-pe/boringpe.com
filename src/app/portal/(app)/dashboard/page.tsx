@@ -11,6 +11,8 @@ import { inr, stageLabel, STAGES } from "@/lib/ops-fields";
 import { position } from "@/lib/portfolio-calc";
 import { can, canSeeFirmData } from "@/lib/rbac";
 import { myView } from "@/lib/scopes";
+import { firmInsights } from "@/lib/insights";
+import { InsightList } from "../intelligence/insight-list";
 import { compactRupees, IncomeExpenseChart, Sparkline, StageBars } from "./charts";
 import { LiveRefresh } from "./live";
 
@@ -34,7 +36,8 @@ export default async function DashboardPage() {
   const seeTasks = can(user.role, "tasks");
   const seeBooks = can(user.role, "books");
   const owner = user.role === "super_admin";
-  const [ops, cash, fy, recv, pending, mine, meetings] = await Promise.all([
+  const seeInsights = can(user.role, "intelligence");
+  const [ops, cash, fy, recv, pending, mine, meetings, intel] = await Promise.all([
     summary(),
     seeBooks ? cashTrend(12) : Promise.resolve([]),
     seeBooks ? fyMonthly() : Promise.resolve(null),
@@ -42,7 +45,9 @@ export default async function DashboardPage() {
     owner ? countPending() : Promise.resolve(0),
     myUpcomingTasks(user.id),
     agenda(user.id, 3).catch(() => ({ items: [], accounts: [], errors: [] })),
+    seeInsights ? firmInsights() : Promise.resolve(null),
   ]);
+  const urgent = (intel?.insights ?? []).filter((i) => i.severity === "critical" || i.severity === "warning");
 
   const totalDeals = ops.deals.reduce((n, d) => n + d.n, 0);
   const cashNow = cash.at(-1)?.cash ?? 0n;
@@ -109,6 +114,16 @@ export default async function DashboardPage() {
               </Link>
             ) : null}
           </div>
+
+          {urgent.length ? (
+            <section className="rounded-xl border border-slate-800 bg-slate-900" data-attention>
+              <div className="flex items-baseline justify-between gap-2 px-4 pt-4">
+                <h3 className="text-sm font-semibold text-white">What needs attention</h3>
+                <Link href="/portal/intelligence" className="text-xs text-blue-400 hover:text-blue-300">All insights ({urgent.length})</Link>
+              </div>
+              <InsightList items={urgent.slice(0, 4)} compact />
+            </section>
+          ) : null}
 
           <div className="grid gap-4 lg:grid-cols-3">
             {fy ? (

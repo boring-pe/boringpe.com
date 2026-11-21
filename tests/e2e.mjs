@@ -243,7 +243,7 @@ await step("Super Admin lands on the console and sees all three workspaces; dash
   assert.match(A.page.url(), /\/portal\/console$/);
   // Group headings are rendered uppercase, so compare without case.
   const nav = (await A.page.locator("nav").innerText()).toLowerCase();
-  for (const label of ["Super Admin", "Boring PE", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
+  for (const label of ["Super Admin", "Intelligence", "Ventures", "Infrastructure", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
     assert.ok(nav.includes(label.toLowerCase()), label);
   }
   await A.page.goto("/portal/dashboard");
@@ -278,7 +278,7 @@ await step("an Admin cannot open the console, site content or the personal desk"
     assert.match(E.page.url(), /\/portal\/dashboard$/, path);
   }
   const nav = (await E.page.locator("nav").innerText()).toLowerCase();
-  assert.ok(nav.includes("boring pe"), "the Boring PE group is there");
+  for (const group of ["intelligence", "ventures", "infrastructure"]) assert.ok(nav.includes(group), `the ${group} group is there`);
   for (const label of ["super admin", "personal desk", "site content", "console", "rahul mane"]) {
     assert.ok(!nav.includes(label), `Admin must not see ${label}`);
   }
@@ -1748,6 +1748,44 @@ await step("design: Ctrl+K jumps to pages and finds records, never ones the pers
   const anon = await browser.newContext({ baseURL: BASE });
   assert.equal((await anon.request.get("/api/portal/search?q=Acme")).status(), 401);
   await anon.close();
+});
+
+await step("intelligence: spending, budget and runway insights in plain words, by scope; not for an LP", async () => {
+  const monthAgo = (n) => { const d = new Date(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - n); return d.toISOString().slice(0, 8) + "15"; };
+  for (const [n, amount] of [[4, "20,000"], [3, "20,000"], [2, "20,000"], [1, "80,000"]]) {
+    await A.page.goto("/portal/books?view=journal");
+    await A.page.waitForLoadState("networkidle");
+    await A.page.fill('input[name="date"]', monthAgo(n));
+    await postRows(A.page, `Event costs ${n}`, [["5900 Other expenses", amount, ""], ["1010 Bank", "", amount]]);
+    await A.page.waitForSelector("text=Entry posted.");
+  }
+  const fy = new Date().getUTCMonth() >= 3 ? new Date().getUTCFullYear() : new Date().getUTCFullYear() - 1;
+  await A.page.goto(`/portal/budgets?fy=${fy}`);
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="accountId"]', { label: "4010 Management fees" });
+  await A.page.fill('input[name="annual"]', "1,20,00,000");
+  await A.page.click('button:has-text("Save")');
+  await A.page.waitForSelector("text=Budget saved");
+  await A.page.goto("/portal/intelligence");
+  const spend = await txt(A.page, '[data-insight="spend:Boring PE:5900"]');
+  assert.ok(/Other expenses at Boring PE jumped/.test(spend) && /against a usual ₹12,000 a month/.test(spend), spend);
+  assert.equal(await A.page.locator('[data-insight="spend:Boring PE:5900"]').getAttribute("data-severity"), "warning");
+  const budget = await txt(A.page, '[data-insight="budget-income:Boring PE"]');
+  assert.ok(/income is [\d.]+% behind budget/.test(budget), budget);
+  assert.ok(await A.page.locator('[data-insight="cash:Group"]').count(), "a group runway line");
+  assert.ok(/months|Not burning/.test(await txt(A.page, '[data-kpi="runway"]')));
+
+  await A.page.click('[data-scope="Alpha SPV"]');
+  await A.page.waitForURL(/scope=e%3AAlpha/);
+  assert.equal(await A.page.locator('[data-insight="spend:Boring PE:5900"]').count(), 0, "another entity's insight is filtered out");
+  await A.page.goto("/portal/intelligence?area=spending");
+  assert.equal(await A.page.locator('[data-insight^="budget"]').count(), 0, "area filter");
+
+  await E.page.goto("/portal/dashboard");
+  assert.ok(/What needs attention/.test(await txt(E.page, "[data-attention]")), "an Admin sees the strip on the dashboard");
+  await B.page.goto("/portal/intelligence");
+  assert.match(B.page.url(), /\/portal\/dashboard$/, "an LP cannot open firm insights");
+  assert.equal(await B.page.locator("[data-attention]").count(), 0);
 });
 
 await step("sign out clears the session", async () => {
