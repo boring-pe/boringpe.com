@@ -128,7 +128,7 @@ export async function completeOAuth(provider: string, code: string, state: strin
 }
 
 /** A valid access token, refreshed when it is about to expire. */
-async function connection(id: string): Promise<{ provider: MailProvider; conn: Conn }> {
+export async function connection(id: string): Promise<{ provider: MailProvider; conn: Conn }> {
   const a = await accountRow(id);
   if (!a) throw new Error("Mailbox not found.");
   const conn: Conn = { token: "", email: a.email, providerAccountId: a.provider_account_id, inboxFolderId: a.inbox_folder_id, domain: a.domain };

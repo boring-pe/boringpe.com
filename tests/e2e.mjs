@@ -1622,6 +1622,83 @@ await step("whatsapp: replies inside 24 hours; after that only templates; assign
   }
 });
 
+// ---------------------------------------------------------------- Calendar and Razorpay
+await step("calendar: a meeting is created in India time, invites attendees, and links to a deal", async () => {
+  await A.page.goto("/portal/calendar");
+  await A.page.waitForLoadState("networkidle");
+  const day = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  await A.page.fill('input[name="title"]', "Bad times");
+  await A.page.fill('input[name="start"]', `${day}T16:00`);
+  await A.page.fill('input[name="end"]', `${day}T15:00`);
+  await A.page.click('button:has-text("Create and invite")');
+  await A.page.waitForSelector("text=a start before the end");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="title"]', "IC review");
+  await A.page.fill('input[name="start"]', `${day}T15:00`);
+  await A.page.fill('input[name="end"]', `${day}T16:00`);
+  await A.page.fill('input[name="attendees"]', "asha@acme.example");
+  await A.page.selectOption('select[name="link"]', { label: "Deal: Alpha" });
+  await A.page.click('button:has-text("Create and invite")');
+  await A.page.waitForSelector("text=Meeting created");
+  const ev = (await A.page.locator('li[data-event="IC review"]').innerText()).replace(/\s+/g, " ");
+  assert.ok(/03:00 pm to 04:00 pm/i.test(ev) && /Deal: Alpha/.test(ev) && /Join/.test(ev), ev);
+  await F.page.goto("/portal/calendar");
+  const f = await F.page.locator("main").innerText();
+  assert.ok(/Connect a Google or Microsoft mailbox/.test(f) && !/IC review/.test(f), "calendars are personal");
+});
+
+await step("razorpay: a payment link settles the invoice through the gateway account and books the fee; forged or repeated events change nothing", async () => {
+  const RZP = "rzp-webhook-secret";
+  await A.page.goto("/portal/integrations?view=services&p=razorpay");
+  await A.page.waitForLoadState("networkidle");
+  const rp = A.page.locator('details[data-provider="razorpay"]');
+  await rp.locator('input[name="keyId"]').fill("rzp_test_ABCDEF123456");
+  await rp.locator('input[name="keySecret"]').fill("key-secret");
+  await rp.locator('input[name="webhookSecret"]').fill(RZP);
+  await rp.locator('button:has-text("Save and test")').click();
+  await A.page.waitForURL(/notice=/);
+
+  await A.page.goto("/portal/invoices?view=new");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="partyId"]', { label: "To Acme Supplies (29AAGCB7383J1Z4)" });
+  await A.page.selectOption('select[name="placeOfSupply"]', "27");
+  await A.page.fill('input[name="desc0"]', "Retainer, online");
+  await A.page.fill('input[name="rate0"]', "10,000");
+  await A.page.click('button:has-text("Save draft")');
+  await A.page.waitForSelector("text=Draft saved");
+  await A.page.click('button:has-text("Issue invoice")');
+  await A.page.waitForSelector("text=Invoice issued");
+  await A.page.click('button:has-text("Create payment link")');
+  await A.page.waitForSelector("text=Payment link ready");
+  const url = (await A.page.locator("[data-paylink]").first().innerText()).trim();
+  const linkId = url.split("/").pop();
+  const invoiceUrl = A.page.url();
+
+  const event = (id) => JSON.stringify({ entity: "event", event: "payment_link.paid", payload: {
+    payment_link: { entity: { id: linkId, amount: 1180000, amount_paid: 1180000, status: "paid" } },
+    payment: { entity: { id: "pay_TEST123", amount: 1180000, fee: 2832, tax: 432, method: "upi", status: "captured" } },
+  }, created_at: Math.floor(Date.now() / 1000), id });
+  const hook = async (body, secret, eventId) => {
+    const c = await browser.newContext({ baseURL: BASE });
+    const headers = { "Content-Type": "application/json", "x-razorpay-event-id": eventId };
+    if (secret) headers["X-Razorpay-Signature"] = createHmac("sha256", secret).update(body).digest("hex");
+    const r = await c.request.post("/api/webhooks/razorpay", { data: body, headers });
+    await c.close();
+    return r.status();
+  };
+  assert.equal(await hook(event("evt_1"), null, "evt_1"), 401, "unsigned");
+  assert.equal(await hook(event("evt_1"), "wrong", "evt_1"), 401, "forged");
+  assert.equal(await hook(event("evt_1"), RZP, "evt_1"), 200);
+  assert.equal(await hook(event("evt_1"), RZP, "evt_1"), 200, "a repeat");
+  await A.page.goto(invoiceUrl);
+  assert.ok(/paid/i.test(await A.page.locator("[data-invoice-doc]").innerText()));
+  await A.page.goto("/portal/books?view=overview");
+  const tb = (await A.page.locator("main").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Payment gateway \(Razorpay\)\s*₹11,771\.68/.test(tb), tb.slice(0, 1200));
+  await A.page.goto("/portal/notifications");
+  assert.ok(/Paid online/.test(await A.page.locator("main").innerText()));
+});
+
 await step("sign out clears the session", async () => {
   await A.page.click('button:has-text("Sign out")');
   await A.page.waitForURL(/\/portal\/login/);

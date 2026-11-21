@@ -38,6 +38,7 @@ export type ChartSeed = { code: string; name: string; type: AccountType };
 export const DEFAULT_CHART: ChartSeed[] = [
   { code: "1010", name: "Bank", type: "asset" },
   { code: "1020", name: "Cash", type: "asset" },
+  { code: "1030", name: "Payment gateway (Razorpay)", type: "asset" },
   { code: "1100", name: "Receivables", type: "asset" },
   { code: "1200", name: "Investments", type: "asset" },
   { code: "1300", name: "Loans and advances", type: "asset" },

@@ -11,7 +11,8 @@ import {
 } from "@/lib/invoices";
 import { oneLine, parseDate } from "@/lib/ops-fields";
 import { canPostBooks } from "@/lib/rbac";
-import { emit } from "@/lib/integrations";
+import { emit, logEvent } from "@/lib/integrations";
+import { createPaymentLink } from "@/lib/payments";
 import { audit } from "@/lib/users";
 
 const ROWS = 5;
@@ -126,4 +127,19 @@ export async function savePartyGst(formData: FormData) {
   if (!f || !(await updatePartyGst(String(formData.get("partyId") ?? ""), f))) back("view=settings", "gstin");
   await audit({ actorId: user.id, actorEmail: user.email, action: "party_gst_saved" });
   back("view=settings", "saved");
+}
+
+/** A Razorpay payment link for what is still owed. */
+export async function paymentLink(formData: FormData) {
+  const user = await requireSection("invoices");
+  const id = String(formData.get("id") ?? "");
+  const q = `inv=${encodeURIComponent(id)}`;
+  if (!canPostBooks(user.role)) back(q, "forbidden");
+  const r = await createPaymentLink(id, user.id);
+  if ("error" in r) {
+    await logEvent("razorpay", "payment_link", false, r.error, user.email);
+    back(q, "paylink-failed");
+  }
+  await audit({ actorId: user.id, actorEmail: user.email, action: "payment_link_created", detail: id });
+  back(q, "paylink");
 }

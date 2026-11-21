@@ -10,7 +10,8 @@ import {
 import { CURRENCIES } from "@/lib/assets-calc";
 import { canPostBooks } from "@/lib/rbac";
 import { monthEnd } from "@/lib/venture-calc";
-import { invoiceAction, newInvoice, saveEntityGst, savePartyGst } from "./actions";
+import { invoiceAction, newInvoice, paymentLink, saveEntityGst, savePartyGst } from "./actions";
+import { linksFor, razorpayReady } from "@/lib/payments";
 import { PrintButton } from "./print-button";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
@@ -20,6 +21,8 @@ const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   "done-issue": { text: "Invoice issued and posted to the books." },
   "done-receipt": { text: "Receipt recorded and posted to the books." },
   "done-cancel": { text: "Invoice cancelled; its posting was reversed." },
+  paylink: { text: "Payment link ready. Share it with the customer; it posts here when paid." },
+  "paylink-failed": { text: "Razorpay did not create the link. The Integrations activity log has the reason.", bad: true },
   "done-settle": { text: "Settled between our entities in both sets of books." },
   invalid: { text: "That was not valid.", bad: true },
   lines: { text: "Each line needs a description, a quantity, a rate and a GST rate.", bad: true },
@@ -224,6 +227,10 @@ async function Detail({ id, post, owner }: { id: string; post: boolean; owner: b
         ) : null}
       </div>
 
+      {post && inv.status === "issued" && inv.currency === "INR" && outstanding >= 100n ? (
+        <PayLinks invoiceId={inv.id} />
+      ) : null}
+
       {inv.receipts.length ? (
         <section className={`${card} print:hidden overflow-x-auto`}>
           <table className="w-full">
@@ -356,5 +363,25 @@ async function Settings() {
         </form>
       </section>
     </div>
+  );
+}
+
+async function PayLinks({ invoiceId }: { invoiceId: string }) {
+  const [ready, links] = await Promise.all([razorpayReady(), linksFor(invoiceId)]);
+  if (!ready) return <p className="print:hidden text-xs text-slate-500">Connect Razorpay under Integrations to collect this invoice online.</p>;
+  return (
+    <section className={`${card} print:hidden p-6 space-y-3`} data-paylinks>
+      <h3 className="text-sm font-semibold text-white">Collect online (Razorpay)</h3>
+      {links.map((l) => (
+        <div key={l.id} className="flex flex-wrap items-center gap-3 text-sm">
+          <code className="break-all rounded bg-slate-950 px-2 py-1 text-slate-200" data-paylink>{l.short_url}</code>
+          <span className="text-slate-400">{rupees(decimalToPaise(l.amount))} · {l.status} · {l.created_at}</span>
+        </div>
+      ))}
+      <form action={paymentLink}>
+        <input type="hidden" name="id" value={invoiceId} />
+        <button className={btn}>{links.length ? "Get link for the amount due" : "Create payment link"}</button>
+      </form>
+    </section>
   );
 }
