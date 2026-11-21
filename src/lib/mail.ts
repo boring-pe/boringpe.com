@@ -4,6 +4,7 @@ import { randomToken, seal, unseal } from "./crypto-box";
 import { credentials } from "./integrations";
 import { ADAPTERS, type Conn, type MailProvider, type MessageFull, type MessageSummary, type Outgoing } from "./mail-providers";
 import { canSeeFirmData, type Role } from "./rbac";
+import { testMode } from "./test-mode";
 
 export type MailAccount = {
   id: string; user_id: string; owner_email: string; provider: MailProvider; email: string; shared: boolean; status: string; last_error: string | null;
@@ -15,7 +16,7 @@ export const MAIL_PROVIDERS: { id: Exclude<MailProvider, "mock">; name: string }
   { id: "microsoft", name: "Outlook / Microsoft 365" },
   { id: "zoho", name: "Zoho Mail" },
 ];
-export const mockEnabled = () => process.env.MAIL_TEST_MODE === "1";
+export const mockEnabled = () => testMode();
 
 /** Mailboxes this person may open: their own, plus ones shared with the team if they are on the team. */
 export async function mailboxesFor(userId: string, role: Role) {
@@ -151,7 +152,7 @@ async function noteError(id: string, err: unknown) {
   await sql.query("update mail_accounts set status = 'error', last_error = $2 where id = $1", [id, String((err as Error).message).slice(0, 300)]);
 }
 
-// ---- test-only mailbox, enabled by MAIL_TEST_MODE=1
+// ---- test-only mailbox, enabled by PORTAL_TEST_MODE=1
 
 type MockStore = Map<string, MessageFull[]>;
 const g = globalThis as typeof globalThis & { __mockMail?: MockStore };

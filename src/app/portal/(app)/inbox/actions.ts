@@ -45,7 +45,7 @@ export async function mailboxAction(formData: FormData) {
   redirect(`/portal/inbox?view=accounts&notice=${String(what)}`);
 }
 
-/** Only when MAIL_TEST_MODE=1: a pretend mailbox for automated tests. */
+/** Only when PORTAL_TEST_MODE=1: a pretend mailbox for automated tests. */
 export async function connectTestMailbox() {
   const user = await requireSection("inbox");
   if (!(await connectMock(user.id, user.email))) redirect("/portal/inbox?view=accounts&notice=invalid");
