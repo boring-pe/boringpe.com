@@ -278,3 +278,23 @@ export async function payRun(id: string, date: string, by: string): Promise<bool
     return true;
   });
 }
+
+/** Who a leave request belongs to, for telling them the decision. */
+export async function leaveOwner(id: string) {
+  const sql = await getSql();
+  return (await sql.query<{ user_id: string | null; from_date: string; to_date: string }>(
+    "select m.user_id, l.from_date::text, l.to_date::text from leave_requests l join employees m on m.id = l.employee_id where l.id = $1",
+    [id],
+  ))[0] ?? null;
+}
+
+/** Signed-in people paid in a run, and its month. */
+export async function runPeople(runId: string) {
+  const sql = await getSql();
+  const rows = await sql.query<{ user_id: string | null; period: string }>(
+    `select m.user_id, r.period::text from pay_runs r left join payslips s on s.pay_run_id = r.id
+       left join employees m on m.id = s.employee_id where r.id = $1`,
+    [runId],
+  );
+  return { users: rows.map((r) => r.user_id), period: rows[0]?.period.slice(0, 7) ?? "" };
+}

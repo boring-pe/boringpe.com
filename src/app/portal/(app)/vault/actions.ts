@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { requireSection } from "@/lib/dal";
-import { createDocument, deleteDocument, linkExists } from "@/lib/documents";
+import { createDocument, deleteDocument, linkExists, linkedUsers } from "@/lib/documents";
+import { notifyUsers } from "@/lib/notify";
 import { oneLine } from "@/lib/ops-fields";
 import { canSeeFirmData } from "@/lib/rbac";
 import { audit } from "@/lib/users";
@@ -35,6 +36,9 @@ export async function upload(formData: FormData) {
   if (visibility === "linked" && !link) back("needs-link");
   const content = new Uint8Array(await file.arrayBuffer());
   await createDocument({ title, category, visibility, link, fileName, mime, content, by: user.id });
+  if (visibility === "linked" && link) {
+    await notifyUsers(await linkedUsers(link.type, link.id), { kind: "document", title: `New document shared: ${title}`, href: "/portal/vault" });
+  }
   await audit({ actorId: user.id, actorEmail: user.email, action: "document_added", detail: title });
   back("uploaded");
 }

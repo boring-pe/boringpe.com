@@ -204,3 +204,24 @@ export async function payPayout(id: string, date: string, by: string): Promise<b
     return true;
   });
 }
+
+/** Signed-in people who follow a venture: its operators and anyone linked to it. */
+export async function ventureUsers(ventureId: string) {
+  const sql = await getSql();
+  const rows = await sql.query<{ id: string }>(
+    `select user_id as id from venture_operators where venture_id = $1 and user_id is not null and active
+     union select user_id from access_scopes where scope_type = 'venture' and ref_id = $1`,
+    [ventureId],
+  );
+  return rows.map((r) => r.id);
+}
+
+export async function payoutUser(payoutId: string) {
+  const sql = await getSql();
+  return (await sql.query<{ user_id: string | null; venture: string; period: string }>(
+    `select o.user_id, v.name as venture, to_char(p.period, 'YYYY-MM') as period
+       from venture_payouts x join venture_operators o on o.id = x.operator_id join venture_periods p on p.id = x.period_id
+       join ventures v on v.id = p.venture_id where x.id = $1`,
+    [payoutId],
+  ))[0] ?? null;
+}
