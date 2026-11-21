@@ -1,7 +1,11 @@
 import { getSql } from "./db";
 import { paiseToDecimal } from "./accounting";
 import { decimalToPaise, postByCodes } from "./books";
+import { invoiceTotals } from "./invoice-calc";
+import { createInvoiceIn, issueIn, partyForEntity } from "./invoices";
 import { feeFor, monthEnd, sharesFit, statement, type FeeRule, type OperatorTerm } from "./venture-calc";
+
+const addDays = (date: string, days: number) => new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 
 export type VentureRow = {
   id: string; name: string; pillar: "build" | "co_build"; entity_id: string; entity_name: string; entity_kind: string;
@@ -104,7 +108,7 @@ export async function addOperator(o: {
 /**
  * Closes one month for a venture and posts it, all or nothing:
  * in the venture's books, revenue and costs through the bank, operator shares and the fee as payables;
- * in Boring PE's books, the fee as a receivable and management fee income. A venture inside Boring PE
+ * in Boring PE's books, a numbered GST invoice for the fee (receivable, management fee income, output GST). A venture inside Boring PE
  * itself pays no fee to itself.
  */
 export async function closePeriod(p: {
@@ -127,24 +131,38 @@ export async function closePeriod(p: {
     const date = monthEnd(p.period);
     const label = `${v.name} statement ${p.period.slice(0, 7)}`;
 
+    // The fee is billed by Boring PE on a GST invoice: 18% once Boring PE has a GSTIN, otherwise none.
+    const bpe = fee > 0n
+      ? (await db.query<{ id: string; gstin: string | null; state_code: string | null }>(
+          "select id, gstin, state_code from entities where kind = 'boring_pe' and active order by created_at limit 1",
+        ))[0]
+      : undefined;
+    if (fee > 0n && !bpe) throw new Error("no-boring-pe");
+    const gstBps = bpe?.gstin ? 1800 : 0;
+    const buyerState = (await db.query<{ state_code: string | null }>("select state_code from entities where id = $1", [v.entity_id]))[0]?.state_code;
+    const place = buyerState ?? bpe?.state_code ?? "";
+    const feeTax = fee > 0n ? invoiceTotals([{ qtyMilli: 1000n, rate: fee, gstBps }], !bpe?.state_code || bpe.state_code === place).tax : 0n;
+
     const lines = [
       { code: "1010", debit: p.revenue, credit: 0n }, { code: "4040", debit: 0n, credit: p.revenue },
       { code: "5900", debit: p.costs, credit: 0n }, { code: "1010", debit: 0n, credit: p.costs },
       { code: "5080", debit: s.operatorTotal, credit: 0n }, { code: "2010", debit: 0n, credit: s.operatorTotal },
-      { code: "5100", debit: fee, credit: 0n }, { code: "2010", debit: 0n, credit: fee },
+      { code: "5100", debit: fee, credit: 0n }, { code: "1400", debit: feeTax, credit: 0n }, { code: "2010", debit: 0n, credit: fee + feeTax },
     ];
     const journal = lines.some((l) => l.debit > 0n)
       ? await postByCodes(db, { entityId: v.entity_id, date, memo: label, by: p.by, sourceType: "venture", sourceId: v.id, lines })
       : null;
 
     let feeJournal: string | null = null;
-    if (fee > 0n) {
-      const bpe = (await db.query<{ id: string }>("select id from entities where kind = 'boring_pe' and active order by created_at limit 1"))[0];
-      if (!bpe) throw new Error("no-boring-pe");
-      feeJournal = await postByCodes(db, {
-        entityId: bpe.id, date, memo: `Business House fee: ${label}`, by: p.by, sourceType: "venture_fee", sourceId: v.id,
-        lines: [{ code: "1100", debit: fee, credit: 0n }, { code: "4010", debit: 0n, credit: fee }],
+    if (fee > 0n && bpe) {
+      const partyId = await partyForEntity(db, v.entity_id, p.by);
+      const invoiceId = await createInvoiceIn(db, {
+        entityId: bpe.id, partyId, issueDate: date, dueDate: addDays(date, 15), placeOfSupply: place || bpe.state_code || "",
+        incomeCode: "4010", notes: `Business House fee for ${v.name}, ${p.period.slice(0, 7)}`,
+        lines: [{ description: `Business House fee: ${v.name}, ${p.period.slice(0, 7)}`, sac: "998311", qtyMilli: 1000n, rate: fee, gstBps }],
+        by: p.by, sourceType: "venture_fee", sourceId: v.id,
       });
+      feeJournal = (await issueIn(db, invoiceId, p.by))?.journal ?? null;
     }
 
     const period = (await db.query<{ id: string }>(

@@ -120,15 +120,13 @@ export async function runAction(formData: FormData) {
   const user = await manager();
   const id = String(formData.get("runId") ?? "");
   const what = formData.get("what");
+  // Paying salaries moves money: the Super Admin's. Checked before the try so the redirect is not swallowed.
+  if (what === "pay" && user.role !== "super_admin") back("view=payroll", "forbidden");
   let ok = false;
   try {
     if (what === "discard") ok = await discardRun(id);
     else if (what === "post") ok = await postRun(id, user.id);
-    else if (what === "pay") {
-      // Paying salaries moves money: the Super Admin's.
-      if (user.role !== "super_admin") back("view=payroll", "forbidden");
-      ok = await payRun(id, parseDate(formData.get("date")) ?? today(), user.id);
-    }
+    else if (what === "pay") ok = await payRun(id, parseDate(formData.get("date")) ?? today(), user.id);
   } catch {
     back("view=payroll", "books-refused");
   }

@@ -1153,6 +1153,102 @@ await step("MIS: group figures remove fees between our own entities; verticals a
   }
 });
 
+// ---------------------------------------------------------------- Invoicing, GST and TDS
+await step("invoicing: GSTINs are checked; an inter-state invoice charges IGST and posts on issue", async () => {
+  await A.page.goto("/portal/invoices?view=settings");
+  await A.page.waitForLoadState("networkidle");
+  const bpe = A.page.locator('form[data-entity-gst="Boring PE"]');
+  await bpe.locator('input[name="gstin"]').fill("27AAPFU0939F1ZW");
+  await bpe.locator('button:has-text("Save")').click();
+  await A.page.waitForSelector("text=That GSTIN or state is not valid");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.locator('form[data-entity-gst="Boring PE"] input[name="gstin"]').fill("27AAPFU0939F1ZV");
+  await A.page.locator('form[data-entity-gst="Boring PE"] button:has-text("Save")').click();
+  await A.page.waitForSelector("text=Saved.");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="partyId"]', { label: "Acme Supplies" });
+  await A.page.locator('input[placeholder="GSTIN (blank if unregistered)"]').fill("29AAGCB7383J1Z4");
+  await A.page.locator('form:has(select[name="partyId"]) button:has-text("Save")').click();
+  await A.page.waitForSelector("text=Saved.");
+
+  await A.page.goto("/portal/invoices?view=new");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="partyId"]', { label: "To Acme Supplies (29AAGCB7383J1Z4)" });
+  await A.page.selectOption('select[name="placeOfSupply"]', "29");
+  await A.page.fill('input[name="desc0"]', "Advisory retainer");
+  await A.page.fill('input[name="sac0"]', "998311");
+  await A.page.fill('input[name="rate0"]', "1,00,000");
+  await A.page.click('button:has-text("Save draft")');
+  await A.page.waitForSelector("text=Draft saved");
+  const doc = (await A.page.locator("[data-invoice-doc]").innerText()).replace(/\s+/g, " ");
+  assert.ok(/IGST ₹18,000\.00/.test(doc) && /Total ₹1,18,000\.00/.test(doc) && !/CGST/.test(doc), doc);
+  await A.page.click('button:has-text("Issue invoice")');
+  await A.page.waitForSelector("text=Invoice issued");
+  const issued = await A.page.locator("[data-invoice-doc]").innerText();
+  assert.match(issued, /INV\/20\d\d-\d\d\/000[12]/, "numbering restarts in a new financial year, or follows the fee invoice in the same one");
+  await A.page.goto("/portal/books?view=overview");
+  assert.ok(/Output IGST\s*₹18,000\.00/.test((await A.page.locator("main").innerText()).replace(/\s+/g, " ")));
+});
+
+await step("invoicing: receipts take TDS, can't exceed what is owed, and settle the invoice", async () => {
+  await A.page.goto("/portal/invoices");
+  await A.page.locator('tr:has-text("Acme Supplies") a').first().click();
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="amount"]', "2,00,000");
+  await A.page.click('button:has-text("Record receipt")');
+  await A.page.waitForSelector("text=more than is still outstanding");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="amount"]', "1,08,000");
+  await A.page.fill('input[name="tds"]', "10,000");
+  await A.page.click('button:has-text("Record receipt")');
+  await A.page.waitForSelector("text=Receipt recorded");
+  assert.ok(/paid/i.test(await A.page.locator("[data-invoice-doc]").innerText()));
+  await A.page.goto("/portal/books?view=overview");
+  assert.ok(/TDS receivable\s*₹10,000\.00/.test((await A.page.locator("main").innerText()).replace(/\s+/g, " ")));
+});
+
+await step("invoicing: within the state it is CGST plus SGST; a cancelled invoice leaves the GST summary", async () => {
+  await A.page.goto("/portal/invoices?view=new");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.selectOption('select[name="partyId"]', { label: "To Acme Supplies (29AAGCB7383J1Z4)" });
+  await A.page.selectOption('select[name="placeOfSupply"]', "27");
+  await A.page.fill('input[name="desc0"]', "Workshop");
+  await A.page.fill('input[name="rate0"]', "10,000");
+  await A.page.click('button:has-text("Save draft")');
+  await A.page.waitForSelector("text=Draft saved");
+  const doc = (await A.page.locator("[data-invoice-doc]").innerText()).replace(/\s+/g, " ");
+  assert.ok(/CGST ₹900\.00/.test(doc) && /SGST ₹900\.00/.test(doc) && !/IGST/.test(doc), doc);
+  await A.page.click('button:has-text("Issue invoice")');
+  await A.page.waitForSelector("text=Invoice issued");
+  await A.page.click('button:has-text("Cancel invoice")');
+  await A.page.waitForSelector("text=Invoice cancelled");
+  const month = new Date().toISOString().slice(0, 7);
+  await A.page.goto(`/portal/invoices?view=gst&month=${month}`);
+  const gst = (await A.page.locator("[data-gst]").innerText()).replace(/\s+/g, " ");
+  assert.ok(/Output IGST ₹18,000\.00/i.test(gst) && /Output CGST ₹0\.00/i.test(gst) && /B2B taxable value ₹1,00,000\.00/i.test(gst), gst);
+});
+
+await step("invoicing: the Business House fee is a real invoice; settling it moves money in both entities' books", async () => {
+  await A.page.goto("/portal/invoices?view=receivables");
+  const row = (await A.page.locator('tr[data-receivable="Alpha SPV"]').innerText()).replace(/\s+/g, " ");
+  assert.ok(/₹5,000\.00/.test(row), row);
+  await A.page.goto("/portal/invoices");
+  await A.page.locator('tr[data-invoice="INV/2026-27/0001"] a').click();
+  await A.page.waitForLoadState("networkidle");
+  assert.ok(/Business House fee: Alpha Co-Build, 2026-10/.test(await A.page.locator("[data-invoice-doc]").innerText()));
+  assert.equal(await A.page.locator('button:has-text("Cancel invoice")').count(), 0, "fee invoices are not cancelled by hand");
+  await A.page.click('button:has-text("Settle between our entities")');
+  await A.page.waitForSelector("text=Settled between our entities");
+  await A.page.goto("/portal/invoices?view=receivables");
+  assert.equal(await A.page.locator('tr[data-receivable="Alpha SPV"]').count(), 0);
+  await E.page.goto("/portal/invoices");
+  assert.equal(await E.page.locator('a:has-text("GST settings")').count(), 1, "Admins manage invoicing");
+  for (const page of [B.page, F.page, G.page]) {
+    await page.goto("/portal/invoices");
+    assert.match(page.url(), /\/portal\/dashboard$/);
+  }
+});
+
 await step("sign out clears the session", async () => {
   await A.page.click('button:has-text("Sign out")');
   await A.page.waitForURL(/\/portal\/login/);
