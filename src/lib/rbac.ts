@@ -4,6 +4,7 @@ export type Role = (typeof ROLES)[number];
 
 export type SectionId =
   | "console"
+  | "integrations"
   | "content"
   | "dashboard"
   | "portfolio"
@@ -34,6 +35,7 @@ export const GROUPS: { id: Group; label: string }[] = [
 
 export const SECTIONS: { id: SectionId; href: string; label: string; group: Group }[] = [
   { id: "console", href: "/portal/console", label: "Console", group: "super" },
+  { id: "integrations", href: "/portal/integrations", label: "Integrations", group: "super" },
   { id: "content", href: "/portal/content", label: "Site content", group: "super" },
   { id: "dashboard", href: "/portal/dashboard", label: "Dashboard", group: "firm" },
   { id: "portfolio", href: "/portal/portfolio", label: "Portfolio", group: "firm" },
@@ -57,7 +59,7 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
 
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
-    "console", "content", "dashboard", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
+    "console", "integrations", "content", "dashboard", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
     "reports", "approvals", "access", "personal",
   ],
   admin: ["dashboard", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "access"],

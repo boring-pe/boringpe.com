@@ -6,11 +6,12 @@ import { parsePaise } from "@/lib/accounting";
 import { GST_RATES, isStateCode, parseQty, validGstin } from "@/lib/invoice-calc";
 import { isCurrency, parseRate } from "@/lib/assets-calc";
 import {
-  INCOME_ACCOUNTS, cancelInvoice, createInvoice, deleteDraft, gstProfiles, issueInvoice, listPartiesGst, recordReceipt,
+  INCOME_ACCOUNTS, cancelInvoice, createInvoice, deleteDraft, getInvoice, gstProfiles, issueInvoice, listPartiesGst, recordReceipt,
   settleIntercompany, updateEntityGst, updatePartyGst,
 } from "@/lib/invoices";
 import { oneLine, parseDate } from "@/lib/ops-fields";
 import { canPostBooks } from "@/lib/rbac";
+import { emit } from "@/lib/integrations";
 import { audit } from "@/lib/users";
 
 const ROWS = 5;
@@ -88,6 +89,14 @@ export async function invoiceAction(formData: FormData) {
   if (outcome === "deleted") back("", "deleted");
   if (outcome !== "ok") back(q, outcome);
   await audit({ actorId: user.id, actorEmail: user.email, action: `invoice_${String(what)}`, detail: id });
+  if (what === "issue" || what === "receipt" || what === "settle") {
+    const inv = await getInvoice(id);
+    if (inv && (what === "issue" || inv.status === "paid")) {
+      await emit(what === "issue" ? "invoice.issued" : "invoice.paid", {
+        id: inv.id, number: inv.number, entity: inv.entity_name, customer: inv.party_name, total_inr: inv.total, currency: inv.currency, status: inv.status,
+      });
+    }
+  }
   back(q, `done-${String(what)}`);
 }
 

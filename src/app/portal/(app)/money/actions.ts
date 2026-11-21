@@ -8,6 +8,7 @@ import { createEntry, dropEntry, getDeal, partyExists, postUnpostedMoney } from 
 import { categoryLabel, inr, isCategory, oneLine, parseAmount, parseDate } from "@/lib/ops-fields";
 import { paiseToDecimal, parsePaise } from "@/lib/accounting";
 import { isCurrency, parseRate, rateText, toInr } from "@/lib/assets-calc";
+import { emit } from "@/lib/integrations";
 import { audit } from "@/lib/users";
 
 function back(notice: string): never {
@@ -88,6 +89,9 @@ export async function addEntry(formData: FormData) {
     action: `money_${direction}_${status}`,
     detail: `${inr(amount)} ${categoryLabel(category)}${memo ? `: ${memo}` : ""}`,
   });
+  if (status !== "awaiting_approval") {
+    await emit("money.recorded", { id: id!, direction, amount_inr: amount, category, memo, entity: entity.name, date, currency });
+  }
   back(status === "awaiting_approval" ? "requested" : "saved");
 }
 

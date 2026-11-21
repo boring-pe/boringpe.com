@@ -24,6 +24,7 @@ import {
   Landmark,
   Bell,
   Package,
+  Plug,
   Target as TargetIcon,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
@@ -39,6 +40,7 @@ export const metadata: Metadata = {
 
 const ICONS: Record<SectionId, React.ElementType> = {
   console: Crown,
+  integrations: Plug,
   content: FileText,
   approvals: ClipboardCheck,
   reports: BarChart3,

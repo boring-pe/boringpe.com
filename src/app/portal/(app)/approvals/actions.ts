@@ -5,6 +5,7 @@ import { createApproval, decideApproval, getApproval, withdrawApproval } from "@
 import { isApprovalKind } from "@/lib/approval-kinds";
 import { requireSection, requireSuperAdmin } from "@/lib/dal";
 import { applyDecision } from "@/lib/ops";
+import { emit } from "@/lib/integrations";
 import { notifyUsers, userIdByEmail } from "@/lib/notify";
 import { audit } from "@/lib/users";
 
@@ -62,6 +63,7 @@ export async function decide(formData: FormData) {
   const row = await decideApproval({ id: existing.id, status, deciderEmail: owner.email, note });
   if (!row) back("gone");
   await applyDecision(row, status, owner.id);
+  await emit("approval.decided", { id: row.id, title: row.title, status, requested_by: row.requested_by_email, note });
   await notifyUsers([await userIdByEmail(row.requested_by_email)], {
     kind: "approval", title: `${status === "approved" ? "Approved" : "Rejected"}: ${row.title}`, body: note ?? "", href: "/portal/approvals",
   });

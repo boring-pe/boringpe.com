@@ -1,4 +1,5 @@
 import { getSql } from "./db";
+import { emit } from "./integrations";
 import { notifyRoles } from "./notify";
 import { MAX_PENDING_PER_PERSON, type ApprovalKind } from "./approval-kinds";
 
@@ -51,6 +52,7 @@ export async function createApproval(input: {
       input.refId ?? null,
     ],
   );
+  await emit("approval.requested", { id: rows[0].id, kind: input.kind, title: input.title, requested_by: input.requestedByEmail });
   await notifyRoles(["super_admin"], {
     kind: "approval", title: `Approval needed: ${input.title}`, body: `${input.requestedByEmail}${input.detail ? `: ${input.detail}` : ""}`,
     href: "/portal/approvals",

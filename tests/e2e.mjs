@@ -1414,6 +1414,75 @@ await step("currency: money, journals and invoices in dollars land in rupees, wi
   assert.ok(/Exchange gain\s*₹1,000\.00/.test(await txt(A.page)));
 });
 
+// ---------------------------------------------------------------- Integrations hub, API keys, webhooks
+await step("integrations: secrets are saved but never shown again; disconnecting removes them", async () => {
+  await A.page.goto("/portal/integrations?view=services&p=razorpay");
+  await A.page.waitForLoadState("networkidle");
+  const rp = A.page.locator('details[data-provider="razorpay"]');
+  await rp.locator('input[name="keyId"]').fill("rzp_test_ABCDEF123456");
+  await rp.locator('input[name="keySecret"]').fill("super-secret-value-123");
+  await rp.locator('input[name="webhookSecret"]').fill("hook-secret-456");
+  await rp.locator('button:has-text("Save and test")').click();
+  await A.page.waitForURL(/notice=/);
+  const html = await A.page.content();
+  assert.ok(!html.includes("super-secret-value-123") && !html.includes("hook-secret-456"), "secrets never come back to the page");
+  assert.ok(html.includes("rzp_test_ABCDEF123456"), "non-secret settings do");
+  assert.equal(await A.page.locator('details[data-provider="razorpay"] input[name="keySecret"]').getAttribute("placeholder"), "•••••• saved (leave blank to keep)");
+  await A.page.goto("/portal/integrations?view=log");
+  assert.ok(/razorpay/.test(await A.page.locator("main").innerText()));
+  await A.page.goto("/portal/integrations?view=services&p=razorpay");
+  await A.page.locator('details[data-provider="razorpay"] button:has-text("Disconnect")').click();
+  await A.page.waitForSelector("text=Disconnected and its secrets removed");
+  assert.match(await A.page.locator('details[data-provider="razorpay"] [data-status]').innerText(), /disconnected/i);
+  await E.page.goto("/portal/integrations");
+  assert.ok(!/\/portal\/integrations/.test(E.page.url()), "Admins cannot open integrations");
+});
+
+await step("API: keys authenticate, scopes limit them, money in posts to the books, revoking stops them", async () => {
+  await A.page.goto("/portal/integrations?view=api");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="name"]', "Zapier");
+  await A.page.check('input[name="scopes"][value="write:money"]');
+  await A.page.click('button:has-text("Create key")');
+  const key = (await A.page.locator("[data-secret]").innerText()).trim();
+  assert.match(key, /^bpe_/);
+  const api = await browser.newContext({ baseURL: BASE });
+  const auth = { Authorization: `Bearer ${key}` };
+  assert.equal((await api.request.get("/api/v1/me")).status(), 401);
+  assert.equal((await api.request.get("/api/v1/me", { headers: { Authorization: "Bearer bpe_wrongwrongwrongwrongwrong" } })).status(), 401);
+  const me = await (await api.request.get("/api/v1/me", { headers: auth })).json();
+  assert.equal(me.key, "Zapier");
+  const ents = await (await api.request.get("/api/v1/entities", { headers: auth })).json();
+  assert.ok(ents.data.some((e) => e.name === "Boring PE"));
+  const made = await api.request.post("/api/v1/money", { headers: auth, data: { amount: "5,000", category: "fee", memo: "Paid via API" } });
+  assert.equal(made.status(), 201);
+  assert.equal((await api.request.post("/api/v1/tasks", { headers: auth, data: { title: "From API" } })).status(), 403, "no write:tasks scope");
+  await A.page.goto("/portal/money");
+  assert.ok(/in books/.test(await A.page.locator("li[data-entry='Paid via API']").innerText()));
+  await A.page.goto("/portal/integrations?view=api");
+  await A.page.locator('tr[data-key="Zapier"] button:has-text("Revoke")').click();
+  await A.page.waitForSelector("text=Key revoked");
+  assert.equal((await api.request.get("/api/v1/me", { headers: auth })).status(), 401);
+  await api.close();
+});
+
+await step("webhooks: private addresses are refused; a public endpoint gets a signing secret and its deliveries are recorded", async () => {
+  await A.page.goto("/portal/integrations?view=webhooks");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.fill('input[name="url"]', "https://169.254.169.254/latest/meta-data");
+  await A.page.check('input[name="events"][value="invoice.issued"]');
+  await A.page.click('button:has-text("Add endpoint")');
+  await A.page.waitForSelector("text=Use a public https:// address");
+  await A.page.fill('input[name="url"]', "https://hooks.example.com/boring");
+  await A.page.check('input[name="events"][value="invoice.issued"]');
+  await A.page.click('button:has-text("Add endpoint")');
+  assert.match((await A.page.locator("[data-secret]").innerText()).trim(), /^whsec_/);
+  await A.page.goto("/portal/integrations?view=webhooks");
+  await A.page.locator('tr[data-webhook="https://hooks.example.com/boring"] button:has-text("Send test")').click();
+  await A.page.waitForURL(/notice=ping-/);
+  assert.ok(/failed|ok/.test(await A.page.locator('tr[data-webhook="https://hooks.example.com/boring"]').innerText()), "the delivery is recorded either way");
+});
+
 await step("sign out clears the session", async () => {
   await A.page.click('button:has-text("Sign out")');
   await A.page.waitForURL(/\/portal\/login/);

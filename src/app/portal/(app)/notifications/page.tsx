@@ -5,7 +5,7 @@ import { emailPref, readAll } from "./actions";
 export default async function NotificationsPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
   const user = await requireUser();
   const { saved } = await searchParams;
-  const [rows, email] = await Promise.all([listNotifications(user.id), emailPreference(user.id)]);
+  const [rows, email, configured] = await Promise.all([listNotifications(user.id), emailPreference(user.id), emailConfigured()]);
   const unread = rows.filter((r) => !r.read_at).length;
   return (
     <div className="space-y-6">
@@ -29,7 +29,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
         ))}
       </ul>
       <form action={emailPref} className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm text-slate-300 flex flex-wrap items-center gap-3">
-        <span>Email me these too: <strong className="text-white">{email ? "on" : "off"}</strong>{emailConfigured() ? "" : " (email sending is not set up yet; only portal notifications are sent)"}</span>
+        <span>Email me these too: <strong className="text-white">{email ? "on" : "off"}</strong>{configured ? "" : " (email sending is not set up yet; only portal notifications are sent)"}</span>
         <input type="hidden" name="on" value={email ? "false" : "true"} />
         <button className="rounded-md border border-slate-700 px-3 py-1.5 text-sm hover:text-white">{email ? "Turn email off" : "Turn email on"}</button>
       </form>
