@@ -120,3 +120,22 @@ export async function emailConfigured() {
   const hub = await credentials("resend").catch(() => null);
   return Boolean((hub?.apiKey && hub?.from) || (process.env.AUTH_RESEND_KEY && process.env.AUTH_EMAIL_FROM));
 }
+
+/** An email to someone outside the portal (a KYC link, say), through Resend. False when not sent. */
+export async function emailExternal(to: string, subject: string, text: string, link: string) {
+  const hub = await credentials("resend").catch(() => null);
+  const key = hub?.apiKey || process.env.AUTH_RESEND_KEY;
+  const from = hub?.from || process.env.AUTH_EMAIL_FROM;
+  if (!key || !from) return false;
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from, to, subject, text: `${text}\n\n${link}`, html: `<p>${escape(text)}</p><p><a href="${escape(link)}">${escape(link)}</a></p>` }),
+      signal: AbortSignal.timeout(5000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

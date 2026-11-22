@@ -32,7 +32,9 @@ export function proxy(request: NextRequest) {
       : pathname;
 
   const isLogin = effective === "/portal/login" || effective.startsWith("/portal/login/");
-  if (effective.startsWith("/portal") && !isLogin) {
+  // KYC consent pages are opened by the person being verified, who has no seat.
+  const isPublic = effective.startsWith("/portal/verify/");
+  if (effective.startsWith("/portal") && !isLogin && !isPublic) {
     const hasSession = request.cookies
       .getAll()
       .some((cookie) => cookie.name.includes("authjs.session-token"));

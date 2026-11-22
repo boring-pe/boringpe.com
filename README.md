@@ -121,6 +121,26 @@ conversation), or acts on her own:
 
 The rules are in `src/lib/assistant-policy.ts` (pure, unit-tested); the tools in `src/lib/assistant-tools.ts`.
 
+## KYC
+
+`/portal/kyc` (Super Admin, Admins, partners; decisions by the Super Admin and Admins) verifies
+people and legal entities. Each case moves requested → in progress → ready for review → verified
+or rejected, and comes back as **Re-KYC due** on a date set by risk (2 years high, 8 medium,
+10 low, following the RBI's risk-based periods).
+
+- **Identifiers** are checked here first (PAN format and holder type, Aadhaar Verhoeff check
+  digit, GSTIN checksum, CIN / LLPIN, IFSC, Udyam), then by a **KYC provider** when one is set up
+  under Integrations → KYC. Provider answers wait for a reviewer to confirm.
+- **DigiLocker / Entity Locker**: the case sends a one-time link (7 days). The person or entity
+  opens `/portal/verify/<token>` with no portal seat, consents, and signs in on the government site
+  (OAuth with PKCE). Their name, issued documents and, for people, e-Aadhaar come back; PAN, GSTIN,
+  CIN and Aadhaar from the locker pass on their own when the name matches (80%+).
+- **Entities** need every beneficial owner (10%+) verified as a person case of their own.
+- **Aadhaar**: only the last four digits are ever stored or shown; provider answers are scrubbed of
+  full numbers and document files before they are saved.
+- Direct DigiLocker / Entity Locker access needs approval as a requester; until then use the KYC
+  provider and documents. Register `<portal>/api/kyc/callback` as the callback URL.
+
 ## The Business Stack
 
 The portal is the infrastructure and intelligence every Boring PE venture runs on. The menu

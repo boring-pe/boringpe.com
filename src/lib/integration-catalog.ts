@@ -101,6 +101,41 @@ export const PROVIDERS: Provider[] = [
     ],
     setup: "The address must end where /chat/completions is served, for example …/v1. The model must support tool calls.",
   },
+  {
+    id: "digilocker", name: "DigiLocker (direct)", group: "KYC",
+    summary: "People share PAN, Aadhaar (masked) and other issued documents from their own DigiLocker, with consent.",
+    fields: [
+      { key: "clientId", label: "Client ID", required: true },
+      { key: "clientSecret", label: "Client secret", secret: true, required: true },
+      { key: "baseUrl", label: "API host", placeholder: "https://api.digitallocker.gov.in" },
+    ],
+    setup: "Needs approval as a DigiLocker requester (partners.digitallocker.gov.in / API Setu). Register the callback URL shown here.",
+  },
+  {
+    id: "entity_locker", name: "Entity Locker (direct)", group: "KYC",
+    summary: "Companies, LLPs and firms share their registration and tax documents from Entity Locker, with consent.",
+    fields: [
+      { key: "clientId", label: "Client ID", required: true },
+      { key: "clientSecret", label: "Client secret", secret: true, required: true },
+      { key: "baseUrl", label: "API host", placeholder: "https://entity.digilocker.gov.in" },
+    ],
+    setup: "Needs approval as an Entity Locker requester (entity.digilocker.gov.in). Register the callback URL shown here.",
+  },
+  {
+    id: "kyc_provider", name: "KYC provider", group: "KYC",
+    summary: "A licensed verification service (Setu, Signzy, IDfy, Surepass and others) for PAN, GSTIN, CIN and bank checks until direct access is approved.",
+    fields: [
+      { key: "name", label: "Provider name", required: true, placeholder: "e.g. Surepass" },
+      { key: "baseUrl", label: "Base URL", required: true, placeholder: "https://…" },
+      { key: "apiKey", label: "API key or token", secret: true, required: true },
+      { key: "authHeader", label: "Key header", placeholder: "Authorization (sent as Bearer) or e.g. x-api-key" },
+      { key: "panPath", label: "PAN check path", placeholder: "/pan/verify" },
+      { key: "gstinPath", label: "GSTIN check path", placeholder: "/gstin/verify" },
+      { key: "cinPath", label: "CIN check path", placeholder: "/company/details" },
+      { key: "bankPath", label: "Bank account check path", placeholder: "/bank/verify" },
+    ],
+    setup: "Each path receives a JSON POST like {\"id_number\": \"…\"} (bank: account_number and ifsc). The answer is shown to the reviewer, who confirms the check.",
+  },
 ];
 
 export const providerById = (id: string) => PROVIDERS.find((p) => p.id === id);

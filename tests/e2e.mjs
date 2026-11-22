@@ -1796,6 +1796,69 @@ await step("intelligence: spending, budget and runway insights in plain words, b
   assert.equal(await B.page.locator("[data-attention]").count(), 0);
 });
 
+await step("KYC: identifiers checked, documents shared from DigiLocker by the person, then verified; entities need their owners", async () => {
+  await A.page.goto("/portal/kyc?view=new");
+  await A.page.fill('input[name="name"]', "Asha Patil");
+  await A.page.fill('input[name="email"]', "asha@example.test");
+  await A.page.click('button:has-text("Open case")');
+  await A.page.waitForSelector("text=Case opened");
+  const caseUrl = A.page.url();
+  const check = async (kind, value) => {
+    await A.page.selectOption('select[name="kind"]', kind);
+    await A.page.fill('input[name="value"]', value);
+    const before = await A.page.locator(`[data-check^="${kind}:"]`).count();
+    await A.page.click('form:has(select[name="kind"]) button:has-text("Check")');
+    await A.page.waitForFunction(([k, n]) => document.querySelectorAll(`[data-check^="${k}:"]`).length > n, [kind, before]);
+  };
+  await check("pan", "ABCPE1234F");
+  assert.equal(await A.page.locator('[data-check="pan:review"]').count(), 1, await flat(A.page));
+  await check("aadhaar", "123456789012");
+  assert.equal(await A.page.locator('[data-check="aadhaar:fail"]').count(), 1, await flat(A.page));
+  assert.ok(await A.page.locator('[data-decision] button[value="verify"]').isDisabled(), "cannot verify yet");
+
+  // The person opens the link without any portal seat and shares from DigiLocker.
+  await A.page.click('button:has-text("Email a link")');
+  const link = (await txt(A.page, "[data-kyc-link]")).trim();
+  const P = await ctx();
+  await P.page.goto(link);
+  assert.match(await flat(P.page), /Verify Asha Patil/);
+  await P.page.check('input[name="consent"]');
+  await P.page.click('button:has-text("Continue to DigiLocker")');
+  await P.page.waitForURL(/verify\/finished\?r=ok/);
+  await P.page.goto(link);
+  assert.match(await flat(P.page), /no longer works/, "a link works once");
+  await P.context.close();
+
+  await A.page.goto(caseUrl.replace(/&notice=[^&]*/, ""));
+  for (const k of ["digilocker:pass", "pan:pass", "aadhaar:pass"]) assert.ok(await A.page.locator(`[data-check="${k}"]`).count() >= 1, `${k}: ${await flat(A.page)}`);
+  assert.ok(!/\b[2-9]\d{11}\b/.test(await flat(A.page)), "no full Aadhaar number anywhere");
+  await A.page.click('[data-decision] button[value="verify"]');
+  await A.page.waitForSelector("text=Verified. The re-KYC date");
+  assert.match(await txt(A.page, "[data-case-status]"), /Verified/);
+
+  // A company needs its beneficial owners verified too.
+  await A.page.goto("/portal/kyc?view=new");
+  await A.page.selectOption('select[name="subjectType"]', "entity");
+  await A.page.fill('input[name="name"]', "Acme Foods Private Limited");
+  await A.page.click('button:has-text("Open case")');
+  await A.page.waitForSelector("text=Case opened");
+  await check("pan", "AAACA1234C");
+  await A.page.click('[data-review="pan"] button[value="pass"]');
+  await A.page.waitForSelector("text=Review saved.");
+  await check("cin", "U72900MH2020PTC123456");
+  await A.page.click('[data-review="cin"] button[value="pass"]');
+  await A.page.waitForSelector("text=Review saved.");
+  await A.page.fill('[data-owners] input[name="name"]', "Ravi Kumar");
+  await A.page.fill('[data-owners] input[name="share"]', "60");
+  await A.page.click('[data-owners] button:has-text("Add owner")');
+  await A.page.waitForSelector("text=Beneficial owner added");
+  assert.match(await txt(A.page, '[data-required="owners"]'), /Not yet/);
+  assert.ok(await A.page.locator('[data-decision] button[value="verify"]').isDisabled(), "owners first");
+
+  await B.page.goto("/portal/kyc");
+  assert.doesNotMatch(B.page.url(), /\/portal\/kyc/, "an LP cannot open KYC");
+});
+
 await step("assistant: she acts within each person's limits, asks before money, and never shows firm data to an LP", async () => {
   const say = async (page, text) => {
     await page.fill('textarea[name="text"]', text);
