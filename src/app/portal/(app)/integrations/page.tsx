@@ -58,6 +58,8 @@ async function Services({ open }: { open?: string }) {
     google: ["Redirect URL", `${base}/api/integrations/oauth/google/callback`],
     microsoft: ["Redirect URL", `${base}/api/integrations/oauth/microsoft/callback`],
     zoho: ["Redirect URL", `${base}/api/integrations/oauth/zoho/callback`],
+    digilocker: ["Callback URL", `${base}/api/kyc/callback`],
+    entity_locker: ["Callback URL", `${base}/api/kyc/callback`],
     whatsapp: ["Webhook URL", `${base}/api/webhooks/whatsapp`],
     razorpay: ["Webhook URL", `${base}/api/webhooks/razorpay`],
   };
