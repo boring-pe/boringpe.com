@@ -111,7 +111,7 @@ async function bootstrapAdmin(sql: Sql) {
   if (existing.length > 0) return;
   await sql`
     insert into users (email, name, role, status, password_hash, must_change_password, created_by)
-    values (${email}, ${"Super Admin"}, ${"super_admin"}, ${"active"}, ${await hashPassword(password)}, ${true}, ${"bootstrap"})
+    values (${email}, ${"Rahul Mane"}, ${"super_admin"}, ${"active"}, ${await hashPassword(password)}, ${true}, ${"bootstrap"})
     on conflict do nothing
   `;
 }

@@ -25,7 +25,7 @@ async function mayEnter(email: string) {
   const user = await getUserByEmail(email);
   if (user) return user.status === "active";
   if (superAdminEmails().includes(email)) {
-    await createUser({ email, name: null, role: "super_admin", createdBy: "bootstrap" });
+    await createUser({ email, name: "Rahul Mane", role: "super_admin", createdBy: "bootstrap" });
     return true;
   }
   return false;
