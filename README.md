@@ -102,6 +102,25 @@ workspace's cash on the dashboard.
 - The database refuses a journal posting by anyone outside the entity's workspace, whatever page
   or form it came from (`migrations/0020_workspaces.sql`).
 
+## Assistant
+
+`/portal/assistant` is a chat assistant ("she") for work and personal things, open to every seat.
+She runs on whichever AI services are set up under Integrations → AI assistant (Anthropic Claude,
+OpenAI, Google Gemini, or any OpenAI-compatible server, including one you host yourself), tried in
+the order set on her settings page, moving to the next if one fails. Each conversation can be
+pinned to one service.
+
+She acts only through the portal's own tools, as the person using her, inside their role and the
+workspace on view. For each kind of work (looking things up, notes, tasks, email, calendar,
+WhatsApp, money) she is either not allowed, asks first (an Approve / Decline card in the
+conversation), or acts on her own:
+
+- the Super Admin sets this per role; each person can make her more careful for themselves;
+- roles the Super Admin chooses may switch on **full agent**: on her own wherever the role allows;
+- money always waits for a yes, whatever is set; every action she takes or asks about is logged.
+
+The rules are in `src/lib/assistant-policy.ts` (pure, unit-tested); the tools in `src/lib/assistant-tools.ts`.
+
 ## The Business Stack
 
 The portal is the infrastructure and intelligence every Boring PE venture runs on. The menu
