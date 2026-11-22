@@ -1,6 +1,6 @@
 import React from 'react';
 import { getSiteContent } from '@/lib/content';
-import { Building2, Brain, HeartHandshake, ArrowRight, ShieldCheck, TrendingUp, Users } from 'lucide-react';
+import { Building2, HeartHandshake, ArrowRight, ShieldCheck, TrendingUp, Users } from 'lucide-react';
 
 // Wording is editable from the portal (Super Admin > Site content); changes show within a minute.
 export const revalidate = 60;
@@ -95,25 +95,33 @@ export default async function Home() {
       {/* --- THE FRAMEWORK --- */}
       <section id="framework" className="py-24 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{c.frameworkTitle}</h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">{c.frameworkIntro}</p>
+          <div className="text-center mb-10">
+            <p className="text-xs font-semibold tracking-[0.18em] uppercase text-blue-400 mb-3">Boring PE</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Build, Co-Build and Own</h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              Three separate activities of Boring PE. They are not Business Studio, and they are not mixed with each other.
+            </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             {[
               { n: '1', name: 'Build', body: c.buildBody, Icon: Building2 },
-              { n: '2', name: 'Own', body: c.ownBody, Icon: ShieldCheck },
-              { n: '3', name: 'Co-Build', body: c.coBuildBody, Icon: HeartHandshake },
-              { n: '4', name: 'Enable', body: c.enableBody, Icon: Brain },
+              { n: '2', name: 'Co-Build', body: c.coBuildBody, Icon: HeartHandshake },
+              { n: '3', name: 'Own', body: c.ownBody, Icon: ShieldCheck },
             ].map(({ n, name, body, Icon }) => (
-              <div key={name} className="p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500/50 transition-colors group">
-                <Icon className="w-10 h-10 text-blue-500 mb-6 group-hover:scale-110 transition-transform" />
-                <div className="text-xs font-semibold text-blue-400 mb-1">{n}</div>
+              <div key={name} className="p-8 bg-slate-900 border border-slate-800 rounded-xl">
+                <Icon className="w-10 h-10 text-blue-500 mb-6" />
+                <div className="text-xs font-semibold text-blue-400 mb-1">Part of Boring PE · {n}</div>
                 <h3 className="text-xl font-bold text-white mb-3">{name}</h3>
                 <p className="text-sm text-slate-400 leading-relaxed">{body}</p>
               </div>
             ))}
+          </div>
+
+          <div className="mt-6 p-8 bg-slate-900/60 border border-slate-800 rounded-xl">
+            <div className="text-xs font-semibold text-slate-500 mb-1">Separate from the three</div>
+            <h3 className="text-xl font-bold text-white mb-3">Enable · Business House</h3>
+            <p className="text-sm text-slate-400 leading-relaxed max-w-3xl">{c.enableBody}</p>
           </div>
         </div>
       </section>
