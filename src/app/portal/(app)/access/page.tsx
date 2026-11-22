@@ -2,7 +2,8 @@ import { ShieldCheck } from "lucide-react";
 import { requireSection } from "@/lib/dal";
 import { ROLES, ROLE_META, SECTIONS, assignableRoles, can, canManageRole } from "@/lib/rbac";
 import { listAudit, listUsers } from "@/lib/users";
-import { changeRole, signOutEverywhere, toggleStatus } from "./actions";
+import { SHARED_WORKSPACES, enterable, workspaceLabel } from "@/lib/workspace-calc";
+import { changeRole, setWorkspaces, signOutEverywhere, toggleStatus } from "./actions";
 import { InviteForm, ResetPasswordForm } from "./access-forms";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
@@ -14,6 +15,8 @@ const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   "last-admin": { text: "That would leave no active Super Admin.", bad: true },
   "not-allowed": { text: "Only the Super Admin can change that seat.", bad: true },
   unchanged: { text: "Nothing changed.", bad: true },
+  "workspaces-saved": { text: "Workspaces updated. They apply on the next request." },
+  "no-workspace": { text: "A seat needs at least one workspace.", bad: true },
   invalid: { text: "That request was not valid.", bad: true },
 };
 
@@ -34,6 +37,7 @@ export default async function AccessPage({
   const [users, events] = await Promise.all([listUsers(), listAudit(25)]);
   const banner = notice ? NOTICES[notice] : undefined;
   const roles = assignableRoles(me.role);
+  const mine = enterable(me.role, me.workspaces).filter((w) => SHARED_WORKSPACES.includes(w));
 
   return (
     <div className="space-y-8">
@@ -64,7 +68,7 @@ export default async function AccessPage({
 
       <section className={`${card} p-6`}>
         <h3 className="text-sm font-semibold text-white mb-4">Invite someone</h3>
-        <InviteForm roles={roles} />
+        <InviteForm roles={roles} workspaces={mine.map((w) => ({ id: w, label: workspaceLabel(w) }))} />
       </section>
 
       <section className={`${card} overflow-hidden`}>
@@ -77,6 +81,7 @@ export default async function AccessPage({
               <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
                 <th className="px-6 py-3 font-medium">Person</th>
                 <th className="px-4 py-3 font-medium">Role</th>
+                <th className="px-4 py-3 font-medium">Workspaces</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Last sign-in (UTC)</th>
                 <th className="px-4 py-3 font-medium">Actions</th>
@@ -115,6 +120,24 @@ export default async function AccessPage({
                           <button type="submit" className={small}>
                             Save
                           </button>
+                        </form>
+                      )}
+                    </td>
+                    <td className="px-4 py-4" data-workspaces={user.email}>
+                      {user.role === "super_admin" ? (
+                        <span className="text-slate-300">All three, including Personal</span>
+                      ) : !manageable ? (
+                        <span className="text-slate-300">{user.workspaces.map(workspaceLabel).join(", ")}</span>
+                      ) : (
+                        <form action={setWorkspaces} className="space-y-1">
+                          <input type="hidden" name="userId" value={user.id} />
+                          {SHARED_WORKSPACES.map((w) => (
+                            <label key={w} className={`flex items-center gap-2 text-xs ${mine.includes(w) ? "text-slate-300" : "text-slate-600"}`}>
+                              <input type="checkbox" name="workspace" value={w} defaultChecked={user.workspaces.includes(w)} disabled={!mine.includes(w)} />
+                              {workspaceLabel(w)}
+                            </label>
+                          ))}
+                          <button type="submit" className={small}>Save</button>
                         </form>
                       )}
                     </td>

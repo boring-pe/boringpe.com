@@ -30,7 +30,7 @@ export const ENTITY_KINDS = [
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number]["id"];
 export const isEntityKind = (v: unknown): v is EntityKind => ENTITY_KINDS.some((k) => k.id === v);
-export const entityKindLabel = (id: string) => ENTITY_KINDS.find((k) => k.id === id)?.label ?? id;
+export const entityKindLabel = (id: string) => (id === "personal" ? "Personal" : ENTITY_KINDS.find((k) => k.id === id)?.label ?? id);
 
 export type ChartSeed = { code: string; name: string; type: AccountType };
 

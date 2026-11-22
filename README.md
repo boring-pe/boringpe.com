@@ -87,6 +87,21 @@ pillars (Build, Own, Co-Build, Enable). Rules, all enforced on the server:
   approval and is not counted until then. Rejected and withdrawn payments never count.
 - Money and Deals are open to the Super Admin, Admin and Partner; Tasks also to Operators.
 
+## Workspaces
+
+The portal has three workspaces: **Personal** (Rahul Mane's own books, investments, mail, notes and
+tasks), **Boring PE** (the firm, its SPVs and ventures) and **Impact Marrow** (Impact Marrow and its
+fund). Every entity, task, mailbox and vault document belongs to one of them. The switcher at the top
+of the menu changes what every page shows; **All workspaces** shows them together, with each
+workspace's cash on the dashboard.
+
+- The Super Admin enters all three. Personal is never given to anyone else.
+- Other seats are given Boring PE, Impact Marrow or both on the Access page; their role applies in each.
+- Money that crosses workspaces is entered once and lands in both books: gifts into Impact Marrow
+  (from Personal or Boring PE), and holdings where Personal invests into a Boring PE entity.
+- The database refuses a journal posting by anyone outside the entity's workspace, whatever page
+  or form it came from (`migrations/0020_workspaces.sql`).
+
 ## The Business Stack
 
 The portal is the infrastructure and intelligence every Boring PE venture runs on. The menu

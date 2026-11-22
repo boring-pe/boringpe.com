@@ -6,6 +6,8 @@ import { looksLikeEmail, normalizeEmail } from "@/lib/admin-emails";
 import { requireAccessManager } from "@/lib/dal";
 import { generateTemporaryPassword, hashPassword } from "@/lib/password";
 import { assignableRoles, canManageRole, isRole } from "@/lib/rbac";
+import { cleanMemberships, enterable, workspaceLabel } from "@/lib/workspace-calc";
+import { setMemberships, workspaceContext } from "@/lib/workspaces";
 import {
   audit,
   countActiveWithRole,
@@ -38,8 +40,16 @@ export async function inviteUser(_: AccessState, formData: FormData): Promise<Ac
   }
   if (await getUserByEmail(email)) return { message: "That email already has a seat." };
 
+  // Workspaces: those ticked that the inviter can enter themselves; else the one they are in now.
+  const mine = enterable(admin.role, admin.workspaces);
+  let spaces = cleanMemberships(formData.getAll("workspace")).filter((w) => mine.includes(w));
+  if (spaces.length === 0) {
+    const { view } = await workspaceContext();
+    spaces = [view === "impact_marrow" ? "impact_marrow" : "boring_pe"];
+  }
+
   const tempPassword = withPassword ? generateTemporaryPassword() : undefined;
-  await createUser({
+  const created = await createUser({
     email,
     name,
     role,
@@ -47,12 +57,13 @@ export async function inviteUser(_: AccessState, formData: FormData): Promise<Ac
     mustChangePassword: Boolean(tempPassword),
     createdBy: admin.id,
   });
+  if (created) await setMemberships(created.id, spaces);
   await audit({
     actorId: admin.id,
     actorEmail: admin.email,
     action: "invited",
     targetEmail: email,
-    detail: `role ${role}${tempPassword ? ", temporary password" : ""}`,
+    detail: `role ${role}${tempPassword ? ", temporary password" : ""}; ${spaces.map(workspaceLabel).join(" and ")}`,
   });
   revalidatePath("/portal/access");
   return { email, tempPassword, message: "Invited." };
@@ -143,4 +154,30 @@ export async function signOutEverywhere(formData: FormData) {
     targetEmail: target.email,
   });
   back("revoked");
+}
+
+/**
+ * Which of Boring PE and Impact Marrow a seat can enter. An Admin can only give or take away the
+ * workspaces they enter themselves; Personal is never given to anyone.
+ */
+export async function setWorkspaces(formData: FormData) {
+  const admin = await requireAccessManager();
+  const target = await getUserById(String(formData.get("userId") ?? ""));
+  if (!target) back("invalid");
+  if (target.id === admin.id) back("self");
+  if (target.role === "super_admin" || !canManageRole(admin.role, target.role)) back("not-allowed");
+  const mine = enterable(admin.role, admin.workspaces);
+  const ticked = cleanMemberships(formData.getAll("workspace")).filter((w) => mine.includes(w));
+  const kept = cleanMemberships(target.workspaces).filter((w) => !mine.includes(w));
+  const next = cleanMemberships([...kept, ...ticked]);
+  if (next.length === 0) back("no-workspace");
+  await setMemberships(target.id, next);
+  await audit({
+    actorId: admin.id,
+    actorEmail: admin.email,
+    action: "workspaces_changed",
+    targetEmail: target.email,
+    detail: next.map(workspaceLabel).join(" and "),
+  });
+  back("workspaces-saved");
 }

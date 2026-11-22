@@ -1,6 +1,7 @@
 import { getSql, type Sql } from "./db";
 import { decimalToPaise, ensureCharts, postByCodes } from "./books";
 import { counts, moneyLines } from "./money-books";
+import { entityIdsInView, workspaceContext, workspaceForNew } from "./workspaces";
 import type { ApprovalRow } from "./approvals";
 import type { Category, PartyKind, Pillar, Stage } from "./ops-fields";
 
@@ -115,7 +116,7 @@ const MONEY_SELECT = `select m.id, m.direction, m.category, m.amount::text as am
 
 export async function listMoney(limit = 100) {
   const sql = await getSql();
-  return sql.query<MoneyRow>(`${MONEY_SELECT} order by m.created_at desc limit $1`, [limit]);
+  return sql.query<MoneyRow>(`${MONEY_SELECT} where m.entity_id = any($2::text[]) order by m.created_at desc limit $1`, [limit, await entityIdsInView()]);
 }
 /**
  * Posts one counted Money entry to its entity's books, once. Runs inside the caller's transaction,
@@ -188,25 +189,25 @@ export async function listTasks(onlyFor: string | null = null) {
     `select t.id, t.title, t.deal_id, d.name as deal_name, t.assignee_id, u.email as assignee_email,
        t.due_date::text as due_date, t.done from tasks t
        left join deals d on d.id = t.deal_id left join users u on u.id = t.assignee_id
-      where $1::text is null or t.assignee_id = $1 or t.created_by = $1
+      where ($1::text is null or t.assignee_id = $1 or t.created_by = $1) and t.workspace = any($2::text[])
       order by t.done, t.due_date nulls last, t.created_at desc limit 200`,
-    [onlyFor],
+    [onlyFor, (await workspaceContext()).inView],
   );
 }
 export async function createTask(t: { title: string; dealId: string | null; assigneeId: string | null; due: string | null; by: string }) {
   const sql = await getSql();
   await sql.query(
-    "insert into tasks (title, deal_id, assignee_id, due_date, created_by) values ($1,$2,$3,$4,$5)",
-    [t.title, t.dealId, t.assigneeId, t.due, t.by],
+    "insert into tasks (title, deal_id, assignee_id, due_date, created_by, workspace) values ($1,$2,$3,$4,$5,$6)",
+    [t.title, t.dealId, t.assigneeId, t.due, t.by, await workspaceForNew()],
   );
 }
 export async function setTaskDone(id: string, done: boolean, onlyFor: string | null = null) {
   const sql = await getSql();
   return (
     await sql.query(
-      `update tasks set done = $2 where id = $1
+      `update tasks set done = $2 where id = $1 and workspace = any($4::text[])
           and ($3::text is null or assignee_id = $3 or created_by = $3) returning id`,
-      [id, done, onlyFor],
+      [id, done, onlyFor, (await workspaceContext()).inView],
     )
   ).length > 0;
 }
@@ -220,18 +221,23 @@ export async function listAssignees() {
 // ---- summary for the dashboard
 export async function summary() {
   const sql = await getSql();
+  const { inView } = await workspaceContext();
+  const ids = await entityIdsInView();
   const [deals, money, tasks] = await Promise.all([
     sql.query<{ stage: string; n: number; value: string | null }>(
-      "select stage, count(*)::int as n, sum(value)::text as value from deals group by stage",
+      "select stage, count(*)::int as n, sum(value)::text as value from deals where $1 group by stage",
+      [inView.includes("boring_pe")],
     ),
     sql.query<{ moneyin: string | null; moneyout: string | null; waiting: number }>(
       `select sum(amount) filter (where direction = 'in' and status = 'recorded')::text as moneyin,
          sum(amount) filter (where direction = 'out' and status = 'approved')::text as moneyout,
-         count(*) filter (where status = 'awaiting_approval')::int as waiting from money_entries`,
+         count(*) filter (where status = 'awaiting_approval')::int as waiting from money_entries where entity_id = any($1::text[])`,
+      [ids],
     ),
     sql.query<{ open: number; overdue: number }>(
       `select count(*) filter (where not done)::int as open,
-         count(*) filter (where not done and due_date < current_date)::int as overdue from tasks`,
+         count(*) filter (where not done and due_date < current_date)::int as overdue from tasks where workspace = any($1::text[])`,
+      [inView],
     ),
   ]);
   return { deals, money: money[0], tasks: tasks[0] };

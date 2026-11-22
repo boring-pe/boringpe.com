@@ -1,6 +1,8 @@
 import { getSql } from "./db";
 import { decimalToPaise } from "./books";
 import { fiscalYearOf } from "./hr-calc";
+import { entityIdsInView, workspaceContext } from "./workspaces";
+import { workspaceLabel } from "./workspace-calc";
 import {
   budgetInsights,
   completeMonths,
@@ -32,34 +34,36 @@ export async function firmInsights(today = new Date().toISOString().slice(0, 10)
   const lastMonth = months.at(-1)!;
   const from = `${months[0]}-01`;
   const currentStart = `${today.slice(0, 7)}-01`;
+  const inView = await entityIdsInView();
 
   const [entities, flows, cash, overdue, ventures] = await Promise.all([
-    sql.query<{ id: string; name: string }>(`select id, name from entities where active order by name`),
+    sql.query<{ id: string; name: string }>(`select id, name from entities where active and id = any($1::text[]) order by name`, [inView]),
     sql.query<{ entity_id: string; code: string; name: string; type: string; month: string; amount: string }>(
       `select a.entity_id, a.code, a.name, a.type, to_char(e.entry_date, 'YYYY-MM') as month,
               sum(case when a.type = 'income' then l.credit - l.debit else l.debit - l.credit end)::text as amount
          from journal_lines l join journal_entries e on e.id = l.entry_id join ledger_accounts a on a.id = l.account_id
-        where a.type in ('income', 'expense') and e.entry_date >= $1::date and e.entry_date < $2::date
+        where a.type in ('income', 'expense') and e.entry_date >= $1::date and e.entry_date < $2::date and a.entity_id = any($3::text[])
         group by 1, 2, 3, 4, 5`,
-      [from, currentStart],
+      [from, currentStart, inView],
     ),
     sql.query<{ entity_id: string; cash: string }>(
       `select a.entity_id, coalesce(sum(l.debit - l.credit), 0)::text as cash
          from journal_lines l join journal_entries e on e.id = l.entry_id join ledger_accounts a on a.id = l.account_id
-        where a.code in ('1010', '1020', '1030') and e.entry_date <= $1::date group by 1`,
-      [today],
+        where a.code in ('1010', '1020', '1030') and e.entry_date <= $1::date and a.entity_id = any($2::text[]) group by 1`,
+      [today, inView],
     ),
     sql.query<{ number: string | null; party: string; entity: string; outstanding: string; days: number }>(
       `select i.number, p.name as party, en.name as entity, (i.total - i.received - i.tds)::text as outstanding,
               ($1::date - i.due_date)::int as days
          from invoices i join parties p on p.id = i.party_id join entities en on en.id = i.entity_id
-        where i.status = 'issued' and i.due_date < $1::date`,
-      [today],
+        where i.status = 'issued' and i.due_date < $1::date and i.entity_id = any($2::text[])`,
+      [today, inView],
     ),
     sql.query<{ id: string; name: string; period: string | null; revenue: string | null; net: string | null }>(
       `select v.id, v.name, to_char(p.period, 'YYYY-MM') as period, p.revenue::text, p.net::text
          from ventures v left join venture_periods p on p.venture_id = v.id
-        where v.status = 'active' order by v.name, p.period`,
+        where v.status = 'active' and v.entity_id = any($1::text[]) order by v.name, p.period`,
+      [inView],
     ),
   ]);
 
@@ -97,14 +101,14 @@ export async function firmInsights(today = new Date().toISOString().slice(0, 10)
   const [budget, actual] = await Promise.all([
     sql.query<{ entity_id: string; type: string; amount: string }>(
       `select a.entity_id, a.type, sum(b.amount)::text as amount from budgets b join ledger_accounts a on a.id = b.account_id
-        where b.month between $1::date and $2::date group by 1, 2`,
-      [fyFrom, `${lastMonth}-01`],
+        where b.month between $1::date and $2::date and a.entity_id = any($3::text[]) group by 1, 2`,
+      [fyFrom, `${lastMonth}-01`, inView],
     ),
     sql.query<{ entity_id: string; type: string; amount: string }>(
       `select a.entity_id, a.type, sum(case when a.type = 'income' then l.credit - l.debit else l.debit - l.credit end)::text as amount
          from journal_lines l join journal_entries e on e.id = l.entry_id join ledger_accounts a on a.id = l.account_id
-        where a.type in ('income', 'expense') and e.entry_date between $1::date and $2::date group by 1, 2`,
-      [fyFrom, lastMonthEnd],
+        where a.type in ('income', 'expense') and e.entry_date between $1::date and $2::date and a.entity_id = any($3::text[]) group by 1, 2`,
+      [fyFrom, lastMonthEnd, inView],
     ),
   ]);
   const pick = (rows: typeof budget, id: string, t: string) => decimalToPaise(rows.find((r) => r.entity_id === id && r.type === t)?.amount ?? "0");
@@ -143,7 +147,7 @@ export async function firmInsights(today = new Date().toISOString().slice(0, 10)
 
   const groupRunway = runway(groupCash, groupNets);
   const scopes: Scope[] = [
-    { key: "group", label: "Whole group", kind: "group" },
+    { key: "group", label: (await workspaceContext()).view === "all" ? "Whole group" : `All of ${workspaceLabel((await workspaceContext()).view)}`, kind: "group" },
     ...entities.map((e) => ({ key: `e:${e.name}`, label: e.name, kind: "entity" as const })),
     ...[...byVenture.values()].map((v) => ({ key: `v:${v.name}`, label: v.name, kind: "venture" as const })),
   ];

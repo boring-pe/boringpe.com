@@ -16,7 +16,7 @@ function back(notice: string): never {
 export async function addContribution(formData: FormData) {
   const user = await requireSection("marrow");
   if (user.role !== "super_admin") back("forbidden");
-  const entities = await listEntities();
+  const entities = await listEntities("enterable");
   const from = String(formData.get("fromEntityId") ?? "");
   const to = String(formData.get("toEntityId") ?? "");
   const amount = parsePaise(String(formData.get("amount") ?? ""));

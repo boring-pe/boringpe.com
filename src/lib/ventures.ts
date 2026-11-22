@@ -1,3 +1,4 @@
+import { entityIdsInView } from "./workspaces";
 import { getSql } from "./db";
 import { paiseToDecimal } from "./accounting";
 import { decimalToPaise, postByCodes } from "./books";
@@ -35,7 +36,7 @@ export async function listVentures(onlyForUser: string | null) {
       [onlyForUser],
     );
   }
-  return sql.query<VentureRow>(`${VENTURE_SELECT} order by v.status, v.name`);
+  return sql.query<VentureRow>(`${VENTURE_SELECT} where v.entity_id = any($1::text[]) order by v.status, v.name`, [await entityIdsInView()]);
 }
 
 export async function getVenture(id: string) {

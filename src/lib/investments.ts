@@ -1,6 +1,7 @@
 import { getSql, type Sql } from "./db";
 import { paiseToDecimal } from "./accounting";
 import { decimalToPaise, postByCodes } from "./books";
+import { entityIdsInView } from "./workspaces";
 import { exitAllowed, position, type AssetClass, type HoldingPillar, type Instrument, type Txn, type TxnKind } from "./portfolio-calc";
 
 export type HoldingRow = {
@@ -31,12 +32,12 @@ const HOLDING_SELECT = `
 
 export async function listHoldings() {
   const sql = await getSql();
-  return sql.query<HoldingRow>(`${HOLDING_SELECT} order by h.status, h.name`);
+  return sql.query<HoldingRow>(`${HOLDING_SELECT} where h.holder_entity_id = any($1::text[]) order by h.status, h.name`, [await entityIdsInView()]);
 }
 
 export async function getHolding(id: string) {
   const sql = await getSql();
-  return (await sql.query<HoldingRow>(`${HOLDING_SELECT} where h.id = $1`, [id]))[0] ?? null;
+  return (await sql.query<HoldingRow>(`${HOLDING_SELECT} where h.id = $1 and h.holder_entity_id = any($2::text[])`, [id, await entityIdsInView()]))[0] ?? null;
 }
 
 export async function createHolding(h: {
@@ -178,7 +179,9 @@ export async function listContributions() {
   return sql.query<ContributionRow>(
     `select c.id, f.name as from_name, t.name as to_name, c.amount::text, c.contrib_date::text, c.memo
        from contributions c left join entities f on f.id = c.from_entity_id join entities t on t.id = c.to_entity_id
+      where c.to_entity_id = any($1::text[]) or c.from_entity_id = any($1::text[])
       order by c.contrib_date desc, c.created_at desc`,
+    [await entityIdsInView()],
   );
 }
 

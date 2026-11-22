@@ -22,7 +22,7 @@ function Secret({ state }: { state: AccessState }) {
   );
 }
 
-export function InviteForm({ roles }: { roles: Role[] }) {
+export function InviteForm({ roles, workspaces }: { roles: Role[]; workspaces: { id: string; label: string }[] }) {
   const [state, action, pending] = useActionState<AccessState, FormData>(inviteUser, null);
   return (
     <form action={action} className="grid gap-3 md:grid-cols-4">
@@ -39,6 +39,17 @@ export function InviteForm({ roles }: { roles: Role[] }) {
         <option value="none">No password (Google, LinkedIn or email link)</option>
         <option value="generate">Generate a temporary password</option>
       </select>
+      {workspaces.length > 1 ? (
+        <fieldset className="md:col-span-4 flex flex-wrap items-center gap-4 text-sm text-slate-300">
+          <legend className="sr-only">Workspaces</legend>
+          <span className="text-xs uppercase tracking-wide text-slate-500">Workspaces</span>
+          {workspaces.map((w, i) => (
+            <label key={w.id} className="flex items-center gap-2">
+              <input type="checkbox" name="workspace" value={w.id} defaultChecked={i === 0} /> {w.label}
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
       <div className="md:col-span-4 flex items-center gap-4">
         <button
           type="submit"

@@ -30,8 +30,8 @@ export default async function PersonalPage({
         </div>
         <h2 className="mt-2 text-2xl font-bold text-white">Personal desk</h2>
         <p className="mt-2 text-sm text-slate-400 max-w-2xl">
-          Your own space, separate from Boring PE. No admin, partner or other seat can open it.
-          Commercial work belongs in Boring PE, not here.
+          Private notes in your Personal workspace, next to your own books, investments, mail and tasks.
+          No admin, partner or other seat can open anything in it.
         </p>
       </div>
 

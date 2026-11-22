@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { workspaceContext } from "./workspaces";
 import { getSql } from "./db";
 import { CAL_ADAPTERS, istToIso, type CalEvent, type NewEvent } from "./calendar-providers";
 import { connection, type MailAccount } from "./mail";
@@ -12,10 +13,10 @@ export type AgendaItem = CalEvent & { accountId: string; accountEmail: string; l
 export async function calendarsFor(userId: string) {
   const sql = await getSql();
   return sql.query<MailAccount>(
-    `select a.id, a.user_id, u.email as owner_email, a.provider, a.email, a.shared, a.status, a.last_error
+    `select a.id, a.user_id, u.email as owner_email, a.provider, a.email, a.shared, a.status, a.last_error, a.workspace
        from mail_accounts a join users u on u.id = a.user_id
-      where a.user_id = $1 and a.provider in ('google', 'microsoft'${testMode() ? ", 'mock'" : ""}) order by a.email`,
-    [userId],
+      where a.user_id = $1 and a.workspace = any($2::text[]) and a.provider in ('google', 'microsoft'${testMode() ? ", 'mock'" : ""}) order by a.email`,
+    [userId, (await workspaceContext()).inView],
   );
 }
 

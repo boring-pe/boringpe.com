@@ -150,7 +150,7 @@ async function Holdings({ entities, manage }: { entities: Awaited<ReturnType<typ
             </select>
             <select name="targetEntityId" defaultValue="" className={input} aria-label="Our entity invested in">
               <option value="">External (not one of our entities)</option>
-              {entities.map((e) => <option key={e.id} value={e.id}>Into {e.name} ({kindLabel(e.kind)})</option>)}
+              {(await listEntities("enterable")).map((e) => <option key={e.id} value={e.id}>Into {e.name} ({kindLabel(e.kind)})</option>)}
             </select>
             <input name="notes" maxLength={300} placeholder="Notes" className={input} />
             <div className="md:col-span-3"><button className={btn}>Add holding</button></div>
