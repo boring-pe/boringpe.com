@@ -3,7 +3,9 @@ import { requireSection } from "@/lib/dal";
 import { ROLES, ROLE_META, SECTIONS, assignableRoles, can, canManageRole } from "@/lib/rbac";
 import { listAudit, listUsers } from "@/lib/users";
 import { SHARED_WORKSPACES, enterable, workspaceLabel } from "@/lib/workspace-calc";
-import { changeRole, setWorkspaces, signOutEverywhere, toggleStatus } from "./actions";
+import { changeRole, saveTwoStepRoles, setWorkspaces, signOutEverywhere, toggleStatus } from "./actions";
+import { requiredRoles } from "@/lib/mfa";
+import { getSql } from "@/lib/db";
 import { InviteForm, ResetPasswordForm } from "./access-forms";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
@@ -15,6 +17,7 @@ const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   "last-admin": { text: "That would leave no active Super Admin.", bad: true },
   "not-allowed": { text: "Only the Super Admin can change that seat.", bad: true },
   unchanged: { text: "Nothing changed.", bad: true },
+  "two-step-saved": { text: "Two-step sign-in requirement saved. Those seats set it up at their next visit." },
   "workspaces-saved": { text: "Workspaces updated. They apply on the next request." },
   "no-workspace": { text: "A seat needs at least one workspace.", bad: true },
   invalid: { text: "That request was not valid.", bad: true },
@@ -34,7 +37,10 @@ export default async function AccessPage({
 }) {
   const me = await requireSection("access");
   const { notice } = await searchParams;
-  const [users, events] = await Promise.all([listUsers(), listAudit(25)]);
+  const [users, events, twoStepRoles, twoStepOn] = await Promise.all([
+    listUsers(), listAudit(25), requiredRoles(),
+    getSql().then((sql) => sql.query<{ id: string }>("select id from users where totp_enabled")).then((r) => new Set(r.map((x) => x.id))),
+  ]);
   const banner = notice ? NOTICES[notice] : undefined;
   const roles = assignableRoles(me.role);
   const mine = enterable(me.role, me.workspaces).filter((w) => SHARED_WORKSPACES.includes(w));
@@ -64,6 +70,21 @@ export default async function AccessPage({
         >
           {banner.text}
         </p>
+      ) : null}
+
+      {me.role === "super_admin" ? (
+        <section className={`${card} p-6`} data-two-step-roles>
+          <h3 className="text-sm font-semibold text-white">Two-step sign-in</h3>
+          <p className="mt-1 text-xs text-slate-500">Roles ticked here must use an authenticator app code after signing in. They are asked to set it up on their next visit.</p>
+          <form action={saveTwoStepRoles} className="mt-3 flex flex-wrap items-center gap-4">
+            {ROLES.map((r) => (
+              <label key={r} className="flex items-center gap-2 text-sm text-slate-300">
+                <input type="checkbox" name="roles" value={r} defaultChecked={twoStepRoles.includes(r)} />{ROLE_META[r].label}
+              </label>
+            ))}
+            <button type="submit" className={small}>Save</button>
+          </form>
+        </section>
       ) : null}
 
       <section className={`${card} p-6`}>
@@ -124,6 +145,7 @@ export default async function AccessPage({
                       )}
                     </td>
                     <td className="px-4 py-4" data-workspaces={user.email}>
+                      <div className={`mb-1 text-xs ${twoStepOn.has(user.id) ? "text-green-400" : "text-slate-500"}`} data-two-step-state={user.email}>{twoStepOn.has(user.id) ? "Two-step on" : "Password only"}</div>
                       {user.role === "super_admin" ? (
                         <span className="text-slate-300">All three, including Personal</span>
                       ) : !manageable ? (

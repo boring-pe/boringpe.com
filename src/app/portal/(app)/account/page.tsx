@@ -5,9 +5,11 @@ import { saveAppearance } from "../_shell/prefs-actions";
 import { ROLE_META } from "@/lib/rbac";
 import { endMySessions } from "./actions";
 import { PasswordChangeForm } from "./password-form";
+import { TwoStep } from "./two-step";
 
-export default async function AccountPage() {
+export default async function AccountPage({ searchParams }: { searchParams: Promise<{ enroll?: string; tf?: string }> }) {
   const user = await requireUser();
+  const { enroll, tf } = await searchParams;
   const prefs = await getPrefs(user.id);
 
   return (
@@ -74,6 +76,8 @@ export default async function AccountPage() {
         </h3>
         <PasswordChangeForm hasPassword={Boolean(user.password_hash)} />
       </section>
+
+      <TwoStep user={user} enroll={enroll === "1"} tf={tf} />
 
       <section className="bg-slate-900 border border-slate-800 rounded-xl p-6">
         <h3 className="text-sm font-semibold text-white">Sessions</h3>

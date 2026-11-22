@@ -8,6 +8,7 @@ import { generateTemporaryPassword, hashPassword } from "@/lib/password";
 import { assignableRoles, canManageRole, isRole } from "@/lib/rbac";
 import { cleanMemberships, enterable, workspaceLabel } from "@/lib/workspace-calc";
 import { setMemberships, workspaceContext } from "@/lib/workspaces";
+import { setRequiredRoles } from "@/lib/mfa";
 import {
   audit,
   countActiveWithRole,
@@ -180,4 +181,14 @@ export async function setWorkspaces(formData: FormData) {
     detail: next.map(workspaceLabel).join(" and "),
   });
   back("workspaces-saved");
+}
+
+/** The Super Admin chooses which roles must use two-step sign-in. */
+export async function saveTwoStepRoles(formData: FormData) {
+  const admin = await requireAccessManager();
+  if (admin.role !== "super_admin") back("not-allowed");
+  const roles = formData.getAll("roles").map(String).filter((r) => isRole(r));
+  await setRequiredRoles(roles);
+  await audit({ actorId: admin.id, actorEmail: admin.email, action: "2fa_required", detail: roles.join(", ") || "none" });
+  back("two-step-saved");
 }

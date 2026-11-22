@@ -3,6 +3,7 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
+import { writeFile } from "node:fs/promises";
 
 const BASE = process.env.BASE_URL ?? "http://127.0.0.1:3100";
 const ADMIN = process.env.E2E_ADMIN_EMAIL ?? "admin@example.test"; // the Super Admin
@@ -1958,6 +1959,119 @@ await step("workspaces: Personal, Boring PE and Impact Marrow each show their ow
   await A.page.goto("/portal/workspace/all");
   await A.page.waitForURL(/\/portal\/dashboard$/);
   assert.ok(await A.page.locator("[data-workspace-cash]").count() === 3, "the combined dashboard shows each workspace's cash");
+});
+
+// RFC 6238 code for a base32 secret, as an authenticator app would show it.
+function totp(secretB32, offset = 0) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = 0, value = 0; const bytes = [];
+  for (const ch of secretB32) { value = (value << 5) | alphabet.indexOf(ch); bits += 5; if (bits >= 8) { bytes.push((value >>> (bits - 8)) & 255); bits -= 8; } }
+  const msg = Buffer.alloc(8); msg.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000) + offset));
+  const h = createHmac("sha1", Buffer.from(bytes)).update(msg).digest(); const o = h[19] & 15;
+  return String((((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3]) % 1e6).padStart(6, "0");
+}
+
+await step("two-step sign-in: set up with an authenticator, asked at sign-in, recovery codes, trusted browser, required by role", async () => {
+  await A.page.goto("/portal/account");
+  await A.page.click('button:has-text("Set up two-step sign-in")');
+  const secret = (await txt(A.page, "[data-totp-secret]")).trim();
+  await A.page.fill('#two-step input[name="code"]', "000000");
+  await A.page.click('#two-step button:has-text("Turn on")');
+  await A.page.waitForSelector("text=That code did not match");
+  await A.page.fill('#two-step input[name="code"]', totp(secret));
+  await A.page.click('#two-step button:has-text("Turn on")');
+  await A.page.waitForSelector("[data-recovery-codes]");
+  const codes = (await A.page.locator("[data-recovery-codes] span").allInnerTexts()).map((c) => c.trim());
+  assert.equal(codes.length, 10);
+
+  // A fresh browser: password alone is not enough.
+  const S = await ctx();
+  await login(S.page, ADMIN, ADMIN_NEW);
+  await S.page.waitForURL(/\/portal\/two-factor/);
+  await S.page.goto("/portal/dashboard");
+  assert.match(S.page.url(), /two-factor/, "no page opens before the code");
+  const api = await S.page.request.get("/api/portal/search?q=acme");
+  assert.equal(api.status(), 401, "nor does the API");
+  await S.page.fill('input[name="code"]', "123456");
+  await S.page.click('button:has-text("Continue")');
+  await S.page.waitForSelector("text=That code did not work");
+  await S.page.fill('input[name="code"]', codes[0].toLowerCase());
+  await S.page.check('input[name="trust"]');
+  await S.page.click('button:has-text("Continue")');
+  await S.page.waitForURL(/\/portal\/(console|dashboard)/);
+  // Signing in again from the trusted browser skips the code; a used recovery code is spent.
+  await S.page.click('button:has-text("Sign out")');
+  await S.page.waitForURL(/\/portal\/login/);
+  await login(S.page, ADMIN, ADMIN_NEW);
+  await S.page.waitForURL(/\/portal\/(console|dashboard)/);
+  await S.context.close();
+  const T = await ctx();
+  await login(T.page, ADMIN, ADMIN_NEW);
+  await T.page.waitForURL(/\/portal\/two-factor/);
+  await T.page.fill('input[name="code"]', codes[0]);
+  await T.page.click('button:has-text("Continue")');
+  await T.page.waitForSelector("text=That code did not work");
+  await T.context.close();
+
+  // The Super Admin requires it for Admins: the Admin is sent to set it up first.
+  await A.page.goto("/portal/access");
+  await A.page.check('[data-two-step-roles] input[value="admin"]');
+  await A.page.click('[data-two-step-roles] button:has-text("Save")');
+  await A.page.waitForSelector("text=Two-step sign-in requirement saved");
+  await E.page.goto("/portal/books");
+  assert.match(E.page.url(), /\/portal\/account\?enroll=1/);
+  assert.match(await flat(E.page), /Your role requires two-step sign-in/);
+  await A.page.goto("/portal/access");
+  await A.page.uncheck('[data-two-step-roles] input[value="admin"]');
+  await A.page.click('[data-two-step-roles] button:has-text("Save")');
+  await A.page.waitForSelector("text=Two-step sign-in requirement saved");
+  await E.page.goto("/portal/books");
+  assert.match(E.page.url(), /\/portal\/books/);
+});
+
+await step("password vault: sealed logins, shared by role, every look logged; private ones stay private", async () => {
+  const add = async (title, secret, shareWithAdmin) => {
+    await A.page.goto("/portal/secrets");
+    const form = 'form:has(input[name="title"])';
+    await A.page.fill(`${form} input[name="title"]`, title);
+    await A.page.fill(`${form} input[name="username"]`, "boringpe");
+    await A.page.fill(`${form} input[name="secret"]`, secret);
+    if (shareWithAdmin) {
+      await A.page.check('input[name="share"][value="roles"]');
+      await A.page.check('input[name="roles"][value="admin"]');
+    }
+    await A.page.click('form:has(input[name="title"]) button:has-text("Save")');
+    await A.page.waitForSelector("text=Saved and sealed.");
+  };
+  await add("HDFC NetBanking", "s3cret-bank-pass", true);
+  await add("Rahul personal email", "my-own-pass", false);
+  assert.ok(!/s3cret-bank-pass/.test(await A.page.content()), "never in the page until asked for");
+  await E.page.goto("/portal/secrets");
+  const list = await flat(E.page);
+  assert.ok(/HDFC NetBanking/.test(list) && !/Rahul personal email/.test(list), list);
+  await E.page.click('[data-secret="HDFC NetBanking"] [data-reveal]');
+  assert.equal((await txt(E.page, "[data-secret-value]")).trim(), "s3cret-bank-pass");
+  await E.page.goto("/portal/secrets");
+  assert.match(await txt(E.page, '[data-secret="HDFC NetBanking"]'), /last opened/);
+  await B.page.goto("/portal/secrets");
+  assert.doesNotMatch(B.page.url(), /\/portal\/secrets/, "an LP cannot open the vault");
+});
+
+await step("encrypted backup: a strong passphrase is required and the file is sealed", async () => {
+  await A.page.goto("/portal/console");
+  await A.page.fill('[data-backup] input[name="passphrase"]', "short");
+  await A.page.evaluate(() => document.querySelector('[data-backup] input[name="passphrase"]').removeAttribute("minlength"));
+  await A.page.click('[data-backup] button:has-text("Download backup")');
+  await A.page.waitForSelector("text=Use at least 12 characters");
+  await A.page.fill('[data-backup] input[name="passphrase"]', "monsoon ledger 2026");
+  await A.page.check('[data-backup] input[name="files"]');
+  const [download] = await Promise.all([A.page.waitForEvent("download"), A.page.click('[data-backup] button:has-text("Download backup")')]);
+  const path = await download.path();
+  const { readFile } = await import("node:fs/promises");
+  const buf = await readFile(path);
+  assert.equal(buf.subarray(0, 6).toString(), "BPBAK1");
+  assert.ok(!buf.includes(Buffer.from(ADMIN)), "nothing readable inside");
+  await writeFile(process.env.E2E_BACKUP_OUT ?? "/tmp/e2e-backup.bpbak", buf);
 });
 
 await step("sign out clears the session", async () => {

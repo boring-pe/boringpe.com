@@ -1,0 +1,9 @@
+# HTTPS certificates are obtained and renewed automatically for your domain.
+{$PORTAL_DOMAIN} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	reverse_proxy portal:3000
+}
