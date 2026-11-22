@@ -1796,6 +1796,62 @@ await step("intelligence: spending, budget and runway insights in plain words, b
   assert.equal(await B.page.locator("[data-attention]").count(), 0);
 });
 
+await step("assistant: she acts within each person's limits, asks before money, and never shows firm data to an LP", async () => {
+  const say = async (page, text) => {
+    await page.fill('textarea[name="text"]', text);
+    await page.click('button[aria-label="Send"]');
+    await page.waitForURL(/\/portal\/assistant\?t=/);
+    await page.waitForLoadState("networkidle");
+  };
+  await A.page.goto("/portal/assistant");
+  assert.equal((await txt(A.page, "[data-assistant-name]")).trim(), "Assistant");
+  await say(A.page, "Add a task: Call Acme about renewal");
+  assert.match(await txt(A.page, "[data-messages]"), /Done\. Task added: Call Acme about renewal/);
+  assert.equal(await A.page.locator('[data-action="done"]').count(), 1, "tasks happen on her own for the owner");
+  await A.page.goto("/portal/tasks");
+  assert.ok(/Call Acme about renewal/.test(await flat(A.page)));
+
+  await A.page.goto("/portal/assistant");
+  await say(A.page, "pay 1,500 for courier charges");
+  assert.equal(await A.page.locator('[data-action="proposed"]').count(), 1, "money waits for a yes");
+  await A.page.click('[data-action="proposed"] button:has-text("Approve")');
+  await A.page.waitForSelector("text=Approved and done.");
+  assert.match(await txt(A.page, "[data-messages]"), /Done: Recorded ₹1,500\.00/);
+
+  // An Admin: no personal notes at all, and she can be told to ask first for tasks.
+  await E.page.goto("/portal/assistant?view=settings");
+  assert.match(await txt(E.page, '[data-mode="notes"]'), /Not allowed/);
+  await E.page.selectOption('select[name="mode_tasks"]', "ask");
+  await E.page.click('[data-my-policy] button:has-text("Save")');
+  await E.page.waitForSelector("text=Saved.");
+  assert.match(await txt(E.page, '[data-mode="tasks"]'), /Ask first/);
+  await E.page.goto("/portal/assistant");
+  await say(E.page, "note: the Super Admin's secret");
+  assert.match(await txt(E.page, "[data-messages]"), /not available/);
+  await say(E.page, "Add a task: Prepare the board deck");
+  await E.page.click('[data-action="proposed"] button:has-text("Decline")');
+  await E.page.waitForSelector("text=Declined. Nothing was done.");
+  await E.page.goto("/portal/tasks");
+  assert.ok(!/Prepare the board deck/.test(await flat(E.page)), "a declined action never happens");
+  await A.page.goto("/portal/personal");
+  assert.ok(!/secret/.test(await flat(A.page)));
+
+  // An LP can talk to her, but she has no firm figures to give them.
+  await B.page.goto("/portal/assistant");
+  await say(B.page, "How are we doing on cash?");
+  assert.ok(!/Cash now/.test(await txt(B.page, "[data-messages]")), "no firm figures for an LP");
+
+  // The owner names her; the header follows.
+  await A.page.goto("/portal/assistant?view=settings");
+  await A.page.fill('[data-assistant-settings] input[name="name"]', "Maya");
+  await A.page.click('[data-assistant-settings] button:has-text("Save")');
+  await A.page.waitForSelector("text=Saved.");
+  assert.match(await txt(A.page, "[data-ask]"), /Ask Maya/);
+  await A.page.fill('[data-assistant-settings] input[name="name"]', "Assistant");
+  await A.page.click('[data-assistant-settings] button:has-text("Save")');
+  await A.page.waitForSelector("text=Saved.");
+});
+
 await step("workspaces: Personal, Boring PE and Impact Marrow each show their own; Personal is the owner's alone", async () => {
   const switchTo = async (page, view) => {
     await page.goto("/portal/dashboard");

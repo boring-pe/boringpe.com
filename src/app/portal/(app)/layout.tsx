@@ -2,12 +2,13 @@ import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  BarChart3, Bell, BookOpen, Building2, CalendarDays, ClipboardCheck, Crown, FileText, FolderKanban, HeartHandshake,
+  BarChart3, Bell, Bot, BookOpen, Building2, CalendarDays, ClipboardCheck, Crown, FileText, FolderKanban, HeartHandshake,
   Inbox as InboxIcon, LayoutDashboard, Landmark, ListChecks, Lock, LogOut, MessageCircle, Package, Pin, Plug, Receipt,
   Rocket, ShieldCheck, Sparkles, Target, Crosshair, UserCircle, Users, Wallet,
 } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { unreadCount } from "@/lib/notify";
+import { getSettings } from "@/lib/assistant";
 import { getPrefs } from "@/lib/prefs";
 import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
 import { togglePin } from "./_shell/prefs-actions";
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
 
 const ICONS: Record<SectionId, React.ElementType> = {
   console: Crown, integrations: Plug, content: FileText, approvals: ClipboardCheck, reports: BarChart3, personal: Lock,
-  dashboard: LayoutDashboard, intelligence: Sparkles, inbox: InboxIcon, calendar: CalendarDays, whatsapp: MessageCircle, portfolio: Building2,
+  dashboard: LayoutDashboard, assistant: Bot, intelligence: Sparkles, inbox: InboxIcon, calendar: CalendarDays, whatsapp: MessageCircle, portfolio: Building2,
   ventures: Rocket, deals: Target, money: Wallet, books: BookOpen, invoices: Receipt, bank: Landmark, assets: Package,
   budgets: Crosshair, tasks: ListChecks, people: Users, vault: FolderKanban, marrow: HeartHandshake, access: ShieldCheck,
 };
@@ -46,6 +47,7 @@ const ACTIONS: { section: SectionId; label: string; href: string; hint: string }
   { section: "tasks", label: "Add a task", href: "/portal/tasks", hint: "Tasks" },
   { section: "people", label: "Prepare payroll", href: "/portal/people?view=payroll", hint: "People" },
   { section: "bank", label: "Import a bank statement", href: "/portal/bank", hint: "Bank" },
+  { section: "assistant", label: "Ask the assistant", href: "/portal/assistant", hint: "Assistant" },
   { section: "intelligence", label: "What needs attention", href: "/portal/intelligence", hint: "Insights" },
   { section: "reports", label: "Open MIS reports", href: "/portal/reports", hint: "Reports" },
 ];
@@ -54,7 +56,8 @@ export default async function PortalLayout({ children }: { children: React.React
   const user = await requireUser();
   const meta = ROLE_META[user.role];
   // Until a temporary password is replaced, the only open page is Account.
-  const [unread, prefs, ws] = await Promise.all([unreadCount(user.id), getPrefs(user.id), workspaceContext()]);
+  const [unread, prefs, ws, assistant] = await Promise.all([unreadCount(user.id), getPrefs(user.id), workspaceContext(), getSettings()]);
+  const assistantName = assistant.name;
   // The menu follows the workspace on view: Personal has no ventures or payroll, Impact Marrow no deal pipeline.
   const items = user.must_change_password ? [] : allowedSections(user.role).filter((i) => sectionInView(i.id, ws.view));
   const pinned = prefs.pinned.map((id) => items.find((i) => i.id === id)).filter((i): i is (typeof items)[number] => Boolean(i));
@@ -134,6 +137,12 @@ export default async function PortalLayout({ children }: { children: React.React
 
   const headerEnd = (
     <>
+      {items.some((i) => i.id === "assistant") ? (
+        <Link href="/portal/assistant" className="hidden items-center gap-2 rounded-full border border-slate-700 py-1 pl-1 pr-3 text-sm text-slate-300 transition hover:border-blue-500 hover:text-white sm:flex" data-ask>
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-rose-400 to-amber-400 text-[11px] font-bold text-white">{assistantName.slice(0, 1).toUpperCase()}</span>
+          Ask {assistantName}
+        </Link>
+      ) : null}
       <ThemeToggle theme={prefs.theme} />
       <Link href="/portal/notifications" aria-label={unread ? `${unread} unread notifications` : "Notifications"} className="relative rounded-lg p-2 text-slate-400 transition hover:bg-slate-800/60 hover:text-white" data-bell>
         <Bell className="h-5 w-5" />

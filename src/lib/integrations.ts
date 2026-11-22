@@ -109,6 +109,12 @@ export async function testIntegration(provider: string): Promise<{ ok: boolean; 
         headers: { Authorization: `Bearer ${c.accessToken}` },
       });
       break;
+    case "ai_anthropic":
+    case "ai_openai":
+    case "ai_gemini":
+    case "ai_custom":
+      result = await (await import("./ai")).pingProvider(provider);
+      break;
     default:
       // OAuth apps are proven by connecting a mailbox with them.
       result = c.clientId && c.clientSecret

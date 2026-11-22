@@ -64,6 +64,43 @@ export const PROVIDERS: Provider[] = [
     ],
     setup: "Razorpay dashboard → Account & Settings → API keys; Webhooks → add the URL shown here with payment_link.paid.",
   },
+  {
+    id: "ai_anthropic", name: "Anthropic Claude", group: "AI assistant",
+    summary: "Powers the assistant with Claude.",
+    fields: [
+      { key: "apiKey", label: "API key", secret: true, required: true, placeholder: "sk-ant-…" },
+      { key: "model", label: "Model", required: true, placeholder: "claude-sonnet-5-5" },
+    ],
+    setup: "console.anthropic.com → API keys → Create key. Model names are listed under Models.",
+  },
+  {
+    id: "ai_openai", name: "OpenAI", group: "AI assistant",
+    summary: "Powers the assistant with an OpenAI model.",
+    fields: [
+      { key: "apiKey", label: "API key", secret: true, required: true, placeholder: "sk-…" },
+      { key: "model", label: "Model", required: true, placeholder: "the model name from your OpenAI account" },
+    ],
+    setup: "platform.openai.com → API keys → Create new secret key.",
+  },
+  {
+    id: "ai_gemini", name: "Google Gemini", group: "AI assistant",
+    summary: "Powers the assistant with a Gemini model.",
+    fields: [
+      { key: "apiKey", label: "API key", secret: true, required: true },
+      { key: "model", label: "Model", required: true, placeholder: "the Gemini model name" },
+    ],
+    setup: "aistudio.google.com → Get API key.",
+  },
+  {
+    id: "ai_custom", name: "Your own or another AI", group: "AI assistant",
+    summary: "Any OpenAI-compatible service: a model you host yourself (Ollama, vLLM), OpenRouter, Groq and others.",
+    fields: [
+      { key: "baseUrl", label: "Base URL", required: true, placeholder: "https://ai.yourdomain.in/v1" },
+      { key: "apiKey", label: "API key", secret: true, placeholder: "leave empty if your server needs none" },
+      { key: "model", label: "Model", required: true },
+    ],
+    setup: "The address must end where /chat/completions is served, for example …/v1. The model must support tool calls.",
+  },
 ];
 
 export const providerById = (id: string) => PROVIDERS.find((p) => p.id === id);
