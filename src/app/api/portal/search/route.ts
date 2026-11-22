@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/dal";
 import { getSql } from "@/lib/db";
 import { canManagePeople, canSeeFirmData } from "@/lib/rbac";
+import { entityIdsInView, workspaceContext } from "@/lib/workspaces";
 
 type Hit = { label: string; href: string; hint: string };
 
@@ -18,22 +19,24 @@ export async function GET(request: Request) {
     results.push(...rows.map(map));
   };
   if (canSeeFirmData(user.role)) {
+    const ids = await entityIdsInView();
+    const firm = (await workspaceContext()).inView.includes("boring_pe");
     await Promise.all([
       add(`select i.id, coalesce(i.number, 'Draft') as number, p.name from invoices i join parties p on p.id = i.party_id
-            where i.number ilike $1 or p.name ilike $1 order by i.created_at desc limit 6`, [like],
+            where (i.number ilike $1 or p.name ilike $1) and i.entity_id = any($2::text[]) order by i.created_at desc limit 6`, [like, ids],
         (r) => ({ label: `${r.number} · ${r.name}`, href: `/portal/invoices?inv=${r.id}`, hint: "Invoice" })),
-      add("select id, name, stage from deals where name ilike $1 order by updated_at desc limit 5", [like],
+      add("select id, name, stage from deals where name ilike $1 and $2 order by updated_at desc limit 5", [like, firm],
         (r) => ({ label: r.name, href: "/portal/deals", hint: `Deal · ${r.stage.replace("_", " ")}` })),
-      add("select id, name from ventures where name ilike $1 limit 5", [like],
+      add("select id, name from ventures where name ilike $1 and entity_id = any($2::text[]) limit 5", [like, ids],
         (r) => ({ label: r.name, href: `/portal/ventures?v=${r.id}`, hint: "Venture" })),
-      add("select id, name from holdings where name ilike $1 limit 5", [like],
+      add("select id, name from holdings where name ilike $1 and holder_entity_id = any($2::text[]) limit 5", [like, ids],
         (r) => ({ label: r.name, href: `/portal/portfolio?h=${r.id}`, hint: "Holding" })),
-      add("select id, name, kind from entities where name ilike $1 limit 5", [like],
+      add("select id, name, kind from entities where name ilike $1 and id = any($2::text[]) limit 5", [like, ids],
         (r) => ({ label: r.name, href: `/portal/books?e=${r.id}`, hint: "Books" })),
       add("select id, name from parties where name ilike $1 or gstin ilike $1 limit 5", [like],
         (r) => ({ label: r.name, href: "/portal/invoices?view=settings", hint: "Contact" })),
       ...(canManagePeople(user.role)
-        ? [add("select id, name, designation from employees where name ilike $1 or email ilike $1 limit 5", [like],
+        ? [add("select id, name, designation from employees where (name ilike $1 or email ilike $1) and entity_id = any($2::text[]) limit 5", [like, ids],
             (r) => ({ label: r.name, href: `/portal/people?emp=${r.id}`, hint: r.designation || "Person" }))]
         : []),
     ]);
@@ -45,7 +48,7 @@ export async function GET(request: Request) {
       [user.id, like], (r) => ({ label: r.name, href: `/portal/ventures?v=${r.id}`, hint: "Venture" }),
     );
   }
-  await add("select id, title from tasks where title ilike $2 and ($3::boolean or assignee_id = $1 or created_by = $1) limit 5",
-    [user.id, like, canSeeFirmData(user.role)], (r) => ({ label: r.title, href: "/portal/tasks", hint: "Task" }));
+  await add("select id, title from tasks where title ilike $2 and ($3::boolean or assignee_id = $1 or created_by = $1) and workspace = any($4::text[]) limit 5",
+    [user.id, like, canSeeFirmData(user.role), (await workspaceContext()).inView], (r) => ({ label: r.title, href: "/portal/tasks", hint: "Task" }));
   return Response.json({ results: results.slice(0, 25) });
 }

@@ -1,13 +1,15 @@
 import { getSql, type Sql } from "./db";
+import { enterableEntityIds, entityIdsInView, workspaceForNew } from "./workspaces";
 import { DEFAULT_CHART, paiseToDecimal, type AccountType, type BalanceRow, type EntityKind, type Line } from "./accounting";
 
 export type EntityRow = {
   id: string;
   name: string;
-  kind: EntityKind;
+  kind: EntityKind | "personal";
   legal_form: string;
   parent_id: string | null;
   parent_name: string | null;
+  workspace: string;
 };
 export type AccountRow = { id: string; entity_id: string; code: string; name: string; type: AccountType; active: boolean };
 export type JournalRow = {
@@ -50,13 +52,20 @@ export async function ensureCharts() {
   );
 }
 
-export async function listEntities() {
+/**
+ * Active entities in the workspaces on view, or with "enterable" in every workspace this person may
+ * enter (for money and holdings that cross from one workspace to another).
+ */
+export async function listEntities(scope: "view" | "enterable" = "view") {
   await ensureCharts();
   const sql = await getSql();
   return sql.query<EntityRow>(
-    `select e.id, e.name, e.kind, e.legal_form, e.parent_id, p.name as parent_name
+    `select e.id, e.name, e.kind, e.legal_form, e.parent_id, p.name as parent_name, e.workspace
        from entities e left join entities p on p.id = e.parent_id
-      where e.active order by (e.kind = 'boring_pe') desc, e.name`,
+      where e.active and e.id = any($1::text[])
+      order by array_position(array['boring_pe', 'impact_marrow', 'personal'], e.workspace),
+               (e.kind in ('boring_pe', 'impact_marrow', 'personal')) desc, e.name`,
+    [scope === "view" ? await entityIdsInView() : await enterableEntityIds()],
   );
 }
 
@@ -66,15 +75,16 @@ export async function createEntity(e: {
 }): Promise<string | "exists"> {
   const sql = await getSql();
   const [codes, names, types] = chartArrays();
+  const workspace = e.kind === "impact_marrow" || e.kind === "fund" ? "impact_marrow" : await workspaceForNew();
   try {
     const rows = await sql.query<{ entity_id: string }>(
       `with e as (
-         insert into entities (name, kind, legal_form, parent_id, created_by) values ($1,$2,$3,$4,$5) returning id
+         insert into entities (name, kind, legal_form, parent_id, created_by, workspace) values ($1,$2,$3,$4,$5,$9) returning id
        )
        insert into ledger_accounts (entity_id, code, name, type)
          select e.id, c.code, c.name, c.type from e, unnest($6::text[], $7::text[], $8::text[]) as c(code, name, type)
        returning entity_id`,
-      [e.name, e.kind, e.legalForm, e.parentId, e.by, codes, names, types],
+      [e.name, e.kind, e.legalForm, e.parentId, e.by, codes, names, types, workspace],
     );
     return rows[0].entity_id;
   } catch (err) {

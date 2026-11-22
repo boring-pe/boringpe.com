@@ -19,6 +19,9 @@ export type UserRow = {
   last_sign_in_at: Date | null;
   created_by: string | null;
   created_at: Date;
+  /** Boring PE, Impact Marrow or both; the Super Admin enters every workspace regardless. */
+  workspaces: string[];
+  current_workspace: string | null;
 };
 
 export const MAX_FAILED_ATTEMPTS = 5;
@@ -26,7 +29,7 @@ export const LOCK_MINUTES = 15;
 
 const COLUMNS = `id, name, email, email_verified, image, role, status, password_hash,
   must_change_password, failed_attempts, locked_until, session_epoch, last_sign_in_at,
-  created_by, created_at`;
+  created_by, created_at, workspaces, current_workspace`;
 
 function clean(row: UserRow | undefined): UserRow | null {
   if (!row) return null;

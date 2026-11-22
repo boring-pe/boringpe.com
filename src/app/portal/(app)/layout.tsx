@@ -11,6 +11,9 @@ import { unreadCount } from "@/lib/notify";
 import { getPrefs } from "@/lib/prefs";
 import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
 import { togglePin } from "./_shell/prefs-actions";
+import { WorkspaceSwitcher } from "./_shell/workspace-switcher";
+import { sectionInView, workspaceLabel } from "@/lib/workspace-calc";
+import { workspaceContext } from "@/lib/workspaces";
 import { CommandPalette, type PaletteItem } from "./_shell/palette";
 import { NavProgress } from "./_shell/progress";
 import { SearchButton, ThemeToggle } from "./_shell/controls";
@@ -51,8 +54,9 @@ export default async function PortalLayout({ children }: { children: React.React
   const user = await requireUser();
   const meta = ROLE_META[user.role];
   // Until a temporary password is replaced, the only open page is Account.
-  const items = user.must_change_password ? [] : allowedSections(user.role);
-  const [unread, prefs] = await Promise.all([unreadCount(user.id), getPrefs(user.id)]);
+  const [unread, prefs, ws] = await Promise.all([unreadCount(user.id), getPrefs(user.id), workspaceContext()]);
+  // The menu follows the workspace on view: Personal has no ventures or payroll, Impact Marrow no deal pipeline.
+  const items = user.must_change_password ? [] : allowedSections(user.role).filter((i) => sectionInView(i.id, ws.view));
   const pinned = prefs.pinned.map((id) => items.find((i) => i.id === id)).filter((i): i is (typeof items)[number] => Boolean(i));
   const initials = (user.name ?? user.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || meta.initials;
 
@@ -79,11 +83,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const sidebar = (
     <>
       <div className="flex h-16 items-center gap-3 border-b border-slate-800 px-5 md:h-20">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 font-serif text-lg font-semibold text-white shadow-sm">B</div>
-        <div className="leading-tight">
-          <div className="font-serif text-base font-semibold tracking-tight text-white">Boring PE</div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Portal</div>
-        </div>
+        <WorkspaceSwitcher view={ws.view} views={user.must_change_password ? [ws.view] : ws.views} />
       </div>
       <div className="px-3 pt-4 md:hidden">
         <SearchButton wide />
@@ -145,6 +145,9 @@ export default async function PortalLayout({ children }: { children: React.React
 
   const palette: PaletteItem[] = [
     ...items.map((i) => ({ kind: "page" as const, label: i.label, href: i.href, hint: "Go to" })),
+    ...(user.must_change_password ? [] : ws.views.filter((v) => v !== ws.view)).map((v) => ({
+      kind: "action" as const, label: `Switch to ${workspaceLabel(v)}`, href: `/portal/workspace/${v}`, hint: "Workspace",
+    })),
     { kind: "page", label: "Notifications", href: "/portal/notifications", hint: "Go to" },
     { kind: "page", label: "Account and appearance", href: "/portal/account", hint: "Go to" },
     ...ACTIONS.filter((a) => items.some((i) => i.id === a.section)).map((a) => ({ kind: "action" as const, label: a.label, href: a.href, hint: a.hint })),

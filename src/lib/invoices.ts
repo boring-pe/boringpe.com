@@ -1,6 +1,7 @@
 import { getSql, type Sql } from "./db";
 import { paiseToDecimal } from "./accounting";
 import { decimalToPaise, ensureCharts, postByCodes, type CodeLine } from "./books";
+import { entityIdsInView } from "./workspaces";
 import { ageingBucket, invoiceNumber, invoiceTotals, type InvoiceLine } from "./invoice-calc";
 import { rateText, toInr } from "./assets-calc";
 
@@ -28,7 +29,7 @@ export const INCOME_ACCOUNTS = [
 export async function gstProfiles() {
   await ensureCharts();
   const sql = await getSql();
-  return sql.query<GstProfile>("select id, name, gstin, state_code, address, invoice_prefix from entities where active order by (kind = 'boring_pe') desc, name");
+  return sql.query<GstProfile>("select id, name, gstin, state_code, address, invoice_prefix from entities where active and id = any($1::text[]) order by (kind = 'boring_pe') desc, name", [await entityIdsInView()]);
 }
 export async function updateEntityGst(id: string, p: { gstin: string | null; stateCode: string | null; address: string; prefix: string }) {
   const sql = await getSql();
@@ -52,12 +53,12 @@ const INV_SELECT = `
 
 export async function listInvoices() {
   const sql = await getSql();
-  return sql.query<InvoiceRow>(`${INV_SELECT} order by i.issue_date desc, i.created_at desc limit 300`);
+  return sql.query<InvoiceRow>(`${INV_SELECT} where i.entity_id = any($1::text[]) order by i.issue_date desc, i.created_at desc limit 300`, [await entityIdsInView()]);
 }
 
 export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
   const sql = await getSql();
-  const inv = (await sql.query<InvoiceRow>(`${INV_SELECT} where i.id = $1`, [id]))[0];
+  const inv = (await sql.query<InvoiceRow>(`${INV_SELECT} where i.id = $1 and i.entity_id = any($2::text[])`, [id, await entityIdsInView()]))[0];
   if (!inv) return null;
   const [seller, buyer, lines, receipts] = await Promise.all([
     sql.query<GstProfile>("select id, name, gstin, state_code, address, invoice_prefix from entities where id = $1", [inv.entity_id]),
@@ -291,7 +292,8 @@ export async function receivables(today: string) {
   const rows = await sql.query<{ party_name: string; entity_name: string; due_date: string; outstanding: string }>(
     `select p.name as party_name, e.name as entity_name, i.due_date::text, (i.total - i.received - i.tds)::text as outstanding
        from invoices i join parties p on p.id = i.party_id join entities e on e.id = i.entity_id
-      where i.status = 'issued' and i.total - i.received - i.tds > 0`,
+      where i.status = 'issued' and i.total - i.received - i.tds > 0 and i.entity_id = any($1::text[])`,
+    [await entityIdsInView()],
   );
   const byParty = new Map<string, { party: string; entity: string; buckets: bigint[]; total: bigint }>();
   for (const r of rows) {

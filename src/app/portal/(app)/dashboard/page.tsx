@@ -4,7 +4,9 @@ import { rupees } from "@/lib/accounting";
 import { countPending } from "@/lib/approvals";
 import { agenda } from "@/lib/calendar";
 import { requireSection } from "@/lib/dal";
-import { cashTrend, fyMonthly, myUpcomingTasks, receivablesTotals } from "@/lib/dashboard";
+import { cashByWorkspace, cashTrend, fyMonthly, myUpcomingTasks, receivablesTotals } from "@/lib/dashboard";
+import { workspaceLabel } from "@/lib/workspace-calc";
+import { workspaceContext } from "@/lib/workspaces";
 import { toTxns } from "@/lib/investments";
 import { listTasks, summary } from "@/lib/ops";
 import { inr, stageLabel, STAGES } from "@/lib/ops-fields";
@@ -15,6 +17,7 @@ import { firmInsights } from "@/lib/insights";
 import { InsightList } from "../intelligence/insight-list";
 import { compactRupees, IncomeExpenseChart, Sparkline, StageBars } from "./charts";
 import { LiveRefresh } from "./live";
+import { switchWorkspace } from "../_shell/prefs-actions";
 
 const card = "rounded-xl border border-slate-800 bg-slate-900 p-5";
 const label = "text-xs font-medium uppercase tracking-wide text-slate-500";
@@ -37,7 +40,8 @@ export default async function DashboardPage() {
   const seeBooks = can(user.role, "books");
   const owner = user.role === "super_admin";
   const seeInsights = can(user.role, "intelligence");
-  const [ops, cash, fy, recv, pending, mine, meetings, intel] = await Promise.all([
+  const ws = await workspaceContext();
+  const [ops, cash, fy, recv, pending, mine, meetings, intel, perWorkspace] = await Promise.all([
     summary(),
     seeBooks ? cashTrend(12) : Promise.resolve([]),
     seeBooks ? fyMonthly() : Promise.resolve(null),
@@ -46,6 +50,7 @@ export default async function DashboardPage() {
     myUpcomingTasks(user.id),
     agenda(user.id, 3).catch(() => ({ items: [], accounts: [], errors: [] })),
     seeInsights ? firmInsights() : Promise.resolve(null),
+    ws.view === "all" && seeBooks ? cashByWorkspace() : Promise.resolve([]),
   ]);
   const urgent = (intel?.insights ?? []).filter((i) => i.severity === "critical" || i.severity === "warning");
 
@@ -64,10 +69,26 @@ export default async function DashboardPage() {
         <div>
           <p className="text-sm text-slate-500">{today()}</p>
           <h2 className="mt-1 text-white">{greeting(firstName(user.name, user.email))}</h2>
-          <p className="mt-1 text-sm text-slate-400">Dashboard · figures come only from records kept in the portal.</p>
+          <p className="mt-1 text-sm text-slate-400" data-dashboard-scope>
+            {workspaceLabel(ws.view)} · figures come only from records kept in the portal.
+          </p>
         </div>
         <LiveRefresh />
       </div>
+
+      {perWorkspace.length ? (
+        <div className="grid gap-4 sm:grid-cols-3" data-by-workspace>
+          {perWorkspace.map((w) => (
+            <form key={w.workspace} action={switchWorkspace.bind(null, w.workspace)}>
+              <button className={`${card} block w-full text-left transition-colors hover:border-slate-700`} data-workspace-cash={w.workspace}>
+                <div className={label}>{workspaceLabel(w.workspace)} · cash</div>
+                <div className="mt-2 text-2xl font-semibold tabular-nums text-white">{rupees(w.cash)}</div>
+                <div className="mt-1 text-xs text-slate-500">Open this workspace</div>
+              </button>
+            </form>
+          ))}
+        </div>
+      ) : null}
 
       {empty ? (
         <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900 p-10 text-center">
@@ -85,7 +106,7 @@ export default async function DashboardPage() {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-kpis>
             {seeBooks ? (
               <Link href="/portal/reports" className={`${card} block`}>
-                <div className="flex items-center justify-between"><span className={label}>Group cash</span><Wallet className="h-4 w-4 text-slate-500" /></div>
+                <div className="flex items-center justify-between"><span className={label}>{ws.view === "personal" ? "Cash" : "Group cash"}</span><Wallet className="h-4 w-4 text-slate-500" /></div>
                 <div className="mt-2 text-2xl font-semibold text-white">{rupees(cashNow)}</div>
                 <div className={`text-xs ${delta >= 0n ? "text-green-400" : "text-red-400"}`}>{delta >= 0n ? "▲" : "▼"} {compactRupees(delta < 0n ? -delta : delta)} this month</div>
                 <Sparkline values={cash.map((c) => c.cash)} label="Cash over the last twelve months" />

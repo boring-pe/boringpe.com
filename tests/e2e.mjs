@@ -258,6 +258,9 @@ await step("Super Admin invites an Admin; the Admin signs in and replaces the te
   await A.page.fill('input[name="email"]', MANAGER);
   await A.page.selectOption('select[name="role"]', "admin");
   await A.page.selectOption('select[name="passwordMode"]', "generate");
+  // This Admin runs both Boring PE and Impact Marrow.
+  await A.page.check('input[name="workspace"][value="boring_pe"]');
+  await A.page.check('input[name="workspace"][value="impact_marrow"]');
   await A.page.click('button:has-text("Invite")');
   await A.page.waitForSelector("code");
   const temp = (await A.page.locator("code").first().innerText()).trim();
@@ -804,11 +807,16 @@ await step("Impact Marrow: contributions from Boring PE and Rahul personally lan
   await A.page.waitForLoadState("networkidle");
   await A.page.fill('input[name="amount"]', "10,000");
   await A.page.click('button:has-text("Record contribution")');
-  await A.page.waitForSelector('td:has-text("Rahul Mane (personal)")');
+  await A.page.waitForSelector('td:has-text("Rahul Mane (Personal)")');
   const text = await flat(A.page);
   assert.ok(/Contributed in total\s*₹60,000\.00/i.test(text), text);
   assert.ok(/Impact Marrow Fund · cash\s*₹60,000\.00/i.test(text), text);
-  assert.ok(/Rahul Mane \(personal\)/.test(text));
+  assert.ok(/Rahul Mane \(Personal\)/.test(text));
+  // A personal gift now leaves Rahul's own books too.
+  await A.page.goto("/portal/books");
+  await A.page.goto((await A.page.locator('nav[aria-label="Entities"] a:has-text("Rahul Mane (Personal)")').getAttribute("href")));
+  await A.page.waitForLoadState("networkidle");
+  assert.ok(/5090 Impact contributions ₹10,000\.00/.test(await flat(A.page)), await flat(A.page));
   await E.page.goto("/portal/marrow");
   assert.equal(await E.page.locator('button:has-text("Record contribution")').count(), 0);
 });
@@ -1786,6 +1794,51 @@ await step("intelligence: spending, budget and runway insights in plain words, b
   await B.page.goto("/portal/intelligence");
   assert.match(B.page.url(), /\/portal\/dashboard$/, "an LP cannot open firm insights");
   assert.equal(await B.page.locator("[data-attention]").count(), 0);
+});
+
+await step("workspaces: Personal, Boring PE and Impact Marrow each show their own; Personal is the owner's alone", async () => {
+  const switchTo = async (page, view) => {
+    await page.goto("/portal/dashboard");
+    await page.click("[data-workspace-switcher] summary");
+    await page.click(`[data-workspace="${view}"]`);
+    await page.waitForURL(/\/portal\/dashboard$/);
+    await page.waitForLoadState("networkidle");
+  };
+  await switchTo(A.page, "personal");
+  assert.equal((await txt(A.page, "[data-workspace-current]")).trim(), "Personal");
+  const nav = await A.page.locator('nav[aria-label="Portal"]').innerText();
+  assert.ok(/Personal desk/.test(nav) && /Books/.test(nav), nav);
+  assert.ok(!/Deal Pipeline|Ventures\n/.test(nav), "no ventures or deals in Personal");
+  await A.page.goto("/portal/books");
+  const entities = await A.page.locator('nav[aria-label="Entities"]').innerText();
+  assert.ok(/Rahul Mane \(Personal\)/.test(entities) && !/Boring PE|Impact Marrow/.test(entities), entities);
+  const personalId = new URL(await A.page.locator('nav[aria-label="Entities"] a').first().getAttribute("href"), "http://x").searchParams.get("e");
+
+  await switchTo(A.page, "impact_marrow");
+  await A.page.goto("/portal/books");
+  const marrow = await A.page.locator('nav[aria-label="Entities"]').innerText();
+  assert.ok(/Impact Marrow Fund/.test(marrow) && !/Boring PE|Alpha SPV|Personal/.test(marrow), marrow);
+
+  // The Admin runs Boring PE and Impact Marrow, never Personal: not offered, not reachable by link or form.
+  await E.page.goto("/portal/dashboard");
+  await E.page.click("[data-workspace-switcher] summary");
+  const offered = await E.page.locator("[data-workspace]").evaluateAll((els) => els.map((e) => e.getAttribute("data-workspace")));
+  assert.deepEqual(offered, ["boring_pe", "impact_marrow", "all"]);
+  await E.page.goto(`/portal/workspace/personal`);
+  assert.notEqual((await txt(E.page, "[data-workspace-current]")).trim(), "Personal");
+  await E.page.goto(`/portal/books?e=${personalId}&view=journal`);
+  assert.ok(!/Rahul Mane \(Personal\)/.test(await flat(E.page)), "personal books never show to an Admin");
+  await E.page.evaluate((id) => { for (const i of document.querySelectorAll('input[name="entityId"]')) i.value = id; }, personalId);
+  await postRows(E.page, "Sneaky", [["5900 Other expenses", "1", ""], ["1010 Bank", "", "1"]]);
+  await E.page.waitForLoadState("networkidle");
+  assert.ok(!/Entry posted\./.test(await flat(E.page)), "a replayed form cannot post into Personal");
+  await E.page.goto("/portal/access");
+  assert.match(await txt(E.page, `[data-workspaces="${MANAGER}"]`), /Boring PE, Impact Marrow/);
+
+  // Back to all workspaces together.
+  await A.page.goto("/portal/workspace/all");
+  await A.page.waitForURL(/\/portal\/dashboard$/);
+  assert.ok(await A.page.locator("[data-workspace-cash]").count() === 3, "the combined dashboard shows each workspace's cash");
 });
 
 await step("sign out clears the session", async () => {

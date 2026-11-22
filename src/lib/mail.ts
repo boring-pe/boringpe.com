@@ -5,9 +5,11 @@ import { credentials } from "./integrations";
 import { ADAPTERS, type Conn, type MailProvider, type MessageFull, type MessageSummary, type Outgoing } from "./mail-providers";
 import { canSeeFirmData, type Role } from "./rbac";
 import { testMode } from "./test-mode";
+import { workspaceContext, workspaceForNew } from "./workspaces";
 
 export type MailAccount = {
   id: string; user_id: string; owner_email: string; provider: MailProvider; email: string; shared: boolean; status: string; last_error: string | null;
+  workspace: string;
 };
 type Tokens = { access_token: string; refresh_token?: string; expires_at: number };
 
@@ -18,29 +20,33 @@ export const MAIL_PROVIDERS: { id: Exclude<MailProvider, "mock">; name: string }
 ];
 export const mockEnabled = () => testMode();
 
-/** Mailboxes this person may open: their own, plus ones shared with the team if they are on the team. */
+/**
+ * Mailboxes this person may open in the workspaces on view: their own, plus ones shared with the
+ * team if they are on the team. A personal-workspace mailbox is never shared.
+ */
 export async function mailboxesFor(userId: string, role: Role) {
   const sql = await getSql();
   return sql.query<MailAccount>(
-    `select a.id, a.user_id, u.email as owner_email, a.provider, a.email, a.shared, a.status, a.last_error
+    `select a.id, a.user_id, u.email as owner_email, a.provider, a.email, a.shared, a.status, a.last_error, a.workspace
        from mail_accounts a join users u on u.id = a.user_id
-      where a.user_id = $1 or (a.shared and $2::boolean) order by (a.user_id = $1) desc, a.email`,
-    [userId, canSeeFirmData(role)],
+      where (a.user_id = $1 or (a.shared and a.workspace <> 'personal' and $2::boolean)) and a.workspace = any($3::text[])
+      order by (a.user_id = $1) desc, a.email`,
+    [userId, canSeeFirmData(role), (await workspaceContext()).inView],
   );
 }
 
 async function accountRow(id: string) {
   const sql = await getSql();
   return (await sql.query<MailAccount & { tokens: string; provider_account_id: string | null; inbox_folder_id: string | null; domain: string | null }>(
-    `select a.id, a.user_id, u.email as owner_email, a.provider, a.email, a.shared, a.status, a.last_error, a.tokens,
+    `select a.id, a.user_id, u.email as owner_email, a.provider, a.email, a.shared, a.status, a.last_error, a.workspace, a.tokens,
             a.provider_account_id, a.inbox_folder_id, a.domain
        from mail_accounts a join users u on u.id = a.user_id where a.id = $1`,
     [id],
   ))[0] ?? null;
 }
 
-export const mayUse = (a: Pick<MailAccount, "user_id" | "shared">, userId: string, role: Role) =>
-  a.user_id === userId || (a.shared && canSeeFirmData(role));
+export const mayUse = (a: Pick<MailAccount, "user_id" | "shared" | "workspace">, userId: string, role: Role) =>
+  a.user_id === userId || (a.shared && a.workspace !== "personal" && canSeeFirmData(role));
 
 // ---- OAuth
 
@@ -118,11 +124,11 @@ export async function completeOAuth(provider: string, code: string, state: strin
   }
   if (!email) throw new Error("Could not read the mailbox address.");
   await sql.query(
-    `insert into mail_accounts (user_id, provider, email, tokens, provider_account_id, inbox_folder_id, domain)
-     values ($1, $2, lower($3), $4, $5, $6, $7)
+    `insert into mail_accounts (user_id, provider, email, tokens, provider_account_id, inbox_folder_id, domain, workspace)
+     values ($1, $2, lower($3), $4, $5, $6, $7, $8)
      on conflict (user_id, provider, email) do update set tokens = excluded.tokens, provider_account_id = excluded.provider_account_id,
        inbox_folder_id = excluded.inbox_folder_id, domain = excluded.domain, status = 'active', last_error = null`,
-    [userId, provider, email, seal(tokens), providerAccountId, inbox, provider === "zoho" ? zohoDc(c) : null],
+    [userId, provider, email, seal(tokens), providerAccountId, inbox, provider === "zoho" ? zohoDc(c) : null, await workspaceForNew()],
   );
   return email;
 }
@@ -172,8 +178,8 @@ export async function connectMock(userId: string, email: string) {
   if (!mockEnabled()) return false;
   const sql = await getSql();
   await sql.query(
-    "insert into mail_accounts (user_id, provider, email, tokens) values ($1, 'mock', lower($2), $3) on conflict (user_id, provider, email) do nothing",
-    [userId, email, seal({ access_token: "mock", expires_at: 0 })],
+    "insert into mail_accounts (user_id, provider, email, tokens, workspace) values ($1, 'mock', lower($2), $3, $4) on conflict (user_id, provider, email) do nothing",
+    [userId, email, seal({ access_token: "mock", expires_at: 0 }), await workspaceForNew()],
   );
   if (!mock().has(email.toLowerCase())) mock().set(email.toLowerCase(), mockSeed(email.toLowerCase()));
   return true;

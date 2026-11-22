@@ -31,7 +31,8 @@ export default async function MarrowPage({ searchParams }: { searchParams: Promi
   );
   if (!canSeeFirmData(user.role)) return intro;
 
-  const entities = await listEntities();
+  // Gifts cross workspaces: from Personal or Boring PE into Impact Marrow.
+  const entities = await listEntities("enterable");
   const receivers = entities.filter((e) => e.kind === "impact_marrow" || e.kind === "fund");
   const contributions = await listContributions();
   // Bank balance of each receiving entity, from its own books.
@@ -74,7 +75,7 @@ export default async function MarrowPage({ searchParams }: { searchParams: Promi
           <tbody>
             {contributions.length === 0 ? <tr><td colSpan={5} className="px-3 py-6 text-sm text-slate-500">No contributions yet.</td></tr> : contributions.map((c) => (
               <tr key={c.id} className="border-t border-slate-800">
-                <td className={td}>{c.contrib_date}</td><td className={td}>{c.from_name ?? "Rahul Mane (personal)"}</td><td className={td}>{c.to_name}</td>
+                <td className={td}>{c.contrib_date}</td><td className={td}>{c.from_name ?? "Rahul Mane (Personal)"}</td><td className={td}>{c.to_name}</td>
                 <td className="px-3 py-2 text-sm text-right tabular-nums text-slate-200">{rupees(decimalToPaise(c.amount))}</td><td className={td}>{c.memo}</td>
               </tr>
             ))}
@@ -87,9 +88,8 @@ export default async function MarrowPage({ searchParams }: { searchParams: Promi
           <h3 className="text-sm font-semibold text-white mb-1">Record a contribution</h3>
           <p className="text-xs text-slate-500 mb-4">Posts an expense in the giver&apos;s books and capital in the receiver&apos;s.</p>
           <form action={addContribution} className="grid gap-3 md:grid-cols-3">
-            <select name="fromEntityId" defaultValue="" className={input} aria-label="From">
-              <option value="">From Rahul Mane (personal)</option>
-              {entities.map((e) => <option key={e.id} value={e.id}>From {e.name}</option>)}
+            <select name="fromEntityId" defaultValue={entities.find((e) => e.kind === "personal")?.id ?? ""} className={input} aria-label="From">
+              {entities.filter((e) => e.kind !== "impact_marrow" && e.kind !== "fund").map((e) => <option key={e.id} value={e.id}>From {e.name}</option>)}
             </select>
             <select name="toEntityId" defaultValue={receivers.find((e) => e.kind === "fund")?.id} className={input} aria-label="To">
               {receivers.map((e) => <option key={e.id} value={e.id}>To {e.name}</option>)}

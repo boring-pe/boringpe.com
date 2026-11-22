@@ -27,7 +27,7 @@ export async function addHolding(formData: FormData) {
   const notes = oneLine(formData.get("notes"), 300);
   const entities = await listEntities();
   if (name.length < 2 || !isAssetClass(assetClass) || !isHoldingPillar(pillar) || !entities.some((e) => e.id === holder)) back("", "invalid");
-  if (target && (!entities.some((e) => e.id === target) || target === holder)) back("", "invalid");
+  if (target && (!(await listEntities("enterable")).some((e) => e.id === target) || target === holder)) back("", "invalid");
   const id = await createHolding({
     name, holderEntityId: holder, assetClass, pillar, targetEntityId: target || null, notes, by: user.id,
   });

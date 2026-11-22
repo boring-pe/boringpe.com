@@ -48,7 +48,13 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
   }, [items, records, q]);
 
   if (!open) return null;
-  const go = (i: PaletteItem | undefined) => { if (!i) return; setOpen(false); router.push(i.href); };
+  const go = (i: PaletteItem | undefined) => {
+    if (!i) return;
+    setOpen(false);
+    // Switching workspace is a full page load so every part of the portal picks it up.
+    if (i.href.startsWith("/portal/workspace/")) window.location.assign(i.href);
+    else router.push(i.href);
+  };
   const Icon = { page: ArrowRight, action: Zap, record: FileText };
 
   return (

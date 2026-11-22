@@ -4,11 +4,13 @@ import { balances, decimalToPaise, listEntities } from "./books";
 import { listHoldings, toTxns } from "./investments";
 import { consolidate, fillMonths, monthsBetween } from "./mis-calc";
 import { position } from "./portfolio-calc";
+import { entityIdsInView } from "./workspaces";
 
 /** Everything the MIS page shows for one date range, in paise. */
 export async function misReport(from: string, to: string) {
   const sql = await getSql();
   const entities = await listEntities();
+  const ids = await entityIdsInView();
 
   const perEntity = await Promise.all(
     entities.map(async (e) => {
@@ -28,8 +30,8 @@ export async function misReport(from: string, to: string) {
   const ic = await sql.query<{ amount: string }>(
     `select coalesce(sum(l.debit - l.credit), 0)::text as amount
        from journal_lines l join journal_entries e on e.id = l.entry_id join ledger_accounts a on a.id = l.account_id
-      where a.code = '5100' and e.entry_date between $1::date and $2::date`,
-    [from, to],
+      where a.code = '5100' and e.entry_date between $1::date and $2::date and a.entity_id = any($3::text[])`,
+    [from, to, ids],
   );
   const intercompany = decimalToPaise(ic[0].amount);
   const group = consolidate(perEntity, intercompany);
@@ -40,9 +42,9 @@ export async function misReport(from: string, to: string) {
             coalesce(sum(l.credit - l.debit) filter (where a.type = 'income' and e.source_type <> 'venture_fee'), 0)::text as income,
             coalesce(sum(l.debit - l.credit) filter (where a.type = 'expense' and a.code <> '5100'), 0)::text as expense
        from journal_lines l join journal_entries e on e.id = l.entry_id join ledger_accounts a on a.id = l.account_id
-      where e.entry_date between $1::date and $2::date and a.type in ('income', 'expense')
+      where e.entry_date between $1::date and $2::date and a.type in ('income', 'expense') and a.entity_id = any($3::text[])
       group by 1`,
-    [from, to],
+    [from, to, ids],
   );
   const months = fillMonths(
     monthsBetween(from, to),
@@ -55,8 +57,9 @@ export async function misReport(from: string, to: string) {
     `select v.pillar, sum(p.revenue)::text as revenue, sum(p.costs)::text as costs, sum(p.fee)::text as fee,
             sum(p.operator_total)::text as operators, sum(p.net)::text as net, count(*)::int as months
        from venture_periods p join ventures v on v.id = p.venture_id
-      where p.period between date_trunc('month', $1::date)::date and $2::date group by v.pillar order by v.pillar`,
-    [from, to],
+      where p.period between date_trunc('month', $1::date)::date and $2::date and v.entity_id = any($3::text[])
+      group by v.pillar order by v.pillar`,
+    [from, to, ids],
   );
   const ventures = ventureRows.map((r) => ({
     pillar: r.pillar, months: r.months,
@@ -76,13 +79,15 @@ export async function misReport(from: string, to: string) {
   }
 
   const people = await sql.query<{ headcount: number; payroll: string }>(
-    `select (select count(*)::int from employees where status = 'active') as headcount,
-            (select coalesce(sum(gross), 0)::text from pay_runs where status in ('posted', 'paid') and period between date_trunc('month', $1::date)::date and $2::date) as payroll`,
-    [from, to],
+    `select (select count(*)::int from employees where status = 'active' and entity_id = any($3::text[])) as headcount,
+            (select coalesce(sum(gross), 0)::text from pay_runs where status in ('posted', 'paid') and entity_id = any($3::text[])
+               and period between date_trunc('month', $1::date)::date and $2::date) as payroll`,
+    [from, to, ids],
   );
   const impact = await sql.query<{ amount: string; n: number }>(
-    "select coalesce(sum(amount), 0)::text as amount, count(*)::int as n from contributions where contrib_date between $1::date and $2::date",
-    [from, to],
+    `select coalesce(sum(amount), 0)::text as amount, count(*)::int as n from contributions
+      where contrib_date between $1::date and $2::date and (to_entity_id = any($3::text[]) or from_entity_id = any($3::text[]))`,
+    [from, to, ids],
   );
 
   return {

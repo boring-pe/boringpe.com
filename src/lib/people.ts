@@ -1,3 +1,4 @@
+import { entityIdsInView } from "./workspaces";
 import { getSql } from "./db";
 import { paiseToDecimal } from "./accounting";
 import { decimalToPaise, postByCodes } from "./books";
@@ -29,11 +30,11 @@ const EMP_SELECT = `
 
 export async function listEmployees() {
   const sql = await getSql();
-  return sql.query<EmployeeRow>(`${EMP_SELECT} order by m.status, m.name`);
+  return sql.query<EmployeeRow>(`${EMP_SELECT} where m.entity_id = any($1::text[]) order by m.status, m.name`, [await entityIdsInView()]);
 }
 export async function getEmployee(id: string) {
   const sql = await getSql();
-  return (await sql.query<EmployeeRow>(`${EMP_SELECT} where m.id = $1`, [id]))[0] ?? null;
+  return (await sql.query<EmployeeRow>(`${EMP_SELECT} where m.id = $1 and m.entity_id = any($2::text[])`, [id, await entityIdsInView()]))[0] ?? null;
 }
 export async function employeeForUser(userId: string) {
   const sql = await getSql();
@@ -93,7 +94,7 @@ export async function listLeave(employeeId?: string) {
   const sql = await getSql();
   return employeeId
     ? sql.query<LeaveRow>(`${LEAVE_SELECT} where l.employee_id = $1 order by l.from_date desc`, [employeeId])
-    : sql.query<LeaveRow>(`${LEAVE_SELECT} order by (l.status = 'pending') desc, l.from_date desc limit 200`);
+    : sql.query<LeaveRow>(`${LEAVE_SELECT} where m.entity_id = any($1::text[]) order by (l.status = 'pending') desc, l.from_date desc limit 200`, [await entityIdsInView()]);
 }
 
 /** Days used or asked for (approved and pending) per kind in the financial year containing `date`. */
@@ -172,7 +173,7 @@ const RUN_SELECT = `
 
 export async function listRuns() {
   const sql = await getSql();
-  return sql.query<RunRow>(`${RUN_SELECT} order by r.period desc, e.name limit 36`);
+  return sql.query<RunRow>(`${RUN_SELECT} where r.entity_id = any($1::text[]) order by r.period desc, e.name limit 36`, [await entityIdsInView()]);
 }
 
 /** Payslips of posted or paid runs for one employee. */

@@ -1,10 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/dal";
 import { updatePrefs } from "@/lib/prefs";
 import { ACCENTS, DENSITIES, THEMES, type Prefs } from "@/lib/prefs-fields";
 import { allowedSections } from "@/lib/rbac";
+import { views, type View } from "@/lib/workspace-calc";
+import { setCurrentWorkspace } from "@/lib/workspaces";
 
 export async function setTheme(theme: string) {
   const user = await requireUser();
@@ -35,4 +38,13 @@ export async function togglePin(section: string) {
   const pinned = current.pinned.includes(section) ? current.pinned.filter((p) => p !== section) : [...current.pinned, section];
   await updatePrefs(user.id, { pinned });
   revalidatePath("/portal", "layout");
+}
+
+/** Switches the workspace on view; only views this person may use. */
+export async function switchWorkspace(view: string) {
+  const user = await requireUser();
+  if (!(views(user.role, user.workspaces) as string[]).includes(view)) return;
+  await setCurrentWorkspace(user.id, view as View);
+  revalidatePath("/portal", "layout");
+  redirect("/portal/dashboard");
 }
