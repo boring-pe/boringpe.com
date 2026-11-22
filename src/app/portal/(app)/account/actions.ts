@@ -1,7 +1,12 @@
 "use server";
 
 import { signOut } from "@/auth";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/dal";
+import {
+  beginEnrollment, confirmEnrollment, disableTwoFactor, forgetDevice, newRecoveryCodes, requiredRoles, verifySecondStep,
+} from "@/lib/mfa";
 import { hashPassword, passwordProblem, verifyPassword } from "@/lib/password";
 import { audit, revokeSessions, setPassword } from "@/lib/users";
 
@@ -45,4 +50,49 @@ export async function endMySessions() {
     detail: "by the user",
   });
   await signOut({ redirectTo: "/portal/login" });
+}
+
+// ---- two-step sign-in
+
+export async function startTwoFactor() {
+  const user = await requireUser();
+  await beginEnrollment(user);
+  redirect("/portal/account?enroll=1#two-step");
+}
+
+export async function confirmTwoFactor(formData: FormData) {
+  const user = await requireUser();
+  const codes = await confirmEnrollment(user, String(formData.get("code") ?? ""));
+  if (!codes) redirect("/portal/account?enroll=1&tf=wrong#two-step");
+  await audit({ actorId: user.id, actorEmail: user.email, action: "2fa_on" });
+  await showCodesOnce(codes);
+  redirect("/portal/account?tf=on#two-step");
+}
+
+export async function turnOffTwoFactor(formData: FormData) {
+  const user = await requireUser();
+  if ((await requiredRoles()).includes(user.role)) redirect("/portal/account?tf=required#two-step");
+  if ((await verifySecondStep(user, String(formData.get("code") ?? ""), false)) !== "ok") redirect("/portal/account?tf=wrong#two-step");
+  await disableTwoFactor(user.id);
+  await audit({ actorId: user.id, actorEmail: user.email, action: "2fa_off" });
+  redirect("/portal/account?tf=off#two-step");
+}
+
+export async function freshRecoveryCodes() {
+  const user = await requireUser();
+  const codes = await newRecoveryCodes(user.id);
+  await audit({ actorId: user.id, actorEmail: user.email, action: "2fa_recovery_codes" });
+  await showCodesOnce(codes);
+  redirect("/portal/account?tf=codes#two-step");
+}
+
+export async function forgetTrustedDevice(formData: FormData) {
+  const user = await requireUser();
+  await forgetDevice(user.id, String(formData.get("id") ?? ""));
+  redirect("/portal/account?tf=forgot#two-step");
+}
+
+/** Recovery codes travel to the page in a two-minute cookie, never in the address bar or logs. */
+async function showCodesOnce(codes: string[]) {
+  (await cookies()).set("bp_codes", codes.join(","), { httpOnly: true, sameSite: "strict", path: "/portal/account", maxAge: 120, secure: (process.env.AUTH_URL ?? "").startsWith("https://") });
 }

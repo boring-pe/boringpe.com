@@ -45,3 +45,6 @@ next-env.d.ts
 
 # keep the documented example
 !.env.example
+
+# self-hosting backups
+/deploy/backups/

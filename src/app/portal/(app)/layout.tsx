@@ -2,11 +2,11 @@ import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  BadgeCheck, BarChart3, Bell, Bot, BookOpen, Building2, CalendarDays, ClipboardCheck, Crown, FileText, FolderKanban, HeartHandshake,
+  BadgeCheck, BarChart3, Bell, Bot, KeySquare, BookOpen, Building2, CalendarDays, ClipboardCheck, Crown, FileText, FolderKanban, HeartHandshake,
   Inbox as InboxIcon, LayoutDashboard, Landmark, ListChecks, Lock, LogOut, MessageCircle, Package, Pin, Plug, Receipt,
   Rocket, ShieldCheck, Sparkles, Target, Crosshair, UserCircle, Users, Wallet,
 } from "lucide-react";
-import { requireUser } from "@/lib/dal";
+import { needsAccountFirst, requireUser } from "@/lib/dal";
 import { unreadCount } from "@/lib/notify";
 import { getSettings } from "@/lib/assistant";
 import { getPrefs } from "@/lib/prefs";
@@ -30,7 +30,7 @@ const ICONS: Record<SectionId, React.ElementType> = {
   console: Crown, integrations: Plug, content: FileText, approvals: ClipboardCheck, reports: BarChart3, personal: Lock,
   dashboard: LayoutDashboard, assistant: Bot, intelligence: Sparkles, inbox: InboxIcon, calendar: CalendarDays, whatsapp: MessageCircle, portfolio: Building2,
   ventures: Rocket, deals: Target, money: Wallet, books: BookOpen, invoices: Receipt, bank: Landmark, assets: Package,
-  budgets: Crosshair, tasks: ListChecks, people: Users, vault: FolderKanban, marrow: HeartHandshake, access: ShieldCheck, kyc: BadgeCheck,
+  budgets: Crosshair, tasks: ListChecks, people: Users, vault: FolderKanban, marrow: HeartHandshake, access: ShieldCheck, kyc: BadgeCheck, secrets: KeySquare,
 };
 
 const link =
@@ -59,7 +59,8 @@ export default async function PortalLayout({ children }: { children: React.React
   const [unread, prefs, ws, assistant] = await Promise.all([unreadCount(user.id), getPrefs(user.id), workspaceContext(), getSettings()]);
   const assistantName = assistant.name;
   // The menu follows the workspace on view: Personal has no ventures or payroll, Impact Marrow no deal pipeline.
-  const items = user.must_change_password ? [] : allowedSections(user.role).filter((i) => sectionInView(i.id, ws.view));
+  const accountFirst = await needsAccountFirst(user);
+  const items = accountFirst ? [] : allowedSections(user.role).filter((i) => sectionInView(i.id, ws.view));
   const pinned = prefs.pinned.map((id) => items.find((i) => i.id === id)).filter((i): i is (typeof items)[number] => Boolean(i));
   const initials = (user.name ?? user.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || meta.initials;
 
@@ -86,7 +87,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const sidebar = (
     <>
       <div className="flex h-16 items-center gap-3 border-b border-slate-800 px-5 md:h-20">
-        <WorkspaceSwitcher view={ws.view} views={user.must_change_password ? [ws.view] : ws.views} />
+        <WorkspaceSwitcher view={ws.view} views={accountFirst ? [ws.view] : ws.views} />
       </div>
       <div className="px-3 pt-4 md:hidden">
         <SearchButton wide />
@@ -154,7 +155,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
   const palette: PaletteItem[] = [
     ...items.map((i) => ({ kind: "page" as const, label: i.label, href: i.href, hint: "Go to" })),
-    ...(user.must_change_password ? [] : ws.views.filter((v) => v !== ws.view)).map((v) => ({
+    ...(accountFirst ? [] : ws.views.filter((v) => v !== ws.view)).map((v) => ({
       kind: "action" as const, label: `Switch to ${workspaceLabel(v)}`, href: `/portal/workspace/${v}`, hint: "Workspace",
     })),
     { kind: "page", label: "Notifications", href: "/portal/notifications", hint: "Go to" },

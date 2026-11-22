@@ -1,0 +1,59 @@
+# Everything on one server you control: the portal, its own Postgres, and Caddy for HTTPS.
+#   cd deploy && cp .env.example .env && (fill it in) && docker compose up -d --build
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: portal
+      POSTGRES_USER: portal
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portal -d portal"]
+      interval: 10s
+      retries: 10
+    # Not published to the internet: only the portal reaches it.
+
+  portal:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://portal:${POSTGRES_PASSWORD}@db:5432/portal
+    depends_on:
+      db:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      PORTAL_DOMAIN: ${PORTAL_DOMAIN:?set PORTAL_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on: [portal]
+
+  # Nightly encrypted database dump into ./backups, kept for 30 days.
+  backup:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?set BACKUP_PASSPHRASE in .env}
+    volumes:
+      - ./backups:/backups
+      - ./backup.sh:/backup.sh:ro
+    entrypoint: ["sh", "-c", "while true; do sh /backup.sh; sleep 86400; done"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  caddy_data:

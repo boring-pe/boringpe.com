@@ -3,6 +3,7 @@ import { CheckCircle2, AlertTriangle, Crown } from "lucide-react";
 import { countPending, listApprovals } from "@/lib/approvals";
 import { APPROVAL_KINDS } from "@/lib/approval-kinds";
 import { requireSection } from "@/lib/dal";
+import { twoFactorOn } from "@/lib/mfa";
 import { providerFlags } from "@/lib/providers";
 import { ROLES, ROLE_META } from "@/lib/rbac";
 import { countSeats, listAudit } from "@/lib/users";
@@ -13,8 +14,10 @@ function when(value: Date) {
   return value.toISOString().slice(0, 16).replace("T", " ");
 }
 
-export default async function ConsolePage() {
+export default async function ConsolePage({ searchParams }: { searchParams: Promise<{ backup?: string }> }) {
   const me = await requireSection("console");
+  const { backup } = await searchParams;
+  const myTwoStep = await twoFactorOn(me.id);
   const [seats, pendingCount, pending, events] = await Promise.all([
     countSeats(),
     countPending(),
@@ -29,6 +32,14 @@ export default async function ConsolePage() {
 
   const flags = providerFlags();
   const checks: { ok: boolean; text: string }[] = [
+    {
+      ok: myTwoStep,
+      text: myTwoStep ? "Two-step sign-in is on for your account." : "Two-step sign-in is off for your account. Turn it on under Account.",
+    },
+    {
+      ok: Boolean(process.env.INTEGRATIONS_KEY),
+      text: process.env.INTEGRATIONS_KEY ? "Secrets are sealed with their own INTEGRATIONS_KEY." : "INTEGRATIONS_KEY is not set: secrets are sealed with AUTH_SECRET. Set it before saving keys and passwords.",
+    },
     {
       ok: Boolean(process.env.DATABASE_URL?.trim()),
       text: process.env.DATABASE_URL?.trim()
@@ -134,6 +145,20 @@ export default async function ConsolePage() {
           </ul>
         </section>
       </div>
+
+      <section className={`${card} p-6`} data-backup>
+        <h3 className="text-sm font-semibold text-white">Encrypted backup</h3>
+        <p className="mt-1 max-w-2xl text-xs text-slate-500">
+          Downloads the whole database as one file sealed with your passphrase (AES-256-GCM). Keep the passphrase apart from the file:
+          without it nobody can read the file, including you. Restore on any Postgres with <code>scripts/restore-backup.mjs</code>.
+        </p>
+        {backup ? <p role="status" className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{backup}</p> : null}
+        <form action="/api/portal/backup" method="post" className="mt-4 flex flex-wrap items-center gap-3">
+          <input name="passphrase" type="password" required minLength={12} autoComplete="new-password" placeholder="Passphrase, 12+ characters" className="w-72 rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white" />
+          <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" name="files" />Include vault files</label>
+          <button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">Download backup</button>
+        </form>
+      </section>
 
       <section className={`${card} overflow-hidden`}>
         <div className="px-6 py-4 border-b border-slate-800">

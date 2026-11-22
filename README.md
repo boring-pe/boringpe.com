@@ -141,6 +141,21 @@ or rejected, and comes back as **Re-KYC due** on a date set by risk (2 years hig
 - Direct DigiLocker / Entity Locker access needs approval as a requester; until then use the KYC
   provider and documents. Register `<portal>/api/kyc/callback` as the callback URL.
 
+## Private infrastructure
+
+- **Two-step sign-in** (Account → Two-step sign-in): an authenticator-app code (RFC 6238) after any
+  sign-in method, ten single-use recovery codes, and "trust this browser for 30 days" (each trusted
+  browser listed and revocable). Wrong codes count toward the 5-try lock. The Super Admin can require
+  it per role (Access); those seats must set it up before anything else opens. Until the second step
+  is done, no page or API answers.
+- **Password vault** (`/portal/secrets`): logins and keys sealed with AES-256-GCM, private or shared
+  with chosen roles inside a workspace; shown for 30 seconds on request, every look logged.
+- **Encrypted backup** (Console): the whole database as one file sealed with a passphrase
+  (scrypt + AES-256-GCM). `scripts/restore-backup.mjs` loads it into any Postgres in one transaction.
+- **Self-hosting kit** (`deploy/`): Dockerfile, Docker Compose with Postgres 16, Caddy (HTTPS) and
+  nightly encrypted dumps, for running everything on your own servers in India. See
+  `deploy/SELF-HOSTING.md`.
+
 ## The Business Stack
 
 The portal is the infrastructure and intelligence every Boring PE venture runs on. The menu
