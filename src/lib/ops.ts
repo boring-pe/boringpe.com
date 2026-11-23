@@ -20,6 +20,7 @@ export type DealRow = {
 };
 export type MoneyRow = {
   id: string;
+  vertical: string | null;
   direction: "in" | "out";
   category: Category;
   amount: string;
@@ -38,6 +39,7 @@ export type MoneyRow = {
 };
 export type TaskRow = {
   id: string;
+  vertical: string | null;
   title: string;
   deal_id: string | null;
   deal_name: string | null;
@@ -107,7 +109,7 @@ export async function parkStage(id: string, stage: "closing" | "closed") {
 }
 
 // ---- money
-const MONEY_SELECT = `select m.id, m.direction, m.category, m.amount::text as amount, m.memo, m.deal_id,
+const MONEY_SELECT = `select m.id, m.vertical, m.direction, m.category, m.amount::text as amount, m.memo, m.deal_id,
   d.name as deal_name, p.name as party_name, m.status, m.entry_date::text as entry_date,
   u.email as created_by_email, m.entity_id, en.name as entity_name, m.journal_entry_id, m.currency, m.fx_amount::text as fx_amount
   from money_entries m
@@ -186,7 +188,7 @@ export async function postUnpostedMoney(by: string) {
 export async function listTasks(onlyFor: string | null = null) {
   const sql = await getSql();
   return sql.query<TaskRow>(
-    `select t.id, t.title, t.deal_id, d.name as deal_name, t.assignee_id, u.email as assignee_email,
+    `select t.id, t.vertical, t.title, t.deal_id, d.name as deal_name, t.assignee_id, u.email as assignee_email,
        t.due_date::text as due_date, t.done from tasks t
        left join deals d on d.id = t.deal_id left join users u on u.id = t.assignee_id
       where ($1::text is null or t.assignee_id = $1 or t.created_by = $1) and t.workspace = any($2::text[])
@@ -194,11 +196,11 @@ export async function listTasks(onlyFor: string | null = null) {
     [onlyFor, (await workspaceContext()).inView],
   );
 }
-export async function createTask(t: { title: string; dealId: string | null; assigneeId: string | null; due: string | null; by: string }) {
+export async function createTask(t: { title: string; dealId: string | null; assigneeId: string | null; due: string | null; by: string; vertical?: string | null }) {
   const sql = await getSql();
   await sql.query(
-    "insert into tasks (title, deal_id, assignee_id, due_date, created_by, workspace) values ($1,$2,$3,$4,$5,$6)",
-    [t.title, t.dealId, t.assigneeId, t.due, t.by, await workspaceForNew()],
+    "insert into tasks (title, deal_id, assignee_id, due_date, created_by, workspace, vertical) values ($1,$2,$3,$4,$5,$6,$7)",
+    [t.title, t.dealId, t.assigneeId, t.due, t.by, await workspaceForNew(), t.vertical ?? null],
   );
 }
 export async function setTaskDone(id: string, done: boolean, onlyFor: string | null = null) {

@@ -8,6 +8,7 @@ import { rateText, toInr } from "./assets-calc";
 export type GstProfile = { id: string; name: string; gstin: string | null; state_code: string | null; address: string; invoice_prefix: string };
 export type PartyGst = { id: string; name: string; kind: string; email: string | null; gstin: string | null; state_code: string | null; address: string; entity_id: string | null };
 export type InvoiceRow = {
+  vertical: string | null;
   id: string; entity_id: string; entity_name: string; party_id: string; party_name: string; party_gstin: string | null;
   number: string | null; status: "draft" | "issued" | "paid" | "cancelled"; issue_date: string; due_date: string; place_of_supply: string;
   income_code: string; subtotal: string; cgst: string; sgst: string; igst: string; total: string; received: string; tds: string;
@@ -45,7 +46,7 @@ export async function updatePartyGst(id: string, p: { gstin: string | null; stat
 }
 
 const INV_SELECT = `
-  select i.id, i.entity_id, e.name as entity_name, i.party_id, p.name as party_name, p.gstin as party_gstin, i.number, i.status,
+  select i.id, i.vertical, i.entity_id, e.name as entity_name, i.party_id, p.name as party_name, p.gstin as party_gstin, i.number, i.status,
          i.issue_date::text, i.due_date::text, i.place_of_supply, i.income_code, i.subtotal::text, i.cgst::text, i.sgst::text,
          i.igst::text, i.total::text, i.received::text, i.tds::text, i.notes, i.source_type, i.currency, i.fx_rate::text,
          i.fx_total::text, i.fx_settled::text
@@ -239,7 +240,7 @@ export async function cancelInvoice(id: string, date: string, by: string): Promi
 }
 
 /**
- * Settles a Business House fee invoice between our own entities in one step: the venture's company
+ * Settles a Boring Studio fee invoice between our own entities in one step: the venture's company
  * pays its payable from the bank, and Boring PE receives it against the receivable.
  */
 export async function settleIntercompany(id: string, date: string, by: string): Promise<boolean> {

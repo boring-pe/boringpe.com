@@ -11,6 +11,10 @@ export type SectionId =
   | "kyc"
   | "secrets"
   | "guides"
+  | "v_build"
+  | "v_co_build"
+  | "v_own"
+  | "v_studio"
   | "activity"
   | "assistant"
   | "inbox"
@@ -39,7 +43,7 @@ export type Group = "super" | "intelligence" | "ventures" | "infrastructure" | "
 export const GROUPS: { id: Group; label: string }[] = [
   { id: "super", label: "Super Admin" },
   { id: "intelligence", label: "Intelligence" },
-  { id: "ventures", label: "Ventures" },
+  { id: "ventures", label: "Verticals" },
   { id: "infrastructure", label: "Infrastructure" },
   { id: "personal", label: "Rahul Mane · private" },
 ];
@@ -55,7 +59,11 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
   { id: "reports", href: "/portal/reports", label: "MIS reports", group: "intelligence" },
   { id: "budgets", href: "/portal/budgets", label: "Budgets", group: "intelligence" },
   { id: "portfolio", href: "/portal/portfolio", label: "Portfolio", group: "intelligence" },
-  // Ventures: the businesses being built, co-built and backed.
+  // Verticals: Build, Co-Build, Own and Boring Studio (Enable), which manages all of them.
+  { id: "v_build", href: "/portal/verticals/build", label: "Build", group: "ventures" },
+  { id: "v_co_build", href: "/portal/verticals/co-build", label: "Co-Build", group: "ventures" },
+  { id: "v_own", href: "/portal/verticals/own", label: "Own", group: "ventures" },
+  { id: "v_studio", href: "/portal/verticals/studio", label: "Boring Studio", group: "ventures" },
   { id: "ventures", href: "/portal/ventures", label: "Ventures", group: "ventures" },
   { id: "deals", href: "/portal/deals", label: "Deal Pipeline", group: "ventures" },
   { id: "marrow", href: "/portal/marrow", label: "Impact Marrow", group: "ventures" },
@@ -83,10 +91,10 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
     "console", "integrations", "content", "dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
-    "reports", "approvals", "access", "personal", "kyc", "secrets", "guides", "activity",
+    "reports", "approvals", "access", "personal", "kyc", "secrets", "guides", "activity", "v_build", "v_co_build", "v_own", "v_studio",
   ],
-  admin: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "access", "kyc", "secrets", "guides", "activity"],
-  partner: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "kyc", "secrets", "guides"],
+  admin: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "access", "kyc", "secrets", "guides", "activity", "v_build", "v_co_build", "v_own", "v_studio"],
+  partner: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "kyc", "secrets", "guides", "v_build", "v_co_build", "v_own", "v_studio"],
   operator: ["dashboard", "assistant", "inbox", "calendar", "portfolio", "ventures", "tasks", "people", "vault", "marrow", "approvals", "secrets", "guides"],
   cobuild_partner: ["dashboard", "assistant", "inbox", "calendar", "portfolio", "ventures", "tasks", "vault"],
   founder: ["dashboard", "assistant", "inbox", "calendar", "vault", "marrow"],

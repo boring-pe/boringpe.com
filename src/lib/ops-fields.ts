@@ -4,8 +4,23 @@ export const PILLARS = [
   { id: "build", label: "Build" },
   { id: "own", label: "Own" },
   { id: "co_build", label: "Co-Build" },
-  { id: "enable", label: "Enable" },
+  { id: "enable", label: "Boring Studio" },
 ] as const;
+
+/**
+ * Boring PE's four verticals, in the order the portal shows them. Boring Studio (Enable, id
+ * "enable") manages all of Boring PE's activities, including Build, Co-Build and Own.
+ */
+export const VERTICALS = [
+  { id: "build", slug: "build", label: "Build", note: "Businesses Boring PE builds on its own, run by operators on revenue or profit share." },
+  { id: "co_build", slug: "co-build", label: "Co-Build", note: "Businesses built with partners and operators; an SPV only when equity is shared." },
+  { id: "own", slug: "own", label: "Own", note: "Businesses and stakes Boring PE owns: holdings, valuations and exits." },
+  { id: "enable", slug: "studio", label: "Boring Studio", note: "Enable: manages all of Boring PE's activities, Build, Co-Build and Own, and the portal and business operations behind them." },
+] as const;
+export type Vertical = (typeof VERTICALS)[number]["id"];
+export const isVertical = (v: unknown): v is Vertical => VERTICALS.some((x) => x.id === v);
+export const verticalLabel = (id: string | null | undefined) => VERTICALS.find((v) => v.id === id)?.label ?? "—";
+export const verticalBySlug = (slug: string) => VERTICALS.find((v) => v.slug === slug) ?? null;
 export type Pillar = (typeof PILLARS)[number]["id"];
 
 export const STAGES = [

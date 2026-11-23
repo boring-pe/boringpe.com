@@ -1,5 +1,8 @@
 "use server";
 
+import { isVertical } from "@/lib/ops-fields";
+import { setVertical } from "@/lib/verticals";
+
 import { redirect } from "next/navigation";
 import { requireSection } from "@/lib/dal";
 import { parsePaise } from "@/lib/accounting";
@@ -57,6 +60,8 @@ export async function newInvoice(formData: FormData) {
     entityId, partyId, issueDate, dueDate, placeOfSupply: place, incomeCode, notes: oneLine(formData.get("notes"), 500), lines, by: user.id,
     currency, fxRate,
   });
+  const vertical = formData.get("vertical");
+  if (isVertical(vertical)) await setVertical("invoices", id, vertical);
   await audit({ actorId: user.id, actorEmail: user.email, action: "invoice_drafted", detail: id });
   back(`inv=${id}`, "drafted");
 }

@@ -3,7 +3,7 @@
 export type EntityFigures = { income: bigint; expense: bigint; cash: bigint; assets: bigint; liabilities: bigint };
 
 /**
- * Adds up every entity and removes Business House fees our own entities charge each other,
+ * Adds up every entity and removes Boring Studio fees our own entities charge each other,
  * which are income in Boring PE and an expense in the venture: the group neither earns nor spends them.
  */
 export function consolidate(rows: EntityFigures[], intercompany: bigint) {

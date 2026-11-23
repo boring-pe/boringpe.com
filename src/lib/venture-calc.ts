@@ -1,4 +1,4 @@
-// Pure venture maths in paise: percentages, the Business House fee and operator shares.
+// Pure venture maths in paise: percentages, the Boring Studio fee and operator shares.
 
 /** "12.5" or "12.5%" to basis points (1250). Up to two decimals, 0 to 100. Null if invalid. */
 export function parsePercent(raw: unknown): number | null {

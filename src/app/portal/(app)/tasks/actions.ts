@@ -1,5 +1,7 @@
 "use server";
 
+import { isVertical } from "@/lib/ops-fields";
+
 import { redirect } from "next/navigation";
 import { requireSection } from "@/lib/dal";
 import { createTask, getDeal, listAssignees, setTaskDone } from "@/lib/ops";
@@ -35,7 +37,8 @@ export async function addTask(formData: FormData) {
     if (!(await listAssignees()).some((a) => a.id === assigneeRaw)) back("invalid");
     assigneeId = assigneeRaw;
   }
-  await createTask({ title, dealId, assigneeId, due, by: user.id });
+  const vertical = formData.get("vertical");
+  await createTask({ title, dealId, assigneeId, due, by: user.id, vertical: isVertical(vertical) ? vertical : null });
   await audit({ actorId: user.id, actorEmail: user.email, action: "task_added", detail: title });
   await emit("task.created", { title, due, assignee_id: assigneeId });
   if (assigneeId && assigneeId !== user.id) {

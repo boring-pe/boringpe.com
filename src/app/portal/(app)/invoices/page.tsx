@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { VerticalSelect } from "../_shell/vertical-select";
+import { VerticalFilter } from "../_shell/vertical-filter";
+import { isVertical, verticalLabel } from "@/lib/ops-fields";
 import { requireSection } from "@/lib/dal";
 import { rupees } from "@/lib/accounting";
 import { decimalToPaise } from "@/lib/books";
@@ -51,7 +54,7 @@ const VIEWS = [["list", "Invoices"], ["new", "New invoice"], ["receivables", "Re
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; inv?: string; notice?: string; e?: string; month?: string }>;
+  searchParams: Promise<{ view?: string; inv?: string; notice?: string; e?: string; month?: string; vertical?: string }>;
 }) {
   const user = await requireSection("invoices");
   const sp = await searchParams;
@@ -79,25 +82,28 @@ export default async function InvoicesPage({
         : view === "receivables" ? <Receivables />
         : view === "gst" ? <Gst entity={sp.e} month={sp.month} />
         : view === "settings" ? <Settings />
-        : <List />}
+        : <List vertical={isVertical(sp.vertical) ? sp.vertical : null} />}
     </div>
   );
 }
 
-async function List() {
-  const rows = await listInvoices();
+async function List({ vertical }: { vertical: string | null }) {
+  const rows = (await listInvoices()).filter((i) => !vertical || i.vertical === vertical);
   return (
+    <div className="space-y-3">
+    <VerticalFilter base="/portal/invoices" current={vertical} />
     <section className={`${card} overflow-x-auto`}>
       <table className="w-full">
-        <thead><tr><th className={th}>Number</th><th className={th}>Date</th><th className={th}>From</th><th className={th}>To</th><th className={`${th} text-right`}>Total</th><th className={`${th} text-right`}>Outstanding</th><th className={th}>Status</th></tr></thead>
+        <thead><tr><th className={th}>Number</th><th className={th}>Date</th><th className={th}>From</th><th className={th}>To</th><th className={`${th} text-right`}>Total</th><th className={`${th} text-right`}>Outstanding</th><th className={th}>Vertical</th><th className={th}>Status</th></tr></thead>
         <tbody>
-          {rows.length === 0 ? <tr><td colSpan={7} className="px-3 py-6 text-sm text-slate-500">No invoices yet.</td></tr> : rows.map((i) => {
+          {rows.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-sm text-slate-500">No invoices yet.</td></tr> : rows.map((i) => {
             const out = decimalToPaise(i.total) - decimalToPaise(i.received) - decimalToPaise(i.tds);
             return (
               <tr key={i.id} className="border-t border-slate-800" data-invoice={i.number ?? `draft ${i.party_name}`}>
                 <td className={td}><Link href={`/portal/invoices?inv=${i.id}`} className="text-blue-300 hover:text-blue-200">{i.number ?? "Draft"}</Link></td>
                 <td className={td}>{i.issue_date}</td><td className={td}>{i.entity_name}</td><td className={td}>{i.party_name}</td>
                 <td className={num}>{r(i.total)}</td><td className={num}>{i.status === "issued" ? rupees(out) : ""}</td>
+                <td className={td}>{verticalLabel(i.vertical)}</td>
                 <td className={td}><span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${STATUS[i.status]}`}>{i.status}</span></td>
               </tr>
             );
@@ -105,6 +111,7 @@ async function List() {
         </tbody>
       </table>
     </section>
+    </div>
   );
 }
 
@@ -129,6 +136,7 @@ async function NewInvoice() {
           </select>
           <label className="text-xs text-slate-500">Invoice date<input name="issueDate" type="date" defaultValue={today} className={`${input} mt-1`} /></label>
           <label className="text-xs text-slate-500">Due date<input name="dueDate" type="date" defaultValue={due} className={`${input} mt-1`} /></label>
+          <VerticalSelect className={input} />
           <select name="incomeCode" defaultValue="4010" className={input} aria-label="Income account">
             {INCOME_ACCOUNTS.map((a) => <option key={a.code} value={a.code}>Income: {a.label}</option>)}
           </select>

@@ -57,6 +57,10 @@ export function cleanMemberships(raw: readonly unknown[]): WorkspaceId[] {
  */
 export const SECTION_WORKSPACES: Record<string, readonly View[]> = {
   ventures: ["boring_pe", "all"],
+  v_build: ["boring_pe", "all"],
+  v_co_build: ["boring_pe", "all"],
+  v_own: ["boring_pe", "all"],
+  v_studio: ["boring_pe", "all"],
   deals: ["boring_pe", "all"],
   marrow: ["impact_marrow", "personal", "boring_pe", "all"],
   people: ["boring_pe", "impact_marrow", "all"],

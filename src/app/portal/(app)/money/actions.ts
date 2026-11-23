@@ -1,5 +1,8 @@
 "use server";
 
+import { isVertical } from "@/lib/ops-fields";
+import { setVertical } from "@/lib/verticals";
+
 import { redirect } from "next/navigation";
 import { createApproval } from "@/lib/approvals";
 import { requireSection } from "@/lib/dal";
@@ -67,6 +70,8 @@ export async function addEntry(formData: FormData) {
   } catch {
     back("books-refused");
   }
+  const vertical = formData.get("vertical");
+  if (isVertical(vertical)) await setVertical("money_entries", id, vertical);
 
   if (status === "awaiting_approval") {
     const created = await createApproval({
