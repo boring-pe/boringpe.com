@@ -41,4 +41,11 @@ update invoices set vertical = vertical_of_entity(entity_id) where vertical is n
 update money_entries set vertical = vertical_of_entity(entity_id) where vertical is null;
 update tasks t set vertical = d.pillar from deals d where d.id = t.deal_id and t.vertical is null;
 
-update ledger_accounts set name = 'Boring Studio fee' where code = '5100' and name = 'Business House fee';
+-- The fee Boring Studio charges ventures: once 'Business House', then 'Business Studio' (0025).
+update ledger_accounts set name = 'Boring Studio fee' where code = '5100' and name in ('Business House fee', 'Business Studio fee');
+update journal_entries set memo = replace(replace(memo, 'Business House', 'Boring Studio'), 'Business Studio', 'Boring Studio')
+ where memo like '%Business House%' or memo like '%Business Studio%';
+update invoices set notes = replace(replace(notes, 'Business House', 'Boring Studio'), 'Business Studio', 'Boring Studio')
+ where notes like '%Business House%' or notes like '%Business Studio%';
+update invoice_lines set description = replace(replace(description, 'Business House', 'Boring Studio'), 'Business Studio', 'Boring Studio')
+ where description like '%Business House%' or description like '%Business Studio%';
