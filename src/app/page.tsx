@@ -23,17 +23,17 @@ export default async function Home() {
       
       {/* --- NAVIGATION --- */}
       <nav className="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center">
           <div className="flex items-center gap-2">
             <Building2 className="w-8 h-8 text-blue-500" />
             <span className="text-xl font-bold tracking-tight text-white">BORING PE</span>
           </div>
-          <div className="hidden xl:flex items-center gap-5 text-sm font-medium text-slate-300">
+          <div className="hidden xl:flex items-center gap-5 ml-10 text-sm font-medium text-slate-300">
             {NAV.map(([href, label]) => (
               <a key={href} href={href} className="hover:text-white transition-colors">{label}</a>
             ))}
           </div>
-            <details className="relative xl:hidden">
+          <details className="relative xl:hidden ml-auto">
               <summary className="cursor-pointer list-none rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-300 [&::-webkit-details-marker]:hidden">
                 Menu
               </summary>
