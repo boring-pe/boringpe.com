@@ -1,8 +1,12 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ASSET_HEADERS, PORTAL_HEADERS, securityHeaders } from "./src/lib/security-calc";
+
+const dev = process.env.NODE_ENV !== "production";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   // Embedded Postgres is only used in local development and must not be bundled.
   serverExternalPackages: ["@electric-sql/pglite", "pg"],
   // Vault uploads are up to 4 MB; Vercel functions accept request bodies up to 4.5 MB.
@@ -18,16 +22,11 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
-      {
-        source: "/portal/:path*",
-        headers: [
-          { key: "X-Robots-Tag", value: "noindex, nofollow" },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Cache-Control", value: "no-store" },
-        ],
-      },
+      { source: "/:path*", headers: securityHeaders(dev) },
+      { source: "/:path*.(svg|png|jpg|jpeg|gif|webp|avif|ico|pdf|woff|woff2)", headers: ASSET_HEADERS },
+      { source: "/_next/image", headers: ASSET_HEADERS },
+      { source: "/portal/:path*", headers: PORTAL_HEADERS },
+      { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "no-store" }, { key: "X-Robots-Tag", value: "noindex" }] },
     ];
   },
 };

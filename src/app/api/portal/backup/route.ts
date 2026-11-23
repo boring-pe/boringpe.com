@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/dal";
 import { getSql } from "@/lib/db";
 import { encryptBackup, passphraseProblem } from "@/lib/backup-format";
 import { audit } from "@/lib/users";
+import { hit, tooMany } from "@/lib/rate-limit";
 
 /** Columns that hold file contents, left out unless asked for (they make the file large). */
 const FILE_COLUMNS: Record<string, string> = { documents: "content" };
@@ -13,6 +14,8 @@ const FILE_COLUMNS: Record<string, string> = { documents: "content" };
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user || user.role !== "super_admin" || user.must_change_password) return new Response("Not allowed", { status: 403 });
+  const limited = await hit("export", user.id, `${user.email}: backup`);
+  if (!limited.ok) return tooMany(limited, false);
   const form = await request.formData();
   const passphrase = String(form.get("passphrase") ?? "");
   const problem = passphraseProblem(passphrase);

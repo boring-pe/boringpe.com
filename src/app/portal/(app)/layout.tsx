@@ -21,6 +21,8 @@ import { NavProgress } from "./_shell/progress";
 import { SearchButton, ThemeToggle } from "./_shell/controls";
 import { PortalFrame } from "./frame";
 import { signOutAction } from "./sign-out";
+import { PortalGuard } from "./_shell/guard";
+import { IDLE_MINUTES } from "@/lib/security-calc";
 
 export const metadata: Metadata = {
   title: "Boring Portal",
@@ -28,7 +30,7 @@ export const metadata: Metadata = {
 };
 
 const ICONS: Record<SectionId, React.ElementType> = {
-  console: Crown, integrations: Plug, content: FileText, approvals: ClipboardCheck, reports: BarChart3, networth: Scale, personal: Lock,
+  console: Crown, security: ShieldCheck, integrations: Plug, content: FileText, approvals: ClipboardCheck, reports: BarChart3, networth: Scale, personal: Lock,
   dashboard: LayoutDashboard, assistant: Bot, intelligence: Sparkles, inbox: InboxIcon, calendar: CalendarDays, whatsapp: MessageCircle, portfolio: Building2,
   ventures: Rocket, deals: Target, money: Wallet, books: BookOpen, invoices: Receipt, bank: Landmark, assets: Package,
   budgets: Crosshair, tasks: ListChecks, people: Users, vault: FolderKanban, marrow: HeartHandshake, access: ShieldCheck, kyc: BadgeCheck, secrets: KeySquare, guides: Compass, activity: Activity, v_build: Hammer, v_co_build: Handshake, v_own: Landmark, v_studio: Sparkle,
@@ -191,6 +193,7 @@ export default async function PortalLayout({ children }: { children: React.React
       {children}
       <Shortcuts allowed={items.map((i) => i.href)} />
       <CommandPalette items={palette} />
+      <PortalGuard email={user.email} idleMinutes={IDLE_MINUTES} today={new Date().toISOString().slice(0, 10)} />
     </PortalFrame>
   );
 }

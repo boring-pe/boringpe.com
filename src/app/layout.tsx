@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: "Boring PE",
   description:
     "Boring PE builds, co-builds, and owns sustainable, cash-flowing businesses. Powering the Business Stack.",
+  // Asks crawlers not to use the pages or images to train AI; search indexing is unaffected.
+  other: { robots: "noai, noimageai", copyright: `© ${new Date().getFullYear()} Boring PE Venture. All rights reserved.` },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

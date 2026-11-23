@@ -4,6 +4,7 @@ export type Role = (typeof ROLES)[number];
 
 export type SectionId =
   | "console"
+  | "security"
   | "integrations"
   | "content"
   | "dashboard"
@@ -51,6 +52,7 @@ export const GROUPS: { id: Group; label: string }[] = [
 
 export const SECTIONS: { id: SectionId; href: string; label: string; group: Group }[] = [
   { id: "console", href: "/portal/console", label: "Console", group: "super" },
+  { id: "security", href: "/portal/security", label: "Security", group: "super" },
   { id: "content", href: "/portal/content", label: "Site content", group: "super" },
   // Intelligence: what the numbers say.
   { id: "dashboard", href: "/portal/dashboard", label: "Dashboard", group: "intelligence" },
@@ -92,7 +94,7 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
 
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
-    "console", "integrations", "content", "dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
+    "console", "security", "integrations", "content", "dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
     "reports", "networth", "approvals", "access", "personal", "kyc", "secrets", "guides", "activity", "v_build", "v_co_build", "v_own", "v_studio",
   ],
   admin: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "networth", "approvals", "access", "kyc", "secrets", "guides", "activity", "v_build", "v_co_build", "v_own", "v_studio"],

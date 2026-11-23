@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isTrainingCrawler } from "./lib/security-calc";
 
 const PORTAL_HOST = "portal.boringpe.com";
 const PERSONAL_HOSTS = ["rahulmane.com", "www.rahulmane.com"];
@@ -13,6 +14,14 @@ export function proxy(request: NextRequest) {
   const host = request.headers.get("host")?.split(":")[0] ?? "";
   const { pathname } = request.nextUrl;
   const onPortalHost = host === PORTAL_HOST;
+
+  // AI-training crawlers and site copiers that ignore robots.txt are turned away.
+  if (isTrainingCrawler(request.headers.get("user-agent")) && pathname !== "/robots.txt") {
+    return new NextResponse("Automated copying of this site is not permitted.", {
+      status: 403,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+    });
+  }
 
   // Auth.js endpoints live at /api/auth on every host.
   if (pathname.startsWith("/api/")) return NextResponse.next();

@@ -2,6 +2,7 @@ import { requireSection } from "@/lib/dal";
 import { readDocument } from "@/lib/documents";
 import { canSeeFirmData } from "@/lib/rbac";
 import { safeFileName } from "@/lib/vault-fields";
+import { guardExport } from "@/lib/export-guard";
 
 /** Downloads one document if the signed-in person may see it. Always a download, never rendered inline. */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -10,6 +11,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const doc = await readDocument(id, user.id, canSeeFirmData(user.role));
   if (!doc) return new Response("Not found", { status: 404 });
   const name = safeFileName(doc.file_name);
+  const refused = await guardExport(user, `file ${name}`, "download");
+  if (refused) return refused;
   return new Response(Buffer.from(doc.content), {
     headers: {
       "Content-Type": doc.mime,

@@ -2,6 +2,7 @@ import { paiseToDecimal } from "@/lib/accounting";
 import { requireSection } from "@/lib/dal";
 import { fiscalYearOf } from "@/lib/hr-calc";
 import { csvCell } from "@/lib/mis-calc";
+import { csvFooter, guardExport } from "@/lib/export-guard";
 import { netWorthReport } from "@/lib/networth";
 import { flatten } from "@/lib/networth-calc";
 
@@ -9,11 +10,13 @@ const isDate = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : n
 
 /** Every level's net worth, income and expenses as a CSV for a spreadsheet. */
 export async function GET(request: Request) {
-  await requireSection("networth");
+  const user = await requireSection("networth");
   const url = new URL(request.url);
   const today = new Date().toISOString().slice(0, 10);
   const from = isDate(url.searchParams.get("from")) ?? fiscalYearOf(today)[0];
   const to = isDate(url.searchParams.get("to")) ?? today;
+  const refused = await guardExport(user, `Net worth CSV ${from} to ${to}`);
+  if (refused) return refused;
   const r = await netWorthReport(from, to);
   const d = paiseToDecimal;
   const rows: (string | number)[][] = [
@@ -26,7 +29,7 @@ export async function GET(request: Request) {
       return [`${"  ".repeat(n.depth)}${n.name}`, n.depth, n.kind ?? "all", d(f.assets), d(f.liabilities), d(f.netWorth), d(f.marketNetWorth), d(f.income), d(f.expense), d(f.net), d(f.cost), d(f.value), d(inside)];
     }),
   ];
-  const body = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+  const body = rows.map((row) => row.map(csvCell).join(",")).join("\r\n") + csvFooter(user.email);
   return new Response(body, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
