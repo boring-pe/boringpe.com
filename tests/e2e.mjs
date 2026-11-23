@@ -244,7 +244,7 @@ await step("Super Admin lands on the console and sees all three workspaces; dash
   assert.match(A.page.url(), /\/portal\/console$/);
   // Group headings are rendered uppercase, so compare without case.
   const nav = (await A.page.locator('nav[aria-label="Portal"]').innerText()).toLowerCase();
-  for (const label of ["Super Admin", "Intelligence", "Net worth", "Verticals", "Build", "Co-Build", "Own", "Boring Studio", "Ventures", "Infrastructure", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
+  for (const label of ["Super Admin", "Security", "Intelligence", "Net worth", "Verticals", "Build", "Co-Build", "Own", "Boring Studio", "Ventures", "Infrastructure", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
     assert.ok(nav.includes(label.toLowerCase()), label);
   }
   await A.page.goto("/portal/dashboard");
@@ -2217,6 +2217,65 @@ await step("verticals: Build, Co-Build, Own and Boring Studio each have a page; 
 
   await B.page.goto("/portal/verticals/studio");
   assert.doesNotMatch(B.page.url(), /\/portal\/verticals/, "an LP cannot open the verticals");
+});
+
+await step("security: headers, crawler blocking, rate limits, watermark, exports logged, Security page", async () => {
+  // Strict headers on the public site and the portal.
+  const home = await A.page.request.get("/");
+  const h = home.headers();
+  assert.match(h["content-security-policy"] ?? "", /frame-ancestors 'none'/);
+  assert.match(h["strict-transport-security"] ?? "", /max-age=63072000/);
+  assert.equal(h["x-frame-options"], "DENY");
+  assert.ok(h["permissions-policy"]?.includes("camera=()"));
+  assert.equal(h["x-powered-by"], undefined, "no framework fingerprint");
+  const portal = (await A.page.request.get("/portal/dashboard")).headers();
+  assert.match(portal["x-robots-tag"] ?? "", /noindex/);
+  assert.equal(portal["cache-control"], "no-store");
+  assert.equal(portal["referrer-policy"], "no-referrer");
+
+  // Training crawlers and copiers are refused; search engines are not.
+  const bot = await A.page.request.get("/", { headers: { "User-Agent": "Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)" } });
+  assert.equal(bot.status(), 403);
+  const google = await A.page.request.get("/", { headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1)" } });
+  assert.equal(google.status(), 200);
+  const robots = await (await A.page.request.get("/robots.txt")).text();
+  assert.match(robots, /User-Agent: GPTBot[\s\S]*Disallow: \//i);
+  assert.match(await (await A.page.request.get("/.well-known/security.txt")).text(), /^Contact: mailto:/m);
+  assert.match(await (await A.page.request.get("/")).text(), /name="robots" content="noai, noimageai"/);
+
+  // Every portal page carries the viewer's email as a watermark.
+  await A.page.goto("/portal/dashboard");
+  assert.match((await A.page.getAttribute("[data-watermark]", "data-watermark")) ?? "", /admin@example\.test/);
+
+  // Exports are stamped and logged.
+  const csv = await (await A.page.request.get("/portal/networth/export")).text();
+  assert.match(csv, /Confidential: exported by admin@example\.test/);
+
+  // Guessing API keys is stopped.
+  let last = 0;
+  for (let i = 0; i < 25; i++) last = (await A.page.request.get("/api/v1/me", { headers: { Authorization: "Bearer bp_wrong_" + i } })).status();
+  assert.equal(last, 429);
+
+  // The Security page: settings, blocked requests, data taken out, events.
+  await A.page.goto("/portal/security");
+  assert.ok(await A.page.locator("[data-security]").count());
+  assert.match(await txt(A.page, '[data-list="blocked"]'), /API calls without a valid key/);
+  assert.match(await txt(A.page, '[data-list="exports"]'), /admin@example\.test/);
+  assert.match(await txt(A.page, '[data-list="events"]'), /Blocked for too many requests/);
+  assert.match(await txt(A.page, '[data-list="events"]'), /Exported/);
+  for (const p of [E.page, B.page]) {
+    await p.goto("/portal/security");
+    assert.doesNotMatch(p.url(), /\/portal\/security/, "only the Super Admin");
+  }
+
+  // The emergency brake signs out everyone but the Super Admin.
+  await A.page.check('input[name="confirm"]');
+  await A.page.click('button:has-text("Sign everyone else out")');
+  await A.page.waitForURL(/n=out/);
+  await E.page.goto("/portal/dashboard");
+  assert.match(E.page.url(), /\/portal\/login/);
+  await A.page.goto("/portal/dashboard");
+  assert.match(A.page.url(), /\/portal\/dashboard/);
 });
 
 await step("sign out clears the session", async () => {

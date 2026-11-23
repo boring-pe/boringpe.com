@@ -102,6 +102,44 @@ workspace's cash on the dashboard.
 - The database refuses a journal posting by anyone outside the entity's workspace, whatever page
   or form it came from (`migrations/0020_workspaces.sql`).
 
+## Security and data privacy
+
+Both websites (boringpe.com, rahulmane.com) and the portal are hardened against attack, data leakage
+and copying. The Super Admin's **Security** page (`/portal/security`) shows the state at a glance.
+
+**Against attack**
+- Strict browser headers on every response (`src/lib/security-calc.ts`, applied in `next.config.ts`):
+  a Content-Security-Policy with no third-party scripts, no plugins and no framing; HSTS with
+  preload; `nosniff`; a Permissions-Policy that turns off camera, microphone, location, payment and
+  tracking; `Cross-Origin-Opener-Policy`; no `X-Powered-By`.
+- Rate limits in fixed windows (`src/lib/rate-limit.ts`, table `rate_limits` in
+  `migrations/0027_security.sql`). Addresses and emails are stored only as keyed hashes.
+  - wrong passwords: 30 per address and 10 per email every 15 minutes, on top of each account's own lock;
+  - sign-in links: 5 an hour per inbox;
+  - API: 120 calls a minute per key, 20 a minute per address without a valid key;
+  - webhooks: 300 a minute per address; KYC consent journeys: 20 an hour per address;
+  - exports and backups: 30 an hour per person; file downloads: 300 an hour.
+- The first request over a limit is written to the audit log.
+
+**Against data leakage**
+- Every portal page carries a faint watermark with the viewer's email and the date, on screen and in
+  print, so a leaked screenshot or printout can be traced.
+- Sign-out after 30 minutes without activity in any portal tab, with a minute's warning.
+- Every CSV export, backup and file download is logged with who took what; CSVs end with a
+  "Confidential: exported by …" line.
+- Portal responses are never cached, indexed or sent with a referrer.
+- The Security page lists seats without two-step sign-in, locked accounts, what was blocked in the
+  last day, who took data out in the last week, and security events. **Sign everyone else out**
+  ends every other session at once.
+
+**Against copying**
+- AI-training crawlers and site copiers (GPTBot, CCBot, ClaudeBot, Bytespider, HTTrack, wget and
+  others) are disallowed in `robots.txt` and refused with a 403 at the edge. Search engines and the
+  assistants' live search fetchers can still read the public pages.
+- Pages carry `noai, noimageai` and a copyright notice; images cannot be embedded by other sites
+  (`Cross-Origin-Resource-Policy`), and no page can be framed.
+- `/.well-known/security.txt` says how to report a problem.
+
 ## Net worth
 
 `/portal/networth` (in the menu under Intelligence) tracks net worth, assets, liabilities, income,

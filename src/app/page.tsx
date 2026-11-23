@@ -195,7 +195,7 @@ export default async function Home() {
             <p className="text-slate-500 text-sm max-w-sm mb-6">
               {c.footerTagline}
             </p>
-            <p className="text-slate-600 text-xs">© {new Date().getFullYear()} Boring PE Venture. All Rights Reserved.</p>
+            <p className="text-slate-600 text-xs">© {new Date().getFullYear()} Boring PE Venture. All Rights Reserved. Content may not be copied, republished or used to train AI models without permission.</p>
           </div>
           <div>
             <h4 className="text-white font-semibold mb-4">Internal</h4>

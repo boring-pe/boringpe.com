@@ -1,3 +1,4 @@
+import { IDLE_MINUTES } from "@/lib/security-calc";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Building2 } from "lucide-react";
@@ -34,11 +35,11 @@ function Social({ provider, label }: { provider: "google" | "linkedin"; label: s
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; sent?: string; changed?: string }>;
+  searchParams: Promise<{ error?: string; sent?: string; changed?: string; idle?: string }>;
 }) {
   if (await getCurrentUser()) redirect("/portal");
 
-  const { error, sent, changed } = await searchParams;
+  const { error, sent, changed, idle } = await searchParams;
   const flags = providerFlags();
   const problem = error ? (ERRORS[error] ?? "Sign-in failed. Try again.") : null;
 
@@ -59,6 +60,11 @@ export default async function LoginPage({
         {problem ? (
           <p role="alert" className="mt-6 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
             {problem}
+          </p>
+        ) : null}
+        {idle ? (
+          <p role="status" className="mt-6 rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm text-blue-200">
+            You were signed out after {IDLE_MINUTES} minutes without activity, to keep the portal safe on an unattended screen.
           </p>
         ) : null}
         {changed ? (

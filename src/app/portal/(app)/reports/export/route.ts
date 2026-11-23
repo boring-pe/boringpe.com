@@ -3,16 +3,19 @@ import { requireSection } from "@/lib/dal";
 import { fiscalYearOf } from "@/lib/hr-calc";
 import { misReport } from "@/lib/mis";
 import { csvCell } from "@/lib/mis-calc";
+import { csvFooter, guardExport } from "@/lib/export-guard";
 
 const isDate = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 
 /** The MIS figures as a CSV for a spreadsheet: entities, group, months, verticals. */
 export async function GET(request: Request) {
-  await requireSection("reports");
+  const user = await requireSection("reports");
   const url = new URL(request.url);
   const [fyFrom, fyTo] = fiscalYearOf(new Date().toISOString().slice(0, 10));
   const from = isDate(url.searchParams.get("from")) ?? fyFrom;
   const to = isDate(url.searchParams.get("to")) ?? fyTo;
+  const refused = await guardExport(user, `MIS CSV ${from} to ${to}`);
+  if (refused) return refused;
   const r = await misReport(from, to);
   const d = paiseToDecimal;
   const rows: (string | number)[][] = [
@@ -36,7 +39,7 @@ export async function GET(request: Request) {
     ["Payroll gross", d(r.payroll)],
     ["Impact Marrow contributions", d(r.impact.amount)],
   ];
-  const body = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+  const body = rows.map((row) => row.map(csvCell).join(",")).join("\r\n") + csvFooter(user.email);
   return new Response(body, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

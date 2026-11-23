@@ -51,6 +51,7 @@ export default async function RahulManePage() {
             </a>
           ) : null}
         </div>
+        <p className="mt-16 text-xs text-slate-600">© {new Date().getFullYear()} Rahul Mane. All rights reserved. Content on this site may not be copied, republished or used to train AI models without permission.</p>
       </div>
     </main>
   );
