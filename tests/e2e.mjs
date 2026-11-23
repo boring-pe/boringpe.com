@@ -244,7 +244,7 @@ await step("Super Admin lands on the console and sees all three workspaces; dash
   assert.match(A.page.url(), /\/portal\/console$/);
   // Group headings are rendered uppercase, so compare without case.
   const nav = (await A.page.locator('nav[aria-label="Portal"]').innerText()).toLowerCase();
-  for (const label of ["Super Admin", "Intelligence", "Verticals", "Build", "Co-Build", "Own", "Boring Studio", "Ventures", "Infrastructure", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
+  for (const label of ["Super Admin", "Intelligence", "Net worth", "Verticals", "Build", "Co-Build", "Own", "Boring Studio", "Ventures", "Infrastructure", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
     assert.ok(nav.includes(label.toLowerCase()), label);
   }
   await A.page.goto("/portal/dashboard");
@@ -2155,6 +2155,37 @@ await step("everyday use: getting started, + New, breadcrumbs, shortcuts, guides
   assert.match(await txt(E.page, "[data-activity]"), /Backup downloaded/);
   await B.page.goto("/portal/activity");
   assert.doesNotMatch(B.page.url(), /\/portal\/activity/);
+});
+
+await step("net worth: every level from all three together down to each unit, counted once", async () => {
+  await A.page.goto("/portal/networth?n=all");
+  assert.equal(await A.page.getAttribute("[data-networth]", "data-networth"), "all");
+  for (const name of ["All of it together", "Rahul Mane", "Boring PE", "Impact Marrow", "Rahul Mane (Personal)", "Alpha SPV"]) {
+    assert.ok(await A.page.locator(`tr[data-level-label="${name}"]`).count() >= 1, name);
+  }
+  for (const k of ["networth", "market", "assets", "net"]) assert.match(await txt(A.page, `[data-kpi="${k}"]`), /₹/, k);
+  assert.ok(await A.page.locator("[data-trend] svg circle").count() === 12, "twelve months of net worth");
+  assert.equal(await A.page.locator("[data-breakdown] [data-part]").count(), 3, "all three make up the whole");
+
+  // Down a level, then to a single unit.
+  await A.page.click('[data-breakdown] [data-part="Boring PE"] a');
+  await A.page.waitForURL(/n=ws%3Aboring_pe/);
+  assert.match(await txt(A.page, "[data-level-name]"), /^Boring PE$/);
+  await A.page.click('tr[data-level-label="Alpha SPV"] a');
+  await A.page.waitForURL((u) => /[?&]n=/.test(u.href) && !/ws%3A/.test(u.href));
+  assert.match(await txt(A.page, "[data-level-name]"), /Alpha SPV/);
+  assert.match(await txt(A.page, 'nav[aria-label="Level"]'), /All of it together.*Boring PE.*Alpha SPV/);
+
+  const csv = await A.page.request.get("/portal/networth/export");
+  assert.equal(csv.status(), 200);
+  assert.match(await csv.text(), /All of it together[\s\S]*Rahul Mane[\s\S]*Impact Marrow/);
+
+  // An Admin sees the firm and the fund, never Rahul's own.
+  await E.page.goto("/portal/networth");
+  assert.equal(await E.page.locator('tr[data-level-label="Rahul Mane (Personal)"]').count(), 0);
+  assert.ok(await E.page.locator('tr[data-level-label="Boring PE"]').count() >= 1);
+  await B.page.goto("/portal/networth");
+  assert.doesNotMatch(B.page.url(), /\/portal\/networth/, "an LP cannot open net worth");
 });
 
 await step("verticals: Build, Co-Build, Own and Boring Studio each have a page; records carry their vertical", async () => {

@@ -102,6 +102,26 @@ workspace's cash on the dashboard.
 - The database refuses a journal posting by anyone outside the entity's workspace, whatever page
   or form it came from (`migrations/0020_workspaces.sql`).
 
+## Net worth
+
+`/portal/networth` (in the menu under Intelligence) tracks net worth, assets, liabilities, income,
+expenses and investments at every level, straight from the books:
+
+1. **All of it together**: Rahul Mane, Boring PE and Impact Marrow.
+2. **Each workspace**: Rahul Mane (Personal), Boring PE, Impact Marrow.
+3. **Each unit** under its parent, as deep as the parents go: Boring PE, its SPVs and ventures,
+   Impact Marrow and its fund, Rahul's personal books.
+
+- Balances are at the end date; income and expenses cover the period (the financial year to date by
+  default). Each level also shows twelve months of net worth, income and expenses, and what makes it up.
+- **Net worth** is assets less liabilities as booked. **At market value** counts investments at their
+  latest valuation instead of their cost.
+- A level counts money that moves inside it once: a stake one unit holds in another unit inside the
+  level is dropped (that company's own books carry it), Boring Studio fees are neither income nor
+  expense when Boring PE is inside, and a gift between two units inside is not an expense.
+- Download CSV gives every level. Super Admin, Admin and Partner seats can open it, and each sees only
+  the workspaces they have; Rahul Mane's level is the Super Admin's alone.
+
 ## Verticals
 
 The Boring PE workspace is organised by its four verticals, each with its own page under **Verticals**
