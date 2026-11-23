@@ -40,7 +40,7 @@ export const GUIDES: Guide[] = [
       { title: "Import the bank statement", why: "CSV from your bank.", href: "/portal/bank", section: "bank", done: (f) => n(f, "bankImports") > 0 },
       { title: "Match or post every line", why: "Nothing left unexplained.", href: "/portal/bank", section: "bank", done: (f) => n(f, "bankImports") > 0 && n(f, "unmatched") === 0 },
       { title: "Run and post payroll", why: "PF, ESI, PT and TDS worked out.", href: "/portal/people?view=payroll", section: "people", done: (f) => n(f, "payRuns") > 0 },
-      { title: "Close each venture's month", why: "Operator shares and the Business House fee post.", href: "/portal/ventures", section: "ventures", done: (f) => n(f, "venturePeriods") > 0 },
+      { title: "Close each venture's month", why: "Operator shares and the Business Studio fee post.", href: "/portal/ventures", section: "ventures", done: (f) => n(f, "venturePeriods") > 0 },
       { title: "Run depreciation", why: "Fixed assets written down for the month.", href: "/portal/assets", section: "assets", done: (f) => n(f, "depreciation") > 0 },
       { title: "Read the MIS and insights", why: "Runway, budgets, overdue and anything unusual.", href: "/portal/intelligence", section: "intelligence" },
       { title: "Take a backup", why: "A copy of the closed month, sealed.", href: "/portal/console", section: "console", done: (f) => n(f, "backups") > 0 },

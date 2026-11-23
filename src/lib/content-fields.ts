@@ -44,10 +44,10 @@ export const SITES: Record<SiteId, { label: string; where: string; path: string;
       { key: "ownBody", label: "Own, part of Boring PE", max: 300, multiline: true, default: "Boring PE takes ownership and holds business interests. Own is separate from Build and from Co-Build." },
       {
         key: "enableBody",
-        label: "Enable, through Business House",
+        label: "Enable, through Business Studio",
         max: 300,
         multiline: true,
-        default: "Enable is not one of those three. It runs through Business House and supports Boring PE. It does not build, co-build or own.",
+        default: "Enable is not one of those three. It runs through Business Studio and supports Boring PE. It does not build, co-build or own.",
       },
       { key: "foundersTitle", label: "Founders section title", max: 120, default: "You Built It. We Protect and Scale It." },
       {

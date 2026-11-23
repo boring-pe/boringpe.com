@@ -239,7 +239,7 @@ export async function cancelInvoice(id: string, date: string, by: string): Promi
 }
 
 /**
- * Settles a Business House fee invoice between our own entities in one step: the venture's company
+ * Settles a Business Studio fee invoice between our own entities in one step: the venture's company
  * pays its payable from the bank, and Boring PE receives it against the receivable.
  */
 export async function settleIntercompany(id: string, date: string, by: string): Promise<boolean> {

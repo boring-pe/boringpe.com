@@ -871,7 +871,7 @@ await step("ventures: a Build venture inside Boring PE pays no fee; the operator
   await A.page.click('button:has-text("Close month")');
   await A.page.waitForSelector("text=Month closed");
   const text = (await A.page.locator('article[data-period="2026-10"]').innerText()).replace(/\s+/g, " ");
-  assert.ok(/Business House fee ₹0\.00/i.test(text) && /Net to venture ₹56,000\.00/i.test(text), text);
+  assert.ok(/Business Studio fee ₹0\.00/i.test(text) && /Net to venture ₹56,000\.00/i.test(text), text);
   assert.ok(/Cafe Operator ₹24,000\.00/.test(text), text);
   await A.page.waitForLoadState("networkidle");
   await A.page.fill('input[name="month"]', "2026-10");
@@ -904,7 +904,7 @@ await step("ventures: a Co-Build venture in its SPV pays the fee to Boring PE; s
   await A.page.click('button:has-text("Close month")');
   await A.page.waitForSelector("text=Month closed");
   const text = (await A.page.locator('article[data-period="2026-10"]').innerText()).replace(/\s+/g, " ");
-  assert.ok(/Business House fee ₹5,000\.00/i.test(text) && /Net to venture ₹52,000\.00/i.test(text), text);
+  assert.ok(/Business Studio fee ₹5,000\.00/i.test(text) && /Net to venture ₹52,000\.00/i.test(text), text);
   await A.page.locator('tr[data-payout="Alpha Operator"] button:has-text("Mark paid")').click();
   await A.page.waitForSelector("text=Operator paid");
   assert.ok(/Paid/.test(await A.page.locator('tr[data-payout="Alpha Operator"]').innerText()));
@@ -1275,14 +1275,14 @@ await step("invoicing: within the state it is CGST plus SGST; a cancelled invoic
   assert.ok(/Output IGST ₹18,000\.00/i.test(gst) && /Output CGST ₹0\.00/i.test(gst) && /B2B taxable value ₹1,00,000\.00/i.test(gst), gst);
 });
 
-await step("invoicing: the Business House fee is a real invoice; settling it moves money in both entities' books", async () => {
+await step("invoicing: the Business Studio fee is a real invoice; settling it moves money in both entities' books", async () => {
   await A.page.goto("/portal/invoices?view=receivables");
   const row = (await A.page.locator('tr[data-receivable="Alpha SPV"]').innerText()).replace(/\s+/g, " ");
   assert.ok(/₹5,000\.00/.test(row), row);
   await A.page.goto("/portal/invoices");
   await A.page.locator('tr[data-invoice="INV/2026-27/0001"] a').click();
   await A.page.waitForLoadState("networkidle");
-  assert.ok(/Business House fee: Alpha Co-Build, 2026-10/.test(await A.page.locator("[data-invoice-doc]").innerText()));
+  assert.ok(/Business Studio fee: Alpha Co-Build, 2026-10/.test(await A.page.locator("[data-invoice-doc]").innerText()));
   assert.equal(await A.page.locator('button:has-text("Cancel invoice")').count(), 0, "fee invoices are not cancelled by hand");
   await A.page.click('button:has-text("Settle between our entities")');
   await A.page.waitForSelector("text=Settled between our entities");

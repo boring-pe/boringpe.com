@@ -120,7 +120,7 @@ export default async function Home() {
 
           <div className="mt-6 p-8 bg-slate-900/60 border border-slate-800 rounded-xl">
             <div className="text-xs font-semibold text-slate-500 mb-1">Separate from the three</div>
-            <h3 className="text-xl font-bold text-white mb-3">Enable · Business House</h3>
+            <h3 className="text-xl font-bold text-white mb-3">Enable · Business Studio</h3>
             <p className="text-sm text-slate-400 leading-relaxed max-w-3xl">{c.enableBody}</p>
           </div>
         </div>
