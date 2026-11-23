@@ -61,12 +61,9 @@ export default async function Home() {
           <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
             {c.intro}
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="#framework" className="px-8 py-4 bg-white text-slate-950 font-semibold rounded-md hover:bg-slate-200 transition-colors w-full sm:w-auto">
-              Explore Our Framework
-            </a>
-            <a href="#founders" className="px-8 py-4 bg-slate-900 border border-slate-700 text-white font-semibold rounded-md hover:bg-slate-800 transition-colors w-full sm:w-auto">
-              Partner With Us
+          <div className="flex items-center justify-center">
+            <a href="#studio" className="px-8 py-4 bg-white text-slate-950 font-semibold rounded-md hover:bg-slate-200 transition-colors">
+              Explore Our Boring Studio
             </a>
           </div>
         </div>
