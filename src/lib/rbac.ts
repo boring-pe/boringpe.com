@@ -10,6 +10,8 @@ export type SectionId =
   | "intelligence"
   | "kyc"
   | "secrets"
+  | "guides"
+  | "activity"
   | "assistant"
   | "inbox"
   | "whatsapp"
@@ -48,6 +50,7 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
   // Intelligence: what the numbers say.
   { id: "dashboard", href: "/portal/dashboard", label: "Dashboard", group: "intelligence" },
   { id: "assistant", href: "/portal/assistant", label: "Assistant", group: "intelligence" },
+  { id: "guides", href: "/portal/guides", label: "Guides", group: "intelligence" },
   { id: "intelligence", href: "/portal/intelligence", label: "Insights", group: "intelligence" },
   { id: "reports", href: "/portal/reports", label: "MIS reports", group: "intelligence" },
   { id: "budgets", href: "/portal/budgets", label: "Budgets", group: "intelligence" },
@@ -72,6 +75,7 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
   { id: "integrations", href: "/portal/integrations", label: "Integrations", group: "infrastructure" },
   { id: "kyc", href: "/portal/kyc", label: "KYC", group: "infrastructure" },
   { id: "secrets", href: "/portal/secrets", label: "Password vault", group: "infrastructure" },
+  { id: "activity", href: "/portal/activity", label: "Activity", group: "infrastructure" },
   { id: "access", href: "/portal/access", label: "Access", group: "infrastructure" },
   { id: "personal", href: "/portal/personal", label: "Personal desk", group: "personal" },
 ];
@@ -79,11 +83,11 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
     "console", "integrations", "content", "dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
-    "reports", "approvals", "access", "personal", "kyc", "secrets",
+    "reports", "approvals", "access", "personal", "kyc", "secrets", "guides", "activity",
   ],
-  admin: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "access", "kyc", "secrets"],
-  partner: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "kyc", "secrets"],
-  operator: ["dashboard", "assistant", "inbox", "calendar", "portfolio", "ventures", "tasks", "people", "vault", "marrow", "approvals", "secrets"],
+  admin: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "access", "kyc", "secrets", "guides", "activity"],
+  partner: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "approvals", "kyc", "secrets", "guides"],
+  operator: ["dashboard", "assistant", "inbox", "calendar", "portfolio", "ventures", "tasks", "people", "vault", "marrow", "approvals", "secrets", "guides"],
   cobuild_partner: ["dashboard", "assistant", "inbox", "calendar", "portfolio", "ventures", "tasks", "vault"],
   founder: ["dashboard", "assistant", "inbox", "calendar", "vault", "marrow"],
   lp: ["dashboard", "assistant", "inbox", "calendar", "portfolio", "vault"],

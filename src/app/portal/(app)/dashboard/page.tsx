@@ -18,6 +18,9 @@ import { InsightList } from "../intelligence/insight-list";
 import { compactRupees, IncomeExpenseChart, Sparkline, StageBars } from "./charts";
 import { LiveRefresh } from "./live";
 import { switchWorkspace } from "../_shell/prefs-actions";
+import { GUIDES, progress } from "@/lib/guides-calc";
+import { guideFacts } from "@/lib/guides";
+import { Checklist } from "../guides/checklist";
 
 const card = "rounded-xl border border-slate-800 bg-slate-900 p-5";
 const label = "text-xs font-medium uppercase tracking-wide text-slate-500";
@@ -41,6 +44,9 @@ export default async function DashboardPage() {
   const owner = user.role === "super_admin";
   const seeInsights = can(user.role, "intelligence");
   const ws = await workspaceContext();
+  // The owner sees the setup checklist until every step is done.
+  const setupGuide = GUIDES.find((g) => g.id === "setup")!;
+  const setup = user.role === "super_admin" ? { p: progress(setupGuide, await guideFacts(user.id), () => true) } : null;
   const [ops, cash, fy, recv, pending, mine, meetings, intel, perWorkspace] = await Promise.all([
     summary(),
     seeBooks ? cashTrend(12) : Promise.resolve([]),
@@ -75,6 +81,12 @@ export default async function DashboardPage() {
         </div>
         <LiveRefresh />
       </div>
+
+      {setup && !setup.p.complete ? (
+        <div data-getting-started>
+          <Checklist id="setup" title="Getting started" summary="A few steps to make the portal safe and ready for the team." p={setup.p} compact />
+        </div>
+      ) : null}
 
       {perWorkspace.length ? (
         <div className="grid gap-4 sm:grid-cols-3" data-by-workspace>

@@ -243,7 +243,7 @@ await step("Super Admin lands on the console and sees all three workspaces; dash
   await A.page.goto("/portal");
   assert.match(A.page.url(), /\/portal\/console$/);
   // Group headings are rendered uppercase, so compare without case.
-  const nav = (await A.page.locator("nav").innerText()).toLowerCase();
+  const nav = (await A.page.locator('nav[aria-label="Portal"]').innerText()).toLowerCase();
   for (const label of ["Super Admin", "Intelligence", "Ventures", "Infrastructure", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
     assert.ok(nav.includes(label.toLowerCase()), label);
   }
@@ -281,7 +281,7 @@ await step("an Admin cannot open the console, site content or the personal desk"
     await E.page.goto(path);
     assert.match(E.page.url(), /\/portal\/dashboard$/, path);
   }
-  const nav = (await E.page.locator("nav").innerText()).toLowerCase();
+  const nav = (await E.page.locator('nav[aria-label="Portal"]').innerText()).toLowerCase();
   for (const group of ["intelligence", "ventures", "infrastructure"]) assert.ok(nav.includes(group), `the ${group} group is there`);
   for (const label of ["super admin", "personal desk", "site content", "console", "rahul mane"]) {
     assert.ok(!nav.includes(label), `Admin must not see ${label}`);
@@ -1112,8 +1112,8 @@ await step("vault: shared documents reach linked people only; team-only ones nev
     await A.page.click('button:has-text("Upload")');
     await A.page.waitForSelector(`text=${notice}`);
   };
-  await up("Alpha SHA", "alpha-sha.pdf", "linked", "Document added");
-  await up("Board notes", "board.pdf", "firm", "Document added");
+  await up("Alpha SHA", "alpha-sha.pdf", "linked", "File added");
+  await up("Board notes", "board.pdf", "firm", "File added");
   await up("Bad file", "evil.html", "firm", "Allowed types");
 
   await B.page.goto("/portal/vault");
@@ -1130,12 +1130,49 @@ await step("vault: shared documents reach linked people only; team-only ones nev
   assert.equal((await B.page.request.get(privateHref)).status(), 404, "team-only document by direct link");
   assert.equal((await G.page.request.get(href)).status(), 404, "someone not linked to Alpha SPV");
   await G.page.goto("/portal/vault");
-  assert.ok(/No documents/.test(await G.page.locator("main").innerText()));
+  assert.ok(/No files yet/.test(await G.page.locator("main").innerText()));
 
   await E.page.goto("/portal/vault");
   assert.equal(await E.page.locator('button:has-text("Delete")').count(), 0);
+  await A.page.locator('tr[data-doc="Board notes"] summary').click();
   await A.page.locator('tr[data-doc="Board notes"] button:has-text("Delete")').click();
-  await A.page.waitForSelector("text=Document deleted");
+  await A.page.waitForSelector("text=File deleted");
+});
+
+await step("drive: folders, files kept private, moving, and folders that are not empty stay", async () => {
+  await A.page.goto("/portal/vault");
+  await A.page.fill('input[name="name"]', "Board");
+  await A.page.click('button:has-text("Create")');
+  await A.page.waitForSelector("text=Folder created.");
+  await A.page.click('[data-folder="Board"]');
+  await A.page.waitForURL(/f=/);
+  assert.match(await A.page.locator("[data-breadcrumb]").innerText(), /All files.*Board/s);
+  await A.page.fill('input[name="name"]', "2026");
+  await A.page.click('button:has-text("Create")');
+  await A.page.waitForSelector("text=Folder created.");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.setInputFiles('input[name="file"]', { name: "salary-plan.pdf", mimeType: "application/pdf", buffer: Buffer.from("private plan") });
+  await A.page.fill('form:has(input[name="file"]) input[name="title"]', "Salary plan");
+  await A.page.selectOption('select[name="visibility"]', "private");
+  await A.page.click('button:has-text("Upload")');
+  await A.page.waitForSelector("text=File added.");
+  assert.equal(await A.page.locator('[data-doc="Salary plan"]').count(), 1, `in the folder: ${A.page.url()} ${await A.page.locator("main").innerText()}`.slice(0, 1500));
+  const href = await A.page.locator('[data-doc="Salary plan"] a').getAttribute("href");
+
+  await E.page.goto("/portal/vault?q=salary");
+  assert.equal(await E.page.locator('[data-doc="Salary plan"]').count(), 0, "a private file never shows to others");
+  assert.equal((await E.page.request.get(href)).status(), 404, "nor by direct link");
+
+  await A.page.click('button[value="delete"]');
+  await A.page.waitForSelector("text=Move or delete what is inside");
+  await A.page.locator('[data-doc="Salary plan"] summary').click();
+  await A.page.selectOption('[data-doc="Salary plan"] select[name="to"]', { label: "Board / 2026" });
+  await A.page.click('[data-doc="Salary plan"] button:has-text("Move")');
+  await A.page.waitForSelector("text=File moved.");
+  await A.page.goto(await A.page.locator('[data-folder="2026"]').getAttribute("href"));
+  assert.equal(await A.page.locator('[data-doc="Salary plan"]').count(), 1, `moved: ${A.page.url()}`);
+  await A.page.goto("/portal/vault?q=salary");
+  assert.equal(await A.page.locator('[data-doc="Salary plan"]').count(), 1, "search looks inside folders");
 });
 
 await step("MIS: group figures remove fees between our own entities; verticals and CSV agree", async () => {
@@ -2072,6 +2109,52 @@ await step("encrypted backup: a strong passphrase is required and the file is se
   assert.equal(buf.subarray(0, 6).toString(), "BPBAK1");
   assert.ok(!buf.includes(Buffer.from(ADMIN)), "nothing readable inside");
   await writeFile(process.env.E2E_BACKUP_OUT ?? "/tmp/e2e-backup.bpbak", buf);
+});
+
+await step("everyday use: getting started, + New, breadcrumbs, shortcuts, guides and activity", async () => {
+  await A.page.goto("/portal/dashboard");
+  if (await A.page.locator("[data-getting-started]").count()) {
+    assert.match(await txt(A.page, "[data-getting-started] [data-guide-progress]"), /\d of \d/);
+  }
+  await A.page.click("[data-new-menu] summary");
+  const offered = await A.page.locator("[data-new-item]").evaluateAll((els) => els.map((e) => e.getAttribute("data-new-item")));
+  assert.ok(offered.includes("Invoice") && offered.includes("KYC case") && offered.includes("Invite someone"), offered.join(", "));
+  await A.page.click('[data-new-item="Invoice"]');
+  await A.page.waitForURL(/\/portal\/invoices\?view=new/);
+  assert.match(await txt(A.page, "[data-crumbs]"), /Infrastructure.*Invoices/s);
+
+  await B.page.goto("/portal/dashboard");
+  if (await B.page.locator("[data-new-menu]").count()) {
+    await B.page.click("[data-new-menu] summary");
+    const lp = await B.page.locator("[data-new-item]").evaluateAll((els) => els.map((e) => e.getAttribute("data-new-item")));
+    assert.ok(!lp.includes("Invoice") && !lp.includes("Invite someone"), lp.join(", "));
+  }
+
+  await A.page.goto("/portal/dashboard");
+  await A.page.waitForLoadState("networkidle");
+  await A.page.keyboard.press("?");
+  await A.page.waitForSelector("[data-shortcuts]");
+  await A.page.keyboard.press("Escape");
+  assert.equal(await A.page.locator("[data-shortcuts]").count(), 0);
+  await A.page.keyboard.press("g");
+  await A.page.keyboard.press("b");
+  await A.page.waitForURL(/\/portal\/books/);
+
+  await A.page.goto("/portal/guides");
+  assert.match(await txt(A.page, '[data-guide="bill"] [data-guide-progress]'), /\d of 6|Done/);
+  assert.equal(await A.page.locator('[data-guide="setup"]').count(), 1, "the owner sees setup");
+  await E.page.goto("/portal/guides");
+  assert.equal(await E.page.locator('[data-guide="setup"]').count(), 0, "setup is the owner's");
+  await B.page.goto("/portal/guides");
+  assert.doesNotMatch(B.page.url(), /\/portal\/guides/);
+
+  await A.page.goto("/portal/activity?area=files");
+  const files = await txt(A.page, "[data-activity]");
+  assert.ok(/Document added/.test(files) && !/Journal posted/.test(files), files.slice(0, 300));
+  await E.page.goto("/portal/activity");
+  assert.match(await txt(E.page, "[data-activity]"), /Backup downloaded/);
+  await B.page.goto("/portal/activity");
+  assert.doesNotMatch(B.page.url(), /\/portal\/activity/);
 });
 
 await step("sign out clears the session", async () => {
