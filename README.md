@@ -156,6 +156,20 @@ or rejected, and comes back as **Re-KYC due** on a date set by risk (2 years hig
   nightly encrypted dumps, for running everything on your own servers in India. See
   `deploy/SELF-HOSTING.md`.
 
+## Everyday use
+
+- **+ New** (header, or press `N`): start an invoice, money entry, journal entry, task, deal,
+  meeting, file, KYC case, password or invite, offered only where your role allows.
+- **Breadcrumbs** above every page: workspace › group › page.
+- **Keyboard shortcuts**: `Ctrl/⌘ K` search, `N` new, `G` then a letter to go (D dashboard,
+  A assistant, S insights, B books, I invoices, M money, T tasks, V vault, K KYC, G guides), `?` for the list.
+- **Guides** (`/portal/guides`): step-by-step workflows (set up the portal, bill and get paid, close
+  the month, bring on a person, invest, run a venture) that tick themselves off from what is already
+  in the portal. The owner's dashboard shows "Getting started" until setup is done.
+- **Activity** (`/portal/activity`, Super Admin and Admins): every audited action, filterable by
+  person and area.
+- **Drive**: the BIDU Vault has folders per workspace, "only me" files, moving and search.
+
 ## The Business Stack
 
 The portal is the infrastructure and intelligence every Boring PE venture runs on. The menu

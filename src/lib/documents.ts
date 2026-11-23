@@ -4,8 +4,8 @@ import type { DocCategory } from "./vault-fields";
 import { workspaceContext, workspaceForNew } from "./workspaces";
 
 export type DocRow = {
-  id: string; title: string; category: DocCategory; visibility: "firm" | "linked";
-  entity_id: string | null; venture_id: string | null; holding_id: string | null; linked_name: string | null;
+  id: string; title: string; category: DocCategory; visibility: "firm" | "linked" | "private";
+  folder_id: string | null; uploaded_by: string | null; entity_id: string | null; venture_id: string | null; holding_id: string | null; linked_name: string | null;
   file_name: string; mime: string; size: number; uploaded_by_email: string | null; created_at: string;
 };
 
@@ -20,17 +20,23 @@ const EXTERNAL_FILTER = `
   )`;
 
 const DOC_SELECT = `
-  select d.id, d.title, d.category, d.visibility, d.entity_id, d.venture_id, d.holding_id,
+  select d.id, d.title, d.category, d.visibility, d.entity_id, d.venture_id, d.holding_id, d.folder_id, d.uploaded_by,
          coalesce(e.name, v.name, h.name) as linked_name, d.file_name, d.mime, d.size, u.email as uploaded_by_email,
          to_char(d.created_at, 'YYYY-MM-DD') as created_at
     from documents d left join entities e on e.id = d.entity_id left join ventures v on v.id = d.venture_id
     left join holdings h on h.id = d.holding_id left join users u on u.id = d.uploaded_by`;
 
-/** firmView: the whole vault. Otherwise only what `userId` may see. */
+/**
+ * firmView: the whole vault in the workspaces on view, except other people's private files.
+ * Otherwise only what `userId` may see.
+ */
 export async function listDocuments(userId: string, firmView: boolean) {
   const sql = await getSql();
   return firmView
-    ? sql.query<DocRow>(`${DOC_SELECT} where d.workspace = any($1::text[]) order by d.created_at desc limit 500`, [(await workspaceContext()).inView])
+    ? sql.query<DocRow>(
+        `${DOC_SELECT} where d.workspace = any($1::text[]) and (d.visibility <> 'private' or d.uploaded_by = $2) order by d.created_at desc limit 1000`,
+        [(await workspaceContext()).inView, userId],
+      )
     : sql.query<DocRow>(`${DOC_SELECT} where ${EXTERNAL_FILTER} order by d.created_at desc limit 500`, [userId]);
 }
 
@@ -39,14 +45,14 @@ export async function readDocument(id: string, userId: string, firmView: boolean
   const sql = await getSql();
   const rows = await sql.query<{ file_name: string; mime: string; content: Uint8Array }>(
     `select d.file_name, d.mime, d.content from documents d
-      where d.id = $2 and (($3::boolean and d.workspace = any($4::text[])) or (${EXTERNAL_FILTER}))`,
+      where d.id = $2 and (($3::boolean and d.workspace = any($4::text[]) and (d.visibility <> 'private' or d.uploaded_by = $1)) or (${EXTERNAL_FILTER}))`,
     [userId, id, firmView, (await workspaceContext()).enterable],
   );
   return rows[0] ?? null;
 }
 
 export async function createDocument(d: {
-  title: string; category: DocCategory; visibility: "firm" | "linked"; link: { type: "entity" | "venture" | "holding"; id: string } | null;
+  title: string; category: DocCategory; visibility: "firm" | "linked" | "private"; folderId?: string | null; link: { type: "entity" | "venture" | "holding"; id: string } | null;
   fileName: string; mime: string; content: Uint8Array; by: string;
 }) {
   const sql = await getSql();
@@ -60,23 +66,29 @@ export async function createDocument(d: {
         [d.link.id],
       ))[0]?.workspace
     : undefined;
+  // A file put in a folder lives in that folder's workspace.
+  const folderWs = d.folderId
+    ? (await sql.query<{ workspace: string }>("select workspace from doc_folders where id = $1", [d.folderId]))[0]?.workspace
+    : undefined;
   const rows = await sql.query<{ id: string }>(
-    `insert into documents (title, category, visibility, entity_id, venture_id, holding_id, file_name, mime, size, sha256, content, uploaded_by, workspace)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) returning id`,
+    `insert into documents (title, category, visibility, entity_id, venture_id, holding_id, file_name, mime, size, sha256, content, uploaded_by, workspace, folder_id)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) returning id`,
     [
       d.title, d.category, d.visibility,
       d.link?.type === "entity" ? d.link.id : null, d.link?.type === "venture" ? d.link.id : null, d.link?.type === "holding" ? d.link.id : null,
-      d.fileName, d.mime, d.content.byteLength, sha256, Buffer.from(d.content), d.by, owner ?? (await workspaceForNew()),
+      d.fileName, d.mime, d.content.byteLength, sha256, Buffer.from(d.content), d.by, folderWs ?? owner ?? (await workspaceForNew()),
+      folderWs ? d.folderId : null,
     ],
   );
   return rows[0].id;
 }
 
-export async function deleteDocument(id: string) {
+/** The Super Admin deletes any file in view; anyone else only files they added themselves. */
+export async function deleteDocument(id: string, by?: { id: string; superAdmin: boolean }) {
   const sql = await getSql();
   const rows = await sql.query<{ title: string }>(
-    "delete from documents where id = $1 and workspace = any($2::text[]) returning title",
-    [id, (await workspaceContext()).enterable],
+    "delete from documents where id = $1 and workspace = any($2::text[]) and ($3::boolean or uploaded_by = $4) returning title",
+    [id, (await workspaceContext()).enterable, by ? by.superAdmin : true, by?.id ?? null],
   );
   return rows[0]?.title ?? null;
 }

@@ -2,7 +2,7 @@ import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  BadgeCheck, BarChart3, Bell, Bot, KeySquare, BookOpen, Building2, CalendarDays, ClipboardCheck, Crown, FileText, FolderKanban, HeartHandshake,
+  Activity, BadgeCheck, BarChart3, Bell, Bot, Compass, KeySquare, BookOpen, Building2, CalendarDays, ClipboardCheck, Crown, FileText, FolderKanban, HeartHandshake,
   Inbox as InboxIcon, LayoutDashboard, Landmark, ListChecks, Lock, LogOut, MessageCircle, Package, Pin, Plug, Receipt,
   Rocket, ShieldCheck, Sparkles, Target, Crosshair, UserCircle, Users, Wallet,
 } from "lucide-react";
@@ -13,6 +13,7 @@ import { getPrefs } from "@/lib/prefs";
 import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
 import { togglePin } from "./_shell/prefs-actions";
 import { WorkspaceSwitcher } from "./_shell/workspace-switcher";
+import { Crumbs, NewMenu, Shortcuts, type NewItem } from "./_shell/ux";
 import { sectionInView, workspaceLabel } from "@/lib/workspace-calc";
 import { workspaceContext } from "@/lib/workspaces";
 import { CommandPalette, type PaletteItem } from "./_shell/palette";
@@ -30,13 +31,28 @@ const ICONS: Record<SectionId, React.ElementType> = {
   console: Crown, integrations: Plug, content: FileText, approvals: ClipboardCheck, reports: BarChart3, personal: Lock,
   dashboard: LayoutDashboard, assistant: Bot, intelligence: Sparkles, inbox: InboxIcon, calendar: CalendarDays, whatsapp: MessageCircle, portfolio: Building2,
   ventures: Rocket, deals: Target, money: Wallet, books: BookOpen, invoices: Receipt, bank: Landmark, assets: Package,
-  budgets: Crosshair, tasks: ListChecks, people: Users, vault: FolderKanban, marrow: HeartHandshake, access: ShieldCheck, kyc: BadgeCheck, secrets: KeySquare,
+  budgets: Crosshair, tasks: ListChecks, people: Users, vault: FolderKanban, marrow: HeartHandshake, access: ShieldCheck, kyc: BadgeCheck, secrets: KeySquare, guides: Compass, activity: Activity,
 };
 
 const link =
   "group/link flex flex-1 min-w-0 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800/60 hover:text-white";
 
 /** Quick actions offered in the command palette, each only to people who can use the page it opens. */
+/** What "+ New" offers, each shown only to people who can open that page. */
+const NEW_ITEMS: { section: SectionId; label: string; href: string; note: string }[] = [
+  { section: "invoices", label: "Invoice", href: "/portal/invoices?view=new", note: "Bill a customer, with GST" },
+  { section: "money", label: "Money in or out", href: "/portal/money", note: "Record a receipt or ask to pay" },
+  { section: "books", label: "Journal entry", href: "/portal/books?view=journal", note: "Post to the books" },
+  { section: "tasks", label: "Task", href: "/portal/tasks", note: "Something to do, with a due date" },
+  { section: "deals", label: "Deal or contact", href: "/portal/deals", note: "Add to the pipeline" },
+  { section: "calendar", label: "Meeting", href: "/portal/calendar", note: "Schedule and invite" },
+  { section: "vault", label: "File or folder", href: "/portal/vault", note: "Upload to the drive" },
+  { section: "kyc", label: "KYC case", href: "/portal/kyc?view=new", note: "Verify a person or company" },
+  { section: "secrets", label: "Password", href: "/portal/secrets", note: "Seal a login in the vault" },
+  { section: "access", label: "Invite someone", href: "/portal/access", note: "Give a seat and a role" },
+  { section: "assistant", label: "Ask the assistant", href: "/portal/assistant", note: "Or let her do it for you" },
+];
+
 const ACTIONS: { section: SectionId; label: string; href: string; hint: string }[] = [
   { section: "invoices", label: "New invoice", href: "/portal/invoices?view=new", hint: "Invoices" },
   { section: "books", label: "Post a journal entry", href: "/portal/books?view=journal", hint: "Books" },
@@ -136,8 +152,13 @@ export default async function PortalLayout({ children }: { children: React.React
     </>
   );
 
+  const has = (id: string) => items.some((i) => i.id === id);
+  const newItems: NewItem[] = NEW_ITEMS.filter((n) => has(n.section)).map(({ href, label, note }) => ({ href, label, note }));
+  const groupLabel = (g: string) => GROUPS.find((x) => x.id === g)?.label ?? "";
+
   const headerEnd = (
     <>
+      <NewMenu items={newItems} />
       {items.some((i) => i.id === "assistant") ? (
         <Link href="/portal/assistant" className="hidden items-center gap-2 rounded-full border border-slate-700 py-1 pl-1 pr-3 text-sm text-slate-300 transition hover:border-blue-500 hover:text-white sm:flex" data-ask>
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-rose-400 to-amber-400 text-[11px] font-bold text-white">{assistantName.slice(0, 1).toUpperCase()}</span>
@@ -166,7 +187,9 @@ export default async function PortalLayout({ children }: { children: React.React
   return (
     <PortalFrame sidebar={sidebar} headerEnd={headerEnd} prefs={{ theme: prefs.theme, accent: prefs.accent, density: prefs.density }}>
       <Suspense fallback={null}><NavProgress /></Suspense>
+      <Crumbs items={items.map((i) => ({ href: i.href, label: i.label, group: groupLabel(i.group) }))} workspace={workspaceLabel(ws.view)} />
       {children}
+      <Shortcuts allowed={items.map((i) => i.href)} />
       <CommandPalette items={palette} />
     </PortalFrame>
   );
