@@ -159,8 +159,8 @@ export async function closePeriod(p: {
       const partyId = await partyForEntity(db, v.entity_id, p.by);
       const invoiceId = await createInvoiceIn(db, {
         entityId: bpe.id, partyId, issueDate: date, dueDate: addDays(date, 15), placeOfSupply: place || bpe.state_code || "",
-        incomeCode: "4010", notes: `Business Studio fee for ${v.name}, ${p.period.slice(0, 7)}`,
-        lines: [{ description: `Business Studio fee: ${v.name}, ${p.period.slice(0, 7)}`, sac: "998311", qtyMilli: 1000n, rate: fee, gstBps }],
+        incomeCode: "4010", notes: `Boring Studio fee for ${v.name}, ${p.period.slice(0, 7)}`,
+        lines: [{ description: `Boring Studio fee: ${v.name}, ${p.period.slice(0, 7)}`, sac: "998311", qtyMilli: 1000n, rate: fee, gstBps }],
         by: p.by, sourceType: "venture_fee", sourceId: v.id,
       });
       feeJournal = (await issueIn(db, invoiceId, p.by))?.journal ?? null;

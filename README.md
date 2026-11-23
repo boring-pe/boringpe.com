@@ -102,6 +102,27 @@ workspace's cash on the dashboard.
 - The database refuses a journal posting by anyone outside the entity's workspace, whatever page
   or form it came from (`migrations/0020_workspaces.sql`).
 
+## Verticals
+
+The Boring PE workspace is organised by its four verticals, each with its own page under **Verticals**
+in the menu:
+
+| Vertical | Page | What it covers |
+| --- | --- | --- |
+| Build | `/portal/verticals/build` | Ventures Boring PE builds and runs. |
+| Co-Build | `/portal/verticals/co-build` | Ventures built with an operator on revenue or profit share. |
+| Own | `/portal/verticals/own` | Holdings and stakes, with current value and cost still held. |
+| Boring Studio (Enable) | `/portal/verticals/studio` | Manages all of Boring PE's activities, Build, Co-Build and Own, and the portal and business operations behind them. Not a separate legal entity: it is the Boring PE workspace itself. |
+
+- Each page shows this financial year's figures, the vertical's ventures or holdings, open deals,
+  invoices, open tasks and matching insights. Boring Studio also compares every vertical side by side
+  and earns the Boring Studio fee each venture pays.
+- Invoices, money entries and tasks carry a vertical. When none is chosen it comes from the entity:
+  Boring PE's own books belong to Boring Studio, a venture's company takes the venture's vertical, a
+  holding's company takes the holding's, and a task takes its deal's (`migrations/0025_verticals.sql`).
+- The invoice, money and task lists filter by vertical (`?vertical=build|co_build|own|enable`).
+- Super Admin, Admin and Partner seats see the verticals.
+
 ## Assistant
 
 `/portal/assistant` is a chat assistant ("she") for work and personal things, open to every seat.
@@ -194,7 +215,7 @@ expense accounts that jumped well above their usual month. The rules live in
 | --- | --- | --- |
 | Books | `/portal/books` | Double-entry books per entity (Boring PE, Impact Marrow, its fund, SPVs, ventures). Balanced, immutable entries enforced in the database; corrections by reversal. Trial balance, P&L, balance sheet. |
 | Portfolio | `/portal/portfolio` | Holdings across asset classes, invest / income / exit / valuation posting to the holder's books, MOIC; cap tables; access links for external people. |
-| Ventures | `/portal/ventures` | Build and Co-Build ventures, operators on revenue or profit share, monthly close posting revenue, costs, operator payables and the Business Studio fee. |
+| Ventures | `/portal/ventures` | Build and Co-Build ventures, operators on revenue or profit share, monthly close posting revenue, costs, operator payables and the Boring Studio fee. |
 | People | `/portal/people` | Employees per entity, leave with yearly balances, pay runs (draft, post, pay) posting to the books; self-service "My record". |
 | Impact Marrow | `/portal/marrow` | Contributions from Boring PE or Rahul personally into the Impact Marrow Fund's books. |
 | BIDU Vault | `/portal/vault` | Documents up to 4 MB stored in Postgres, team-only or shared with people linked to an SPV, venture or holding; always downloaded, never rendered. |

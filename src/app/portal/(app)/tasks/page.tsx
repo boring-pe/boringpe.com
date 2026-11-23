@@ -1,4 +1,7 @@
 import { requireSection } from "@/lib/dal";
+import { VerticalSelect } from "../_shell/vertical-select";
+import { VerticalFilter } from "../_shell/vertical-filter";
+import { isVertical, verticalLabel } from "@/lib/ops-fields";
 import { listAssignees, listDeals, listTasks } from "@/lib/ops";
 import { can, canSeeFirmData } from "@/lib/rbac";
 import { addTask, toggleTask } from "./actions";
@@ -13,16 +16,18 @@ const card = "bg-slate-900 border border-slate-800 rounded-xl";
 const input =
   "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none";
 
-export default async function TasksPage({ searchParams }: { searchParams: Promise<{ notice?: string }> }) {
+export default async function TasksPage({ searchParams }: { searchParams: Promise<{ notice?: string; vertical?: string }> }) {
   const user = await requireSection("tasks");
-  const { notice } = await searchParams;
+  const { notice, vertical: rawVertical } = await searchParams;
+  const vertical = isVertical(rawVertical) ? rawVertical : null;
   const seeDeals = can(user.role, "deals");
   const firm = canSeeFirmData(user.role);
-  const [tasks, allAssignees, deals] = await Promise.all([
+  const [allTasks, allAssignees, deals] = await Promise.all([
     listTasks(firm ? null : user.id),
     listAssignees(),
     seeDeals ? listDeals() : Promise.resolve([]),
   ]);
+  const tasks = allTasks.filter((t) => !vertical || t.vertical === vertical);
   // External people see and assign only their own tasks, not the team list.
   const assignees = firm ? allAssignees : allAssignees.filter((a) => a.id === user.id);
   const banner = notice ? NOTICES[notice] : undefined;
@@ -49,6 +54,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
             <option value="">Unassigned</option>
             {assignees.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
           </select>
+          <VerticalSelect className={input} />
           <input name="due" type="date" className={input} aria-label="Due date" />
           {seeDeals ? (
             <select name="dealId" defaultValue="" className={input} aria-label="Deal">
@@ -65,8 +71,9 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
       </section>
 
       <section className={`${card} overflow-hidden`}>
-        <div className="px-6 py-4 border-b border-slate-800">
+        <div className="space-y-3 px-6 py-4 border-b border-slate-800">
           <h3 className="text-sm font-semibold text-white">Tasks ({tasks.length})</h3>
+          <VerticalFilter base="/portal/tasks" current={vertical} />
         </div>
         {tasks.length === 0 ? (
           <p className="px-6 py-4 text-sm text-slate-500">No tasks yet.</p>
@@ -84,6 +91,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                     </button>
                   </form>
                   <span className={t.done ? "text-slate-500 line-through" : "text-white"}>{t.title}</span>
+                  {t.vertical ? <span className="rounded-full border border-slate-700 px-2 text-[11px] text-slate-400">{verticalLabel(t.vertical)}</span> : null}
                   {t.assignee_email ? <span className="text-xs text-slate-500">{t.assignee_email}</span> : null}
                   {seeDeals && t.deal_name ? <span className="text-xs text-slate-500">{t.deal_name}</span> : null}
                   {t.due_date ? (

@@ -28,7 +28,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       <div>
         <h2 className="text-2xl font-bold text-white">MIS reports</h2>
         <p className="mt-2 text-sm text-slate-400 max-w-2xl">
-          The whole group from the books, for {from} to {to}. Business Studio fees between our own entities are removed from group income and expenses.
+          The whole group from the books, for {from} to {to}. Boring Studio fees between our own entities are removed from group income and expenses.
         </p>
       </div>
 

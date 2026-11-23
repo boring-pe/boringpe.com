@@ -26,7 +26,7 @@ export async function misReport(from: string, to: string) {
     }),
   );
 
-  // Business Studio fees between our own entities: the 5100 expense lines in the period.
+  // Boring Studio fees between our own entities: the 5100 expense lines in the period.
   const ic = await sql.query<{ amount: string }>(
     `select coalesce(sum(l.debit - l.credit), 0)::text as amount
        from journal_lines l join journal_entries e on e.id = l.entry_id join ledger_accounts a on a.id = l.account_id

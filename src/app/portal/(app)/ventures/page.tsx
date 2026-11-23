@@ -51,7 +51,7 @@ export default async function VenturesPage({ searchParams }: { searchParams: Pro
         <h2 className="text-2xl font-bold text-white">Ventures</h2>
         <p className="mt-2 text-sm text-slate-400 max-w-2xl">
           {firm
-            ? "Build and Co-Build ventures run by operators on revenue or profit sharing. Each month is closed into a statement that posts to the books, with the Business Studio fee charged by Enable."
+            ? "Build and Co-Build ventures run by operators on revenue or profit sharing. Each month is closed into a statement that posts to the books, with the Boring Studio fee charged by Boring Studio (Enable)."
             : "Statements of the ventures you operate, with your share for each month."}
         </p>
       </div>
@@ -66,7 +66,7 @@ export default async function VenturesPage({ searchParams }: { searchParams: Pro
         <>
           <section className={`${card} overflow-x-auto`}>
             <table className="w-full">
-              <thead><tr><th className={th}>Venture</th><th className={th}>Vertical</th><th className={th}>Books</th><th className={th}>Business Studio fee</th><th className={th}>Status</th></tr></thead>
+              <thead><tr><th className={th}>Venture</th><th className={th}>Vertical</th><th className={th}>Books</th><th className={th}>Boring Studio fee</th><th className={th}>Status</th></tr></thead>
               <tbody>
                 {ventures.length === 0 ? <tr><td colSpan={5} className="px-3 py-6 text-sm text-slate-500">{firm ? "No ventures yet." : "You are not linked to a venture yet."}</td></tr> : ventures.map((v) => (
                   <tr key={v.id} className="border-t border-slate-800">
@@ -100,7 +100,7 @@ async function AddVenture() {
           {entities.map((e) => <option key={e.id} value={e.id}>Books of {e.name}</option>)}
         </select>
         <select name="feeType" defaultValue="none" className={input} aria-label="Fee">
-          <option value="none">No Business Studio fee</option><option value="fixed">Fixed fee a month</option><option value="percent">Percent of revenue</option>
+          <option value="none">No Boring Studio fee</option><option value="fixed">Fixed fee a month</option><option value="percent">Percent of revenue</option>
         </select>
         <input name="feeFixed" inputMode="decimal" placeholder="Fixed fee ₹ a month" className={input} />
         <input name="feePercent" inputMode="decimal" placeholder="Fee % of revenue" className={input} />
@@ -172,7 +172,7 @@ async function VentureDetail({ v, userId, firm, manage, post, owner }: {
               <div className="mt-2 grid gap-2 text-sm md:grid-cols-5">
                 <div><span className="text-slate-500">Revenue </span><span className="text-slate-200">{r(p.revenue)}</span></div>
                 <div><span className="text-slate-500">Costs </span><span className="text-slate-200">{r(p.costs)}</span></div>
-                <div><span className="text-slate-500">Business Studio fee </span><span className="text-slate-200">{r(p.fee)}</span></div>
+                <div><span className="text-slate-500">Boring Studio fee </span><span className="text-slate-200">{r(p.fee)}</span></div>
                 {firm ? <div><span className="text-slate-500">Operators </span><span className="text-slate-200">{r(p.operator_total)}</span></div> : null}
                 {firm ? <div><span className="text-slate-500">Net to venture </span><span className="text-slate-200">{r(p.net)}</span></div> : null}
               </div>

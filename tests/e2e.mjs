@@ -244,7 +244,7 @@ await step("Super Admin lands on the console and sees all three workspaces; dash
   assert.match(A.page.url(), /\/portal\/console$/);
   // Group headings are rendered uppercase, so compare without case.
   const nav = (await A.page.locator('nav[aria-label="Portal"]').innerText()).toLowerCase();
-  for (const label of ["Super Admin", "Intelligence", "Ventures", "Infrastructure", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
+  for (const label of ["Super Admin", "Intelligence", "Verticals", "Build", "Co-Build", "Own", "Boring Studio", "Ventures", "Infrastructure", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
     assert.ok(nav.includes(label.toLowerCase()), label);
   }
   await A.page.goto("/portal/dashboard");
@@ -871,7 +871,7 @@ await step("ventures: a Build venture inside Boring PE pays no fee; the operator
   await A.page.click('button:has-text("Close month")');
   await A.page.waitForSelector("text=Month closed");
   const text = (await A.page.locator('article[data-period="2026-10"]').innerText()).replace(/\s+/g, " ");
-  assert.ok(/Business Studio fee ₹0\.00/i.test(text) && /Net to venture ₹56,000\.00/i.test(text), text);
+  assert.ok(/Boring Studio fee ₹0\.00/i.test(text) && /Net to venture ₹56,000\.00/i.test(text), text);
   assert.ok(/Cafe Operator ₹24,000\.00/.test(text), text);
   await A.page.waitForLoadState("networkidle");
   await A.page.fill('input[name="month"]', "2026-10");
@@ -904,7 +904,7 @@ await step("ventures: a Co-Build venture in its SPV pays the fee to Boring PE; s
   await A.page.click('button:has-text("Close month")');
   await A.page.waitForSelector("text=Month closed");
   const text = (await A.page.locator('article[data-period="2026-10"]').innerText()).replace(/\s+/g, " ");
-  assert.ok(/Business Studio fee ₹5,000\.00/i.test(text) && /Net to venture ₹52,000\.00/i.test(text), text);
+  assert.ok(/Boring Studio fee ₹5,000\.00/i.test(text) && /Net to venture ₹52,000\.00/i.test(text), text);
   await A.page.locator('tr[data-payout="Alpha Operator"] button:has-text("Mark paid")').click();
   await A.page.waitForSelector("text=Operator paid");
   assert.ok(/Paid/.test(await A.page.locator('tr[data-payout="Alpha Operator"]').innerText()));
@@ -1275,14 +1275,14 @@ await step("invoicing: within the state it is CGST plus SGST; a cancelled invoic
   assert.ok(/Output IGST ₹18,000\.00/i.test(gst) && /Output CGST ₹0\.00/i.test(gst) && /B2B taxable value ₹1,00,000\.00/i.test(gst), gst);
 });
 
-await step("invoicing: the Business Studio fee is a real invoice; settling it moves money in both entities' books", async () => {
+await step("invoicing: the Boring Studio fee is a real invoice; settling it moves money in both entities' books", async () => {
   await A.page.goto("/portal/invoices?view=receivables");
   const row = (await A.page.locator('tr[data-receivable="Alpha SPV"]').innerText()).replace(/\s+/g, " ");
   assert.ok(/₹5,000\.00/.test(row), row);
   await A.page.goto("/portal/invoices");
   await A.page.locator('tr[data-invoice="INV/2026-27/0001"] a').click();
   await A.page.waitForLoadState("networkidle");
-  assert.ok(/Business Studio fee: Alpha Co-Build, 2026-10/.test(await A.page.locator("[data-invoice-doc]").innerText()));
+  assert.ok(/Boring Studio fee: Alpha Co-Build, 2026-10/.test(await A.page.locator("[data-invoice-doc]").innerText()));
   assert.equal(await A.page.locator('button:has-text("Cancel invoice")').count(), 0, "fee invoices are not cancelled by hand");
   await A.page.click('button:has-text("Settle between our entities")');
   await A.page.waitForSelector("text=Settled between our entities");
@@ -2155,6 +2155,37 @@ await step("everyday use: getting started, + New, breadcrumbs, shortcuts, guides
   assert.match(await txt(E.page, "[data-activity]"), /Backup downloaded/);
   await B.page.goto("/portal/activity");
   assert.doesNotMatch(B.page.url(), /\/portal\/activity/);
+});
+
+await step("verticals: Build, Co-Build, Own and Boring Studio each have a page; records carry their vertical", async () => {
+  await A.page.goto("/portal/verticals/studio");
+  assert.equal(await A.page.locator("[data-all-verticals] [data-row]").count(), 4);
+  assert.match(await txt(A.page, '[data-kpi="fees"]'), /Boring Studio fees/i);
+  assert.match(await txt(A.page, '[data-list="ventures"]'), /Alpha Co-Build/, "Boring Studio manages every venture");
+
+  await A.page.goto("/portal/verticals/co-build");
+  assert.match(await txt(A.page, '[data-list="ventures"]'), /Alpha Co-Build/);
+  await A.page.goto("/portal/verticals/build");
+  assert.doesNotMatch(await txt(A.page, '[data-list="ventures"]'), /Alpha Co-Build/, "a Co-Build venture is not under Build");
+
+  // The Boring Studio fee invoice belongs to Boring Studio, since Boring PE issues it.
+  await A.page.goto("/portal/invoices?vertical=enable");
+  assert.ok(await A.page.locator("[data-invoice]").count() > 0, "Boring PE's own invoices are Boring Studio's");
+  await A.page.goto("/portal/invoices?vertical=own");
+  assert.match(await flat(A.page), /No invoices yet/);
+
+  await A.page.goto("/portal/tasks");
+  await A.page.fill('input[name="title"]', "Review the Q3 valuations");
+  await A.page.selectOption('select[name="vertical"]', "own");
+  await A.page.click('button:has-text("Add task")');
+  await A.page.waitForLoadState("networkidle");
+  await A.page.goto("/portal/tasks?vertical=own");
+  assert.match(await flat(A.page), /Review the Q3 valuations/);
+  await A.page.goto("/portal/verticals/own");
+  assert.match(await txt(A.page, '[data-list="tasks"]'), /Review the Q3 valuations/);
+
+  await B.page.goto("/portal/verticals/studio");
+  assert.doesNotMatch(B.page.url(), /\/portal\/verticals/, "an LP cannot open the verticals");
 });
 
 await step("sign out clears the session", async () => {

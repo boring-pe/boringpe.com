@@ -2,7 +2,7 @@ import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  Activity, BadgeCheck, BarChart3, Bell, Bot, Compass, KeySquare, BookOpen, Building2, CalendarDays, ClipboardCheck, Crown, FileText, FolderKanban, HeartHandshake,
+  Activity, BadgeCheck, Hammer, Handshake, Sparkle, BarChart3, Bell, Bot, Compass, KeySquare, BookOpen, Building2, CalendarDays, ClipboardCheck, Crown, FileText, FolderKanban, HeartHandshake,
   Inbox as InboxIcon, LayoutDashboard, Landmark, ListChecks, Lock, LogOut, MessageCircle, Package, Pin, Plug, Receipt,
   Rocket, ShieldCheck, Sparkles, Target, Crosshair, UserCircle, Users, Wallet,
 } from "lucide-react";
@@ -31,7 +31,7 @@ const ICONS: Record<SectionId, React.ElementType> = {
   console: Crown, integrations: Plug, content: FileText, approvals: ClipboardCheck, reports: BarChart3, personal: Lock,
   dashboard: LayoutDashboard, assistant: Bot, intelligence: Sparkles, inbox: InboxIcon, calendar: CalendarDays, whatsapp: MessageCircle, portfolio: Building2,
   ventures: Rocket, deals: Target, money: Wallet, books: BookOpen, invoices: Receipt, bank: Landmark, assets: Package,
-  budgets: Crosshair, tasks: ListChecks, people: Users, vault: FolderKanban, marrow: HeartHandshake, access: ShieldCheck, kyc: BadgeCheck, secrets: KeySquare, guides: Compass, activity: Activity,
+  budgets: Crosshair, tasks: ListChecks, people: Users, vault: FolderKanban, marrow: HeartHandshake, access: ShieldCheck, kyc: BadgeCheck, secrets: KeySquare, guides: Compass, activity: Activity, v_build: Hammer, v_co_build: Handshake, v_own: Landmark, v_studio: Sparkle,
 };
 
 const link =

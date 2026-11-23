@@ -1,4 +1,7 @@
 import { requireSection } from "@/lib/dal";
+import { VerticalSelect } from "../_shell/vertical-select";
+import { VerticalFilter } from "../_shell/vertical-filter";
+import { isVertical, verticalLabel } from "@/lib/ops-fields";
 import { listEntities } from "@/lib/books";
 import { listDeals, listMoney, listParties, unpostedMoneyCount } from "@/lib/ops";
 import { CATEGORIES, categoryLabel, inr } from "@/lib/ops-fields";
@@ -26,12 +29,14 @@ const card = "bg-slate-900 border border-slate-800 rounded-xl";
 const input =
   "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none";
 
-export default async function MoneyPage({ searchParams }: { searchParams: Promise<{ notice?: string }> }) {
+export default async function MoneyPage({ searchParams }: { searchParams: Promise<{ notice?: string; vertical?: string }> }) {
   const user = await requireSection("money");
-  const { notice } = await searchParams;
-  const [entries, deals, parties, entities, unposted] = await Promise.all([
+  const { notice, vertical: rawVertical } = await searchParams;
+  const vertical = isVertical(rawVertical) ? rawVertical : null;
+  const [allEntries, deals, parties, entities, unposted] = await Promise.all([
     listMoney(), listDeals(), listParties(), listEntities(), unpostedMoneyCount(),
   ]);
+  const entries = allEntries.filter((e) => !vertical || e.vertical === vertical);
   const banner = notice ? NOTICES[notice] : undefined;
   const owner = user.role === "super_admin";
 
@@ -84,6 +89,7 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
             <option value="in">Money in</option>
             <option value="out">Payment out</option>
           </select>
+          <VerticalSelect className={input} />
           <select name="category" defaultValue="investment" className={input} aria-label="Category">
             {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
@@ -114,8 +120,9 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
       </section>
 
       <section className={`${card} overflow-hidden`}>
-        <div className="px-6 py-4 border-b border-slate-800">
+        <div className="space-y-3 px-6 py-4 border-b border-slate-800">
           <h3 className="text-sm font-semibold text-white">Entries ({entries.length})</h3>
+          <VerticalFilter base="/portal/money" current={vertical} />
         </div>
         {entries.length === 0 ? (
           <p className="px-6 py-4 text-sm text-slate-500">Nothing recorded yet.</p>
@@ -129,6 +136,7 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
                 </span>
                 {e.currency !== "INR" && e.fx_amount ? <span className="text-xs text-slate-400">{e.currency} {e.fx_amount}</span> : null}
                 <span className="text-slate-300">{categoryLabel(e.category)}</span>
+                {e.vertical ? <span className="rounded-full border border-slate-700 px-2 text-[11px] text-slate-400">{verticalLabel(e.vertical)}</span> : null}
                 {e.memo ? <span className="text-slate-400">{e.memo}</span> : null}
                 {e.deal_name ? <span className="text-xs text-slate-500">{e.deal_name}</span> : null}
                 {e.party_name ? <span className="text-xs text-slate-500">{e.party_name}</span> : null}

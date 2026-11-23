@@ -72,7 +72,7 @@ export const DEFAULT_CHART: ChartSeed[] = [
   { code: "5070", name: "Bank charges", type: "expense" },
   { code: "5080", name: "Operator revenue share", type: "expense" },
   { code: "5090", name: "Impact contributions", type: "expense" },
-  { code: "5100", name: "Business Studio fee", type: "expense" },
+  { code: "5100", name: "Boring Studio fee", type: "expense" },
   { code: "5200", name: "Depreciation", type: "expense" },
   { code: "5900", name: "Other expenses", type: "expense" },
   { code: "5910", name: "Exchange loss", type: "expense" },
