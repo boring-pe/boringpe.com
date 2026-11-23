@@ -33,7 +33,6 @@ export default async function Home() {
               <a key={href} href={href} className="hover:text-white transition-colors">{label}</a>
             ))}
           </div>
-          <div className="flex items-center gap-3">
             <details className="relative xl:hidden">
               <summary className="cursor-pointer list-none rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-300 [&::-webkit-details-marker]:hidden">
                 Menu
@@ -46,13 +45,6 @@ export default async function Home() {
                 ))}
               </div>
             </details>
-            <a
-              href="https://portal.boringpe.com"
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md transition-all flex items-center gap-2"
-            >
-              Portal <ArrowRight className="w-4 h-4" />
-            </a>
-          </div>
         </div>
       </nav>
 
@@ -219,7 +211,7 @@ export default async function Home() {
           <div>
             <h4 className="text-white font-semibold mb-4">Internal</h4>
             <ul className="space-y-3 text-sm text-slate-400">
-              <li><a href="https://portal.boringpe.com" className="hover:text-white transition-colors">Boring Portal Login</a></li>
+              <li><a href="https://portal.boringpe.com" className="hover:text-white transition-colors">Portal Login</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
             </ul>
