@@ -81,6 +81,7 @@ test("firm-wide insights are for the Super Admin, Admins and partners only", () 
 
 test("MIS reports are for the Super Admin, Admins and partners only", () => {
   for (const r of ROLES) assert.equal(can(r, "reports"), ["super_admin", "admin", "partner"].includes(r), r);
+  for (const r of ROLES) assert.equal(can(r, "networth"), ["super_admin", "admin", "partner"].includes(r), `net worth: ${r}`);
 });
 
 test("unknown roles are rejected, never defaulted to a powerful one", () => {
