@@ -5,6 +5,17 @@ import { Building2, HeartHandshake, ArrowRight, ShieldCheck, TrendingUp, Users }
 // Wording is editable from the portal (Super Admin > Site content); changes show within a minute.
 export const revalidate = 60;
 
+const NAV = [
+  ["#top", "Home"],
+  ["#build", "Build"],
+  ["#co-build", "Co-Build"],
+  ["#own", "Own"],
+  ["#studio", "Studio"],
+  ["#impact-marrow", "Impact Marrow"],
+  ["#media", "Media"],
+  ["#about", "About Us"],
+] as const;
+
 export default async function Home() {
   const c = await getSiteContent('boringpe');
   return (
@@ -17,22 +28,36 @@ export default async function Home() {
             <Building2 className="w-8 h-8 text-blue-500" />
             <span className="text-xl font-bold tracking-tight text-white">BORING PE</span>
           </div>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
-            <a href="#framework" className="hover:text-white transition-colors">The Framework</a>
-            <a href="#founders" className="hover:text-white transition-colors">For Founders</a>
-            <a href="#about" className="hover:text-white transition-colors">About Us</a>
+          <div className="hidden xl:flex items-center gap-5 text-sm font-medium text-slate-300">
+            {NAV.map(([href, label]) => (
+              <a key={href} href={href} className="hover:text-white transition-colors">{label}</a>
+            ))}
           </div>
-          <a 
-            href="https://portal.boringpe.com" 
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md transition-all flex items-center gap-2"
-          >
-            Portal Login <ArrowRight className="w-4 h-4" />
-          </a>
+          <div className="flex items-center gap-3">
+            <details className="relative xl:hidden">
+              <summary className="cursor-pointer list-none rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-300 [&::-webkit-details-marker]:hidden">
+                Menu
+              </summary>
+              <div className="absolute right-0 top-12 z-50 w-52 rounded-xl border border-slate-800 bg-slate-950 p-2 shadow-xl">
+                {NAV.map(([href, label]) => (
+                  <a key={href} href={href} className="block rounded-md px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white">
+                    {label}
+                  </a>
+                ))}
+              </div>
+            </details>
+            <a
+              href="https://portal.boringpe.com"
+              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md transition-all flex items-center gap-2"
+            >
+              Portal <ArrowRight className="w-4 h-4" />
+            </a>
+          </div>
         </div>
       </nav>
 
       {/* --- HERO SECTION --- */}
-      <section className="pt-32 pb-20 md:pt-48 md:pb-32 px-6 border-b border-slate-800">
+      <section id="top" className="scroll-mt-24 pt-32 pb-20 md:pt-48 md:pb-32 px-6 border-b border-slate-800">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-400 text-xs font-medium mb-6">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -105,11 +130,11 @@ export default async function Home() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { n: '1', name: 'Build', body: c.buildBody, Icon: Building2 },
-              { n: '2', name: 'Co-Build', body: c.coBuildBody, Icon: HeartHandshake },
-              { n: '3', name: 'Own', body: c.ownBody, Icon: ShieldCheck },
-            ].map(({ n, name, body, Icon }) => (
-              <div key={name} className="p-8 bg-slate-900 border border-slate-800 rounded-xl">
+              { id: "build", n: "1", name: "Build", body: c.buildBody, Icon: Building2 },
+              { id: "co-build", n: "2", name: "Co-Build", body: c.coBuildBody, Icon: HeartHandshake },
+              { id: "own", n: "3", name: "Own", body: c.ownBody, Icon: ShieldCheck },
+            ].map(({ id, n, name, body, Icon }) => (
+              <div key={name} id={id} className="scroll-mt-28 p-8 bg-slate-900 border border-slate-800 rounded-xl">
                 <Icon className="w-10 h-10 text-blue-500 mb-6" />
                 <div className="text-xs font-semibold text-blue-400 mb-1">Part of Boring PE · {n}</div>
                 <h3 className="text-xl font-bold text-white mb-3">{name}</h3>
@@ -118,11 +143,39 @@ export default async function Home() {
             ))}
           </div>
 
-          <div className="mt-6 p-8 bg-slate-900/60 border border-slate-800 rounded-xl">
+          <div id="studio" className="scroll-mt-28 mt-6 p-8 bg-slate-900/60 border border-slate-800 rounded-xl">
             <div className="text-xs font-semibold text-slate-500 mb-1">Separate from the three</div>
-            <h3 className="text-xl font-bold text-white mb-3">Enable · Business Studio</h3>
+            <h3 className="text-xl font-bold text-white mb-3">Studio</h3>
             <p className="text-sm text-slate-400 leading-relaxed max-w-3xl">{c.enableBody}</p>
           </div>
+        </div>
+      </section>
+
+      <section id="impact-marrow" className="scroll-mt-24 py-24 px-6 border-t border-slate-800">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-xs font-semibold tracking-[0.18em] uppercase text-blue-400 mb-3">Beside Boring PE</p>
+          <h2 className="text-3xl font-bold text-white mb-4">Impact Marrow</h2>
+          <p className="text-slate-400 leading-relaxed">
+            The social and economic initiative beside Boring PE. It is funded by Rahul Mane and by Boring PE through its own fund. It is not Build, Co-Build, Own, or Studio.
+          </p>
+        </div>
+      </section>
+
+      <section id="media" className="scroll-mt-24 py-24 px-6 border-t border-slate-800">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-xs font-semibold tracking-[0.18em] uppercase text-blue-400 mb-3">Notes</p>
+          <h2 className="text-3xl font-bold text-white mb-4">Media</h2>
+          <p className="text-slate-400 leading-relaxed">Announcements from Boring PE will be published here.</p>
+        </div>
+      </section>
+
+      <section id="about" className="scroll-mt-24 py-24 px-6 border-t border-slate-800">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-xs font-semibold tracking-[0.18em] uppercase text-blue-400 mb-3">The firm</p>
+          <h2 className="text-3xl font-bold text-white mb-4">About Us</h2>
+          <p className="text-slate-400 leading-relaxed">
+            Boring PE is a private enterprise. Build, Co-Build, and Own are its three activities. Studio enables them. Impact Marrow sits beside the firm.
+          </p>
         </div>
       </section>
 
@@ -158,9 +211,9 @@ export default async function Home() {
           <div>
             <h4 className="text-white font-semibold mb-4">Enterprise</h4>
             <ul className="space-y-3 text-sm text-slate-400">
-              <li><a href="#framework" className="hover:text-white transition-colors">The Framework</a></li>
-              <li><a href="#founders" className="hover:text-white transition-colors">For Founders</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
+              {NAV.filter(([href]) => href !== "#top").map(([href, label]) => (
+                <li key={href}><a href={href} className="hover:text-white transition-colors">{label}</a></li>
+              ))}
             </ul>
           </div>
           <div>
