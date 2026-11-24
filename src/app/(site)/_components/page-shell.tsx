@@ -14,7 +14,7 @@ export function StructureMap({ here }: { here: Here }) {
       <Link
         href={`/${key}`}
         aria-current={here === key ? "page" : undefined}
-        className={`block rounded-md border px-3 py-2.5 transition-colors ${extra} ${
+        className={`block min-w-0 rounded-md border px-2.5 py-2.5 transition-colors ${extra} ${
           on ? "border-blue-500 bg-blue-500/10 text-white" : "border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200"
         }`}
       >
@@ -25,7 +25,7 @@ export function StructureMap({ here }: { here: Here }) {
   };
   return (
     <figure className="w-full max-w-md" aria-label="Where this sits in Boring PE" data-structure-map>
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex-1 rounded-lg border border-slate-800 p-3">
           <Link href="/about" className={`mb-3 block text-sm ${here === "about" ? "text-white" : "text-slate-300 hover:text-white"}`}>Boring PE</Link>
           <div className="grid grid-cols-3 gap-2">
@@ -36,8 +36,8 @@ export function StructureMap({ here }: { here: Here }) {
           <div aria-hidden className="mx-6 h-3 border-x border-dashed border-slate-700" />
           {box("studio", "Studio", "finance, HR, legal, strategy and systems for all three")}
         </div>
-        <div className="w-32 shrink-0 self-stretch">
-          {box("impact-marrow", "Impact Marrow", "beside the firm", "h-full")}
+        <div className="sm:w-32 sm:shrink-0 sm:self-stretch">
+          {box("impact-marrow", "Impact Marrow", "beside the firm", "sm:h-full")}
         </div>
       </div>
       <figcaption className="mt-2 text-[11px] text-slate-500">Where this sits in Boring PE</figcaption>
