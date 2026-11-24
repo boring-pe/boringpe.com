@@ -139,6 +139,8 @@ and copying. The Super Admin's **Security** page (`/portal/security`) shows the 
 - Pages carry `noai, noimageai` and a copyright notice; images cannot be embedded by other sites
   (`Cross-Origin-Resource-Policy`), and no page can be framed.
 - `/.well-known/security.txt` says how to report a problem.
+- `/llms.txt` ([llmstxt.org](https://llmstxt.org)) gives AI assistants a short guide to Boring PE, built from the
+  site's live wording (`src/lib/llms-calc.ts`), so edits under Site content show up there too.
 
 ## Net worth
 
