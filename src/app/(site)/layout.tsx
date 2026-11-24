@@ -8,7 +8,7 @@ import { SITE_PAGES } from "./_components/pages";
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const c = await getSiteContent("boringpe");
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 font-sans selection:bg-blue-900 selection:text-white flex flex-col">
+    <div className="site min-h-screen bg-slate-950 text-slate-50 selection:bg-blue-900 selection:text-white flex flex-col">
       <SiteNav />
       <main className="flex-1">{children}</main>
       <footer className="py-16 px-6 bg-slate-950 border-t border-slate-800">

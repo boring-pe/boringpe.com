@@ -1,22 +1,26 @@
-import type { Metadata } from "next";
-import { Newspaper } from "lucide-react";
 import { getSiteContent } from "@/lib/content";
-import { ContactBand, PageHero, SeeAlso } from "../_components/page-shell";
-import { firstSentence, seeAlso } from "../_components/see-also";
+import { PageHero, Rail, SeeAlso } from "../_components/page-shell";
+import { pageMeta } from "../_components/meta";
+import { seeAlso } from "../_components/see-also";
 
-// Wording is editable from the portal (Super Admin > Site content); changes show within a minute.
+// The opening line is editable from the portal (Super Admin > Site content).
 export const revalidate = 60;
-
-export async function generateMetadata(): Promise<Metadata> {
-  const c = await getSiteContent("boringpe");
-  return { title: "Media · Boring PE", description: firstSentence(c.mediaBody), alternates: { canonical: "/media" } };
-}
+export const generateMetadata = () => pageMeta("Media", "/media", "mediaBody");
 
 export default async function Page() {
   const c = await getSiteContent("boringpe");
   return (
     <div data-page="media">
-      <PageHero eyebrow="Notes" title="Media" body={c.mediaBody} Icon={Newspaper} />
+      <PageHero here="media" title="Media" lead={c.mediaBody} />
+      <Rail title="Announcements">
+        <p className="text-slate-400 leading-relaxed max-w-2xl">Nothing has been announced yet. New announcements will appear here first.</p>
+      </Rail>
+      <Rail title="Press">
+        <p className="text-slate-400 leading-relaxed max-w-2xl">
+          For press questions, write to{" "}
+          <a href={`mailto:${c.contactEmail}`} className="text-blue-400 hover:text-blue-300 underline underline-offset-4">{c.contactEmail}</a>.
+        </p>
+      </Rail>
       <SeeAlso items={seeAlso(c, "/media")} />
     </div>
   );
