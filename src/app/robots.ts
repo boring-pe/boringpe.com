@@ -8,5 +8,6 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: TRAINING_CRAWLERS, disallow: "/" },
       { userAgent: "*", allow: "/", disallow: ["/portal", "/api"] },
     ],
+    sitemap: "https://boringpe.com/sitemap.xml",
   };
 }

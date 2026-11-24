@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://boringpe.com"),
   title: "Boring PE",
   description:
     "Boring PE builds, co-builds, and owns sustainable, cash-flowing businesses. Powering the Business Stack.",

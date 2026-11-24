@@ -139,6 +139,9 @@ and copying. The Super Admin's **Security** page (`/portal/security`) shows the 
 - Pages carry `noai, noimageai` and a copyright notice; images cannot be embedded by other sites
   (`Cross-Origin-Resource-Policy`), and no page can be framed.
 - `/.well-known/security.txt` says how to report a problem.
+- boringpe.com has a page per menu item (`src/app/(site)/`): Home, Build, Co-Build, Own, Studio, Impact
+  Marrow, Media and About Us, sharing one menu and footer, with a `sitemap.xml`. All wording comes from
+  Site content, including the Impact Marrow, Media and About Us text.
 - `/llms.txt` ([llmstxt.org](https://llmstxt.org)) gives AI assistants a short guide to Boring PE, built from the
   site's live wording (`src/lib/llms-calc.ts`), so edits under Site content show up there too.
 

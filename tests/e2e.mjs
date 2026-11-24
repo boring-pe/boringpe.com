@@ -2219,13 +2219,33 @@ await step("verticals: Build, Co-Build, Own and Boring Studio each have a page; 
   assert.doesNotMatch(B.page.url(), /\/portal\/verticals/, "an LP cannot open the verticals");
 });
 
+await step("public site: every menu item is its own page with the shared menu and footer", async () => {
+  const pages = [["/build", "Build"], ["/co-build", "Co-Build"], ["/own", "Own"], ["/studio", "Studio"], ["/impact-marrow", "Impact Marrow"], ["/media", "Media"], ["/about", "About Us"]];
+  const p = B.page;
+  await p.goto("/");
+  for (const [href, label] of pages) {
+    await p.click(`nav[aria-label="Site"] a[href="${href}"] >> visible=true`);
+    await p.waitForURL((u) => u.pathname === href);
+    assert.equal(await p.locator("h1").first().innerText(), label);
+    assert.equal(await p.getAttribute(`nav[aria-label="Site"] a[aria-current="page"] >> visible=true`, "href"), href);
+    assert.match(await p.title(), new RegExp(`^${label} · Boring PE`));
+    assert.ok(await p.locator("footer").count(), "shared footer");
+  }
+  // The home page's cards lead to the pages.
+  await p.goto("/");
+  await p.click('a[href="/co-build"]:has-text("Read more")');
+  await p.waitForURL(/\/co-build$/);
+  const map = await (await p.request.get("/sitemap.xml")).text();
+  for (const [href] of pages) assert.ok(map.includes(`https://boringpe.com${href}</loc>`), href);
+});
+
 await step("llms.txt describes Boring PE from the site's own wording", async () => {
   const r = await A.page.request.get("/llms.txt");
   assert.equal(r.status(), 200);
   assert.match(r.headers()["content-type"] ?? "", /text\/plain/);
   const t = await r.text();
   assert.match(t, /^# Boring PE\n\n> /);
-  assert.match(t, /\[Co-Build\]\(https:\/\/boringpe\.com\/#co-build\)/);
+  assert.match(t, /\[Co-Build\]\(https:\/\/boringpe\.com\/co-build\)/);
   const gpt = await A.page.request.get("/llms.txt", { headers: { "User-Agent": "Mozilla/5.0 (compatible; OAI-SearchBot/1.0)" } });
   assert.equal(gpt.status(), 200, "assistants' search fetchers can read it");
 });
