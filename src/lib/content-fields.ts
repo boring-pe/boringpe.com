@@ -59,6 +59,22 @@ export const SITES: Record<SiteId, { label: string; where: string; path: string;
           "A better alternative to traditional private equity or exhausting solo entrepreneurship. We respect your legacy, allow you to retain skin in the game, and plug your business into our institutional infrastructure on Day 1.",
       },
       { key: "ctaLabel", label: "Founders button label", max: 60, default: "Start a Confidential Conversation" },
+      {
+        key: "impactBody",
+        label: "Impact Marrow page",
+        max: 600,
+        multiline: true,
+        default:
+          "The social and economic initiative beside Boring PE. It is funded by Rahul Mane and by Boring PE through its own fund. It is not Build, Co-Build, Own, or Studio.",
+      },
+      { key: "mediaBody", label: "Media page", max: 600, multiline: true, default: "Announcements from Boring PE will be published here." },
+      {
+        key: "aboutBody",
+        label: "About Us page",
+        max: 800,
+        multiline: true,
+        default: "Boring PE is a private enterprise. Build, Co-Build, and Own are its three activities. Studio enables them. Impact Marrow sits beside the firm.",
+      },
       { key: "contactEmail", label: "Contact email", max: 254, email: true, default: "hello@boringpe.com" },
       {
         key: "footerTagline",
