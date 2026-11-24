@@ -2219,6 +2219,17 @@ await step("verticals: Build, Co-Build, Own and Boring Studio each have a page; 
   assert.doesNotMatch(B.page.url(), /\/portal\/verticals/, "an LP cannot open the verticals");
 });
 
+await step("llms.txt describes Boring PE from the site's own wording", async () => {
+  const r = await A.page.request.get("/llms.txt");
+  assert.equal(r.status(), 200);
+  assert.match(r.headers()["content-type"] ?? "", /text\/plain/);
+  const t = await r.text();
+  assert.match(t, /^# Boring PE\n\n> /);
+  assert.match(t, /\[Co-Build\]\(https:\/\/boringpe\.com\/#co-build\)/);
+  const gpt = await A.page.request.get("/llms.txt", { headers: { "User-Agent": "Mozilla/5.0 (compatible; OAI-SearchBot/1.0)" } });
+  assert.equal(gpt.status(), 200, "assistants' search fetchers can read it");
+});
+
 await step("security: headers, crawler blocking, rate limits, watermark, exports logged, Security page", async () => {
   // Strict headers on the public site and the portal.
   const home = await A.page.request.get("/");
