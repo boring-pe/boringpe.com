@@ -9,7 +9,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const c = await getSiteContent("boringpe");
   return (
     <div className="site min-h-screen bg-slate-950 text-slate-50 selection:bg-blue-900 selection:text-white flex flex-col">
-      <SiteNav />
+      <SiteNav email={c.contactEmail} />
       <main className="flex-1">{children}</main>
       <footer className="py-16 px-6 bg-slate-950 border-t border-slate-800">
         <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-12">

@@ -2232,6 +2232,22 @@ await step("public site: every menu item is its own page with the shared menu an
     assert.match(await p.title(), new RegExp(`^${label} · Boring PE`));
     assert.ok(await p.locator("footer").count(), "shared footer");
   }
+  // On a laptop every page is in the bar; on a phone the menu opens, closes on Escape and after a choice.
+  await p.setViewportSize({ width: 1100, height: 800 });
+  await p.goto("/own");
+  assert.ok(await p.locator('nav[aria-label="Site"] ul[data-bar] a[href="/about"]').isVisible(), "links in the bar at laptop width");
+  await p.setViewportSize({ width: 390, height: 800 });
+  const button = p.locator('nav[aria-label="Site"] button[aria-controls="site-menu"]');
+  await button.click();
+  assert.equal(await button.getAttribute("aria-expanded"), "true");
+  await p.keyboard.press("Escape");
+  assert.equal(await button.getAttribute("aria-expanded"), "false");
+  await button.click();
+  await p.click('#site-menu a[href="/media"]');
+  await p.waitForURL(/\/media$/);
+  assert.ok(await p.locator("#site-menu").isHidden(), "closes after a choice");
+  await p.setViewportSize({ width: 1280, height: 800 });
+
   // The home page's cards lead to the pages.
   await p.goto("/");
   await p.click('a[href="/co-build"]:has-text("Read more")');
