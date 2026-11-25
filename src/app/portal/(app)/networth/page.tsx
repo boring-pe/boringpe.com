@@ -167,7 +167,7 @@ export default async function NetWorthPage({ searchParams }: { searchParams: Pro
               <div className="font-medium text-slate-400">Counted once inside this level</div>
               <ul className="mt-1 space-y-0.5">
                 {f.internal.stakesCost > 0n ? <li>Stakes in units inside it, {rupees(f.internal.stakesCost)} at cost: their own books already carry them</li> : null}
-                {f.internal.fees > 0n ? <li>Boring Studio fees, {rupees(f.internal.fees)}: income and expense inside it</li> : null}
+                {f.internal.fees > 0n ? <li>Boring Stack fees, {rupees(f.internal.fees)}: income and expense inside it</li> : null}
                 {f.internal.transfers > 0n ? <li>Gifts between its units, {rupees(f.internal.transfers)}: not an expense of the whole</li> : null}
               </ul>
             </div>

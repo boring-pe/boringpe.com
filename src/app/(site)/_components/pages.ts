@@ -4,7 +4,7 @@ export const SITE_PAGES = [
   { href: "/build", label: "Build" },
   { href: "/co-build", label: "Co-Build" },
   { href: "/own", label: "Own" },
-  { href: "/studio", label: "Studio" },
+  { href: "/stack", label: "Boring Stack" },
   { href: "/impact-marrow", label: "Impact Marrow" },
   { href: "/media", label: "Media" },
   { href: "/about", label: "About Us" },

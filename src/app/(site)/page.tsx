@@ -3,7 +3,7 @@ import { getSiteContent } from '@/lib/content';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Philosophy } from './_components/philosophy';
-import { BuildIllustration, CoBuildIllustration, FirmElevation, OwnIllustration, StudioIllustration } from './_components/illustrations';
+import { BuildIllustration, CoBuildIllustration, FirmElevation, OwnIllustration, StackIllustration } from './_components/illustrations';
 
 // Wording is editable from the portal (Super Admin > Site content); changes show within a minute.
 export const revalidate = 60;
@@ -28,8 +28,8 @@ export default async function Home() {
             {c.intro}
           </p>
           <div className="flex items-center justify-center">
-            <Link href="/studio" className="px-8 py-4 bg-white text-slate-950 font-semibold rounded-md hover:bg-slate-200 transition-colors">
-              Explore Our Boring Studio
+            <Link href="/stack" className="px-8 py-4 bg-white text-slate-950 font-semibold rounded-md hover:bg-slate-200 transition-colors">
+              Explore Our Boring Stack
             </Link>
           </div>
         </div>
@@ -47,7 +47,7 @@ export default async function Home() {
             <p className="text-xs font-semibold tracking-[0.18em] uppercase text-blue-400 mb-3">Boring PE</p>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Build, Co-Build and Own</h2>
             <p className="text-slate-400 max-w-2xl mx-auto">
-              Three separate activities of Boring PE. They are not Business Studio, and they are not mixed with each other.
+              Three separate activities of Boring PE. They are not Boring Stack, and they are not mixed with each other.
             </p>
           </div>
 
@@ -67,16 +67,16 @@ export default async function Home() {
             ))}
           </div>
 
-          <Link id="studio" href="/studio" className="group block scroll-mt-28 mt-6 p-8 bg-slate-900/60 border border-slate-800 rounded-xl hover:border-slate-600 transition-colors">
+          <Link id="stack" href="/stack" className="group block scroll-mt-28 mt-6 p-8 bg-slate-900/60 border border-slate-800 rounded-xl hover:border-slate-600 transition-colors">
             <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_18rem] md:items-center">
               <div>
             <div className="text-xs font-semibold text-slate-500 mb-1">Separate from the three</div>
-            <h3 className="text-xl font-bold text-white mb-3">Studio</h3>
+            <h3 className="text-xl font-bold text-white mb-3">Boring Stack</h3>
             <p className="text-sm text-slate-400 leading-relaxed max-w-3xl">{c.enableBody}</p>
             <span className="mt-4 inline-flex items-center gap-1 text-sm text-blue-400 group-hover:text-blue-300">Read more <ArrowRight className="w-4 h-4" /></span>
           
               </div>
-              <StudioIllustration className="w-full h-auto max-w-xs mx-auto" />
+              <StackIllustration className="w-full h-auto max-w-xs mx-auto" />
             </div>
           </Link>
         </div>

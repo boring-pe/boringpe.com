@@ -70,7 +70,7 @@ test("the menu reads as the Business Stack: Intelligence, Verticals, Infrastruct
   const groupOf = (id: string) => SECTIONS.find((s) => s.id === id)?.group;
   for (const id of ["dashboard", "intelligence", "reports", "budgets", "portfolio"]) assert.equal(groupOf(id), "intelligence", id);
   for (const id of ["v_build", "v_co_build", "v_own", "v_studio", "ventures", "deals", "marrow"]) assert.equal(groupOf(id), "ventures", id);
-  assert.deepEqual(SECTIONS.filter((s) => s.id.startsWith("v_")).map((s) => s.label), ["Build", "Co-Build", "Own", "Boring Studio"]);
+  assert.deepEqual(SECTIONS.filter((s) => s.id.startsWith("v_")).map((s) => s.label), ["Build", "Co-Build", "Own", "Boring Stack"]);
   for (const id of ["books", "invoices", "bank", "people", "inbox", "whatsapp", "integrations"]) assert.equal(groupOf(id), "infrastructure", id);
   for (const g of GROUPS) assert.ok(SECTIONS.some((s) => s.group === g.id), `${g.label} is not empty`);
 });

@@ -52,7 +52,7 @@ export function SiteNav() {
                   here(href) ? "bg-slate-800/80 text-white" : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
                 }`}
               >
-                {label === "Studio" ? "Boring Studio" : label}
+                {label}
               </Link>
             </li>
           ))}
@@ -87,7 +87,7 @@ export function SiteNav() {
                 onClick={() => setOpen(false)}
                 className={`block rounded-md px-3 py-3 text-base ${here(href) ? "bg-slate-800 text-white" : "text-slate-300 hover:bg-slate-800/60 hover:text-white"}`}
               >
-                {label === "Studio" ? "Boring Studio" : label}
+                {label}
               </Link>
             </li>
           ))}

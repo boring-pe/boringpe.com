@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 import { submitConnect, type ConnectState } from "./actions";
 
 const TIMES = ["10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"];
-const TOPICS = ["Build", "Co-Build", "Own", "Studio", "Impact Marrow", "Something else"];
+const TOPICS = ["Build", "Co-Build", "Own", "Boring Stack", "Founder advisory", "Impact Marrow", "Something else"];
 
 function weekdays(count: number) {
   const days: { iso: string; weekday: string; day: string }[] = [];
@@ -30,7 +30,7 @@ function SubmitButton() {
   );
 }
 
-export function ConnectForm() {
+export function ConnectForm({ topic = "Co-Build" }: { topic?: string }) {
   const days = useMemo(() => weekdays(8), []);
   const [step, setStep] = useState<1 | 2>(1);
   const [date, setDate] = useState(days[0]?.iso ?? "");
@@ -50,6 +50,7 @@ export function ConnectForm() {
     <form
       action={async (data) => setState(await submitConnect(state, data))}
       className="rounded-xl border border-slate-800 bg-slate-900 p-6 sm:p-8"
+      data-topic={(TOPICS as readonly string[]).includes(topic) ? topic : "Co-Build"}
     >
       <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden />
       <input type="hidden" name="date" value={date} />
@@ -107,7 +108,7 @@ export function ConnectForm() {
           <Field label="Phone" name="phone" type="tel" autoComplete="tel" placeholder="+91" />
           <label className="block text-sm">
             <span className="text-slate-300">What do you want to talk about?</span>
-            <select name="topic" required defaultValue="Co-Build" className="mt-1.5 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2.5 text-white">
+            <select name="topic" required defaultValue={(TOPICS as readonly string[]).includes(topic) ? topic : "Co-Build"} className="mt-1.5 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2.5 text-white">
               {TOPICS.map((topic) => (
                 <option key={topic}>{topic}</option>
               ))}

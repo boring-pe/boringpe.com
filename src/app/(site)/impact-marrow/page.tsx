@@ -18,7 +18,7 @@ export default async function Page() {
           items={[
             { title: "Funded by Rahul Mane", body: "Rahul Mane contributes to Impact Marrow personally." },
             { title: "Funded by Boring PE", body: "Boring PE contributes through Impact Marrow's own fund." },
-            { title: "Separate from the business", body: "Impact Marrow is not Build, Co-Build, Own or Studio, and it is not run for profit." },
+            { title: "Separate from the business", body: "Impact Marrow is not Build, Co-Build, Own or the Boring Stack, and it is not run for profit." },
             { title: "Social and economic", body: "Its work aims at lasting social and economic value in the communities it serves." },
           ]}
         />
