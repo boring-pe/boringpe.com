@@ -63,11 +63,11 @@ export const SECTIONS: { id: SectionId; href: string; label: string; group: Grou
   { id: "networth", href: "/portal/networth", label: "Net worth", group: "intelligence" },
   { id: "budgets", href: "/portal/budgets", label: "Budgets", group: "intelligence" },
   { id: "portfolio", href: "/portal/portfolio", label: "Portfolio", group: "intelligence" },
-  // Verticals: Build, Co-Build, Own and Boring Studio (Enable), which manages all of them.
+  // Verticals: Build, Co-Build, Own and Boring Stack (Enable), which manages all of them.
   { id: "v_build", href: "/portal/verticals/build", label: "Build", group: "ventures" },
   { id: "v_co_build", href: "/portal/verticals/co-build", label: "Co-Build", group: "ventures" },
   { id: "v_own", href: "/portal/verticals/own", label: "Own", group: "ventures" },
-  { id: "v_studio", href: "/portal/verticals/studio", label: "Boring Studio", group: "ventures" },
+  { id: "v_studio", href: "/portal/verticals/stack", label: "Boring Stack", group: "ventures" },
   { id: "ventures", href: "/portal/ventures", label: "Ventures", group: "ventures" },
   { id: "deals", href: "/portal/deals", label: "Deal Pipeline", group: "ventures" },
   { id: "marrow", href: "/portal/marrow", label: "Impact Marrow", group: "ventures" },

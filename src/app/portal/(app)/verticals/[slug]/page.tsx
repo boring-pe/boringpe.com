@@ -27,7 +27,7 @@ function Kpi({ name, value, note, k }: { name: string; value: string; note?: str
   );
 }
 
-/** One vertical: its businesses, money, pipeline and work. Boring Studio also sees every vertical side by side. */
+/** One vertical: its businesses, money, pipeline and work. Boring Stack also sees every vertical side by side. */
 export default async function VerticalPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const v = verticalBySlug(slug);
@@ -56,7 +56,7 @@ export default async function VerticalPage({ params }: { params: Promise<{ slug:
           </>
         ) : studio ? (
           <>
-            <Kpi k="fees" name="Boring Studio fees" value={rupees(f.studioFees)} note="Charged to ventures this financial year" />
+            <Kpi k="fees" name="Boring Stack fees" value={rupees(f.studioFees)} note="Charged to ventures this financial year" />
             <Kpi k="ventures" name="Ventures managed" value={String(figures.reduce((s, x) => s + x.ventures, 0))} note={(() => { const n = figures.reduce((s, x) => s + x.holdings, 0); return `${n} ${n === 1 ? "holding" : "holdings"}`; })()} />
           </>
         ) : (
@@ -89,7 +89,7 @@ export default async function VerticalPage({ params }: { params: Promise<{ slug:
               })}
             </tbody>
           </table>
-          <p className="px-4 pb-4 pt-2 text-xs text-slate-500">Invoices and money take the vertical of the entity they belong to unless one is chosen; Boring PE&apos;s own records belong to Boring Studio.</p>
+          <p className="px-4 pb-4 pt-2 text-xs text-slate-500">Invoices and money take the vertical of the entity they belong to unless one is chosen; Boring PE&apos;s own records belong to Boring Stack.</p>
         </section>
       ) : null}
 

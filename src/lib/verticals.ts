@@ -74,7 +74,7 @@ export async function verticalFigures(today = new Date().toISOString().slice(0, 
       moneyOut: p(money?.b),
       ventureRevenue: p(per?.revenue),
       ventureNet: p(per?.net),
-      // Boring Studio earns the fees every venture pays it.
+      // Boring Stack earns the fees every venture pays it.
       studioFees: id === "enable" ? allFees : 0n,
       holdingsValue: hs.reduce((s, x) => s + x.currentValue, 0n),
       holdingsCost: hs.reduce((s, x) => s + x.costRemaining, 0n),
@@ -108,7 +108,7 @@ export async function verticalRecords(v: Vertical) {
     ),
   ]);
   return {
-    // Boring Studio manages every venture.
+    // Boring Stack manages every venture.
     ventures: v === "enable" ? ventures : ventures.filter((x) => x.pillar === v),
     holdings: holdings.filter((h) => h.pillar === v).map((h) => ({ ...h, pos: position(toTxns(h)) })),
     deals,

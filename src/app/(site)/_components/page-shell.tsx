@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-type Here = "build" | "co-build" | "own" | "studio" | "impact-marrow" | "about" | "media";
+type Here = "build" | "co-build" | "own" | "stack" | "impact-marrow" | "about" | "media";
 
 /**
- * Where a page sits in Boring PE: the three activities side by side, Studio underneath enabling
+ * Where a page sits in Boring PE: the three activities side by side, Boring Stack underneath enabling
  * them, Impact Marrow beside the firm. The current page is lit; every box links to its page.
  */
 export function StructureMap({ here }: { here: Here }) {
@@ -34,7 +34,7 @@ export function StructureMap({ here }: { here: Here }) {
             {box("own", "Own")}
           </div>
           <div aria-hidden className="mx-6 h-3 border-x border-dashed border-slate-700" />
-          {box("studio", "Studio", "finance, HR, legal, strategy and systems for all three")}
+          {box("stack", "Boring Stack", "finance, HR, legal, strategy, systems and founder advisory")}
         </div>
         <div className="sm:w-32 sm:shrink-0 sm:self-stretch">
           {box("impact-marrow", "Impact Marrow", "beside the firm", "sm:h-full")}
@@ -145,7 +145,7 @@ export function Questions({ items }: { items: { q: string; a: string }[] }) {
 }
 
 /** The closing invitation to get in touch. */
-export function ContactBand({ title, body, label, email }: { title: string; body: string; label: string; email: string }) {
+export function ContactBand({ title, body, label, email, href }: { title: string; body: string; label: string; email: string; href?: string }) {
   return (
     <section className="px-6 border-b border-slate-800 bg-slate-900/40">
       <div className="max-w-6xl mx-auto grid gap-8 py-16 md:py-20 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
@@ -154,7 +154,7 @@ export function ContactBand({ title, body, label, email }: { title: string; body
           <p className="text-slate-400 leading-relaxed">{body}</p>
         </div>
         <div>
-          <a href={`mailto:${email}`} className="inline-flex items-center gap-2 px-7 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-md transition-colors">
+          <a href={href ?? `mailto:${email}`} className="inline-flex items-center gap-2 px-7 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-md transition-colors">
             {label}
           </a>
           <p className="mt-2 text-xs text-slate-500">or write to {email}</p>

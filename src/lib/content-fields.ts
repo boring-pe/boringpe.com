@@ -37,17 +37,17 @@ export const SITES: Record<SiteId, { label: string; where: string; path: string;
         label: "Framework intro",
         max: 300,
         multiline: true,
-        default: "Three separate activities of Boring PE: Build, Co-Build and Own. They are not Business Studio.",
+        default: "Three separate activities of Boring PE: Build, Co-Build and Own. They are not Boring Stack.",
       },
-      { key: "buildBody", label: "Build, part of Boring PE", max: 300, multiline: true, default: "Boring PE builds businesses on its own. Build is not part of Business Studio." },
+      { key: "buildBody", label: "Build, part of Boring PE", max: 300, multiline: true, default: "Boring PE builds businesses on its own. Build is not part of Boring Stack." },
       { key: "coBuildBody", label: "Co-Build, part of Boring PE", max: 300, multiline: true, default: "Boring PE co-builds with partners. Co-Build is separate from Build and from Own." },
       { key: "ownBody", label: "Own, part of Boring PE", max: 300, multiline: true, default: "Boring PE takes ownership and holds business interests. Own is separate from Build and from Co-Build." },
       {
         key: "enableBody",
-        label: "Enable, through Business Studio",
+        label: "Enable, through Boring Stack",
         max: 300,
         multiline: true,
-        default: "Enable is not one of those three. It runs through Business Studio and supports Boring PE. It does not build, co-build or own.",
+        default: "Enable is not one of those three. It runs through Boring Stack and supports Boring PE. It does not build, co-build or own.",
       },
       { key: "foundersTitle", label: "Founders section title", max: 120, default: "You Built It. We Protect and Scale It." },
       {
@@ -71,7 +71,7 @@ export const SITES: Record<SiteId, { label: string; where: string; path: string;
         max: 600,
         multiline: true,
         default:
-          "The social and economic initiative beside Boring PE. It is funded by Rahul Mane and by Boring PE through its own fund. It is not Build, Co-Build, Own, or Studio.",
+          "The social and economic initiative beside Boring PE. It is funded by Rahul Mane and by Boring PE through its own fund. It is not Build, Co-Build, Own, or the Boring Stack.",
       },
       { key: "mediaBody", label: "Media page", max: 600, multiline: true, default: "Announcements from Boring PE will be published here." },
       {
@@ -79,7 +79,7 @@ export const SITES: Record<SiteId, { label: string; where: string; path: string;
         label: "About Us page",
         max: 800,
         multiline: true,
-        default: "Boring PE is a private enterprise. Build, Co-Build, and Own are its three activities. Studio enables them. Impact Marrow sits beside the firm.",
+        default: "Boring PE is a private enterprise. Build, Co-Build, and Own are its three activities. The Boring Stack enables them. Impact Marrow sits beside the firm.",
       },
       { key: "contactEmail", label: "Contact email", max: 254, email: true, default: "hello@boringpe.com" },
       {

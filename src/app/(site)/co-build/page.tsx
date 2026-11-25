@@ -27,7 +27,7 @@ export default async function Page() {
             title: "Boring PE brings",
             items: [
               "Capital, on terms that keep you invested",
-              "Finance, HR, legal and strategy support through Boring Studio",
+              "Finance, HR, legal and strategy support through Boring Stack",
               "Operating discipline and systems, from day one",
               "A partner for the long term",
             ],
@@ -40,7 +40,7 @@ export default async function Page() {
             { title: "A confidential conversation", body: "You tell us about the business and what you want for it. Nothing is shared without your agreement." },
             { title: "Understand the business together", body: "We look at the numbers, the people and the market with you, so both sides know what the partnership would build on." },
             { title: "Agree the partnership", body: "We set out who owns what, who does what and how decisions are made, in writing." },
-            { title: "Plug into Studio", body: "From day one the business runs on Boring Studio's finance, HR, legal and strategy support." },
+            { title: "Plug into the Boring Stack", body: "From day one the business runs on Boring Stack's finance, HR, legal and strategy support." },
             { title: "Grow it together", body: "We work alongside you on the plan, review progress regularly and keep reinvesting in what works." },
           ]}
         />

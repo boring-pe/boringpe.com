@@ -32,7 +32,7 @@ export default async function Page() {
         <Steps
           items={[
             { title: "Keep what works", body: "We learn how the business runs before changing anything, and protect its customers and people." },
-            { title: "Add Studio where it helps", body: "Finance, HR, legal and strategy support from Boring Studio take load off the team." },
+            { title: "Add the Stack where it helps", body: "Finance, HR, legal and strategy support from Boring Stack take load off the team." },
             { title: "Hold for the long term", body: "We measure progress in years and reinvest cash flow where it compounds." },
           ]}
         />

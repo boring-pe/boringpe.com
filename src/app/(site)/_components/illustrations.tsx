@@ -43,7 +43,7 @@ function Dims({ x1, x2, y, label }: { x1: number; x2: number; y: number; label?:
 }
 
 /**
- * Boring PE as one building: Boring Studio is the foundation, Build, Co-Build and Own are the
+ * Boring PE as one building: Boring Stack is the foundation, Build, Co-Build and Own are the
  * three pillars standing on it, and Impact Marrow stands beside it.
  */
 export function FirmElevation({ className }: Props) {
@@ -64,9 +64,9 @@ export function FirmElevation({ className }: Props) {
       {pillar(112, "Build")}
       {pillar(230, "Co-Build")}
       {pillar(348, "Own")}
-      {/* the foundation: Boring Studio */}
+      {/* the foundation: Boring Stack */}
       <rect x={84} y={236} width={356} height={30} rx={2} stroke={BLUE} strokeWidth={2} fill="rgba(59,130,246,0.18)" />
-      <text x={262} y={256} textAnchor="middle" fill="#bfdbfe" fontSize={12} fontFamily="Inter, sans-serif">Boring Studio · finance · people · legal · strategy · systems</text>
+      <text x={262} y={256} textAnchor="middle" fill="#bfdbfe" fontSize={12} fontFamily="Inter, sans-serif">Boring Stack · finance · people · legal · strategy · systems</text>
       {/* Impact Marrow beside the firm */}
       <g>
         <line x1={540} y1={266} x2={540} y2={186} stroke={INK} strokeWidth={2} />
@@ -160,8 +160,8 @@ export function OwnIllustration({ className }: Props) {
   );
 }
 
-/** Boring Studio: five shared services wired into one hub that every business plugs into. */
-export function StudioIllustration({ className }: Props) {
+/** Boring Stack: five shared services wired into one hub that every business plugs into. */
+export function StackIllustration({ className }: Props) {
   const node = (x: number, y: number, label: string, glyph: React.ReactNode) => (
     <g key={label}>
       <line x1={200} y1={150} x2={x} y2={y} stroke={FAINT} strokeWidth={1.25} strokeDasharray="3 4" />
@@ -182,7 +182,7 @@ export function StudioIllustration({ className }: Props) {
       <circle cx={200} cy={150} r={46} stroke={BLUE} strokeWidth={2} fill="rgba(59,130,246,0.16)" />
       <circle cx={200} cy={150} r={60} stroke={FAINT} strokeWidth={1} strokeDasharray="2 5" />
       <text x={200} y={146} textAnchor="middle" fill="#dbeafe" fontSize={13} fontFamily="'IBM Plex Serif', Georgia, serif">Boring</text>
-      <text x={200} y={162} textAnchor="middle" fill="#dbeafe" fontSize={13} fontFamily="'IBM Plex Serif', Georgia, serif">Studio</text>
+      <text x={200} y={162} textAnchor="middle" fill="#dbeafe" fontSize={13} fontFamily="'IBM Plex Serif', Georgia, serif">Stack</text>
       {/* the businesses it serves, along the top */}
       {[["Build", 150], ["Co-Build", 200], ["Own", 250]].map(([l, x]) => (
         <g key={l as string}>

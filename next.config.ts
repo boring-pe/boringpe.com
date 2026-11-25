@@ -20,6 +20,13 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // Boring Studio became Boring Stack: old links keep working.
+  async redirects() {
+    return [
+      { source: "/studio", destination: "/stack", permanent: true },
+      { source: "/portal/verticals/studio", destination: "/portal/verticals/stack", permanent: true },
+    ];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders(dev) },

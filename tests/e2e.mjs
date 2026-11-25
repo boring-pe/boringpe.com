@@ -244,7 +244,7 @@ await step("Super Admin lands on the console and sees all three workspaces; dash
   assert.match(A.page.url(), /\/portal\/console$/);
   // Group headings are rendered uppercase, so compare without case.
   const nav = (await A.page.locator('nav[aria-label="Portal"]').innerText()).toLowerCase();
-  for (const label of ["Super Admin", "Security", "Intelligence", "Net worth", "Verticals", "Build", "Co-Build", "Own", "Boring Studio", "Ventures", "Infrastructure", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
+  for (const label of ["Super Admin", "Security", "Intelligence", "Net worth", "Verticals", "Build", "Co-Build", "Own", "Boring Stack", "Ventures", "Infrastructure", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
     assert.ok(nav.includes(label.toLowerCase()), label);
   }
   await A.page.goto("/portal/dashboard");
@@ -871,7 +871,7 @@ await step("ventures: a Build venture inside Boring PE pays no fee; the operator
   await A.page.click('button:has-text("Close month")');
   await A.page.waitForSelector("text=Month closed");
   const text = (await A.page.locator('article[data-period="2026-10"]').innerText()).replace(/\s+/g, " ");
-  assert.ok(/Boring Studio fee ₹0\.00/i.test(text) && /Net to venture ₹56,000\.00/i.test(text), text);
+  assert.ok(/Boring Stack fee ₹0\.00/i.test(text) && /Net to venture ₹56,000\.00/i.test(text), text);
   assert.ok(/Cafe Operator ₹24,000\.00/.test(text), text);
   await A.page.waitForLoadState("networkidle");
   await A.page.fill('input[name="month"]', "2026-10");
@@ -904,7 +904,7 @@ await step("ventures: a Co-Build venture in its SPV pays the fee to Boring PE; s
   await A.page.click('button:has-text("Close month")');
   await A.page.waitForSelector("text=Month closed");
   const text = (await A.page.locator('article[data-period="2026-10"]').innerText()).replace(/\s+/g, " ");
-  assert.ok(/Boring Studio fee ₹5,000\.00/i.test(text) && /Net to venture ₹52,000\.00/i.test(text), text);
+  assert.ok(/Boring Stack fee ₹5,000\.00/i.test(text) && /Net to venture ₹52,000\.00/i.test(text), text);
   await A.page.locator('tr[data-payout="Alpha Operator"] button:has-text("Mark paid")').click();
   await A.page.waitForSelector("text=Operator paid");
   assert.ok(/Paid/.test(await A.page.locator('tr[data-payout="Alpha Operator"]').innerText()));
@@ -1275,14 +1275,14 @@ await step("invoicing: within the state it is CGST plus SGST; a cancelled invoic
   assert.ok(/Output IGST ₹18,000\.00/i.test(gst) && /Output CGST ₹0\.00/i.test(gst) && /B2B taxable value ₹1,00,000\.00/i.test(gst), gst);
 });
 
-await step("invoicing: the Boring Studio fee is a real invoice; settling it moves money in both entities' books", async () => {
+await step("invoicing: the Boring Stack fee is a real invoice; settling it moves money in both entities' books", async () => {
   await A.page.goto("/portal/invoices?view=receivables");
   const row = (await A.page.locator('tr[data-receivable="Alpha SPV"]').innerText()).replace(/\s+/g, " ");
   assert.ok(/₹5,000\.00/.test(row), row);
   await A.page.goto("/portal/invoices");
   await A.page.locator('tr[data-invoice="INV/2026-27/0001"] a').click();
   await A.page.waitForLoadState("networkidle");
-  assert.ok(/Boring Studio fee: Alpha Co-Build, 2026-10/.test(await A.page.locator("[data-invoice-doc]").innerText()));
+  assert.ok(/Boring Stack fee: Alpha Co-Build, 2026-10/.test(await A.page.locator("[data-invoice-doc]").innerText()));
   assert.equal(await A.page.locator('button:has-text("Cancel invoice")').count(), 0, "fee invoices are not cancelled by hand");
   await A.page.click('button:has-text("Settle between our entities")');
   await A.page.waitForSelector("text=Settled between our entities");
@@ -2188,20 +2188,20 @@ await step("net worth: every level from all three together down to each unit, co
   assert.doesNotMatch(B.page.url(), /\/portal\/networth/, "an LP cannot open net worth");
 });
 
-await step("verticals: Build, Co-Build, Own and Boring Studio each have a page; records carry their vertical", async () => {
-  await A.page.goto("/portal/verticals/studio");
+await step("verticals: Build, Co-Build, Own and Boring Stack each have a page; records carry their vertical", async () => {
+  await A.page.goto("/portal/verticals/stack");
   assert.equal(await A.page.locator("[data-all-verticals] [data-row]").count(), 4);
-  assert.match(await txt(A.page, '[data-kpi="fees"]'), /Boring Studio fees/i);
-  assert.match(await txt(A.page, '[data-list="ventures"]'), /Alpha Co-Build/, "Boring Studio manages every venture");
+  assert.match(await txt(A.page, '[data-kpi="fees"]'), /Boring Stack fees/i);
+  assert.match(await txt(A.page, '[data-list="ventures"]'), /Alpha Co-Build/, "Boring Stack manages every venture");
 
   await A.page.goto("/portal/verticals/co-build");
   assert.match(await txt(A.page, '[data-list="ventures"]'), /Alpha Co-Build/);
   await A.page.goto("/portal/verticals/build");
   assert.doesNotMatch(await txt(A.page, '[data-list="ventures"]'), /Alpha Co-Build/, "a Co-Build venture is not under Build");
 
-  // The Boring Studio fee invoice belongs to Boring Studio, since Boring PE issues it.
+  // The Boring Stack fee invoice belongs to Boring Stack, since Boring PE issues it.
   await A.page.goto("/portal/invoices?vertical=enable");
-  assert.ok(await A.page.locator("[data-invoice]").count() > 0, "Boring PE's own invoices are Boring Studio's");
+  assert.ok(await A.page.locator("[data-invoice]").count() > 0, "Boring PE's own invoices are Boring Stack's");
   await A.page.goto("/portal/invoices?vertical=own");
   assert.match(await flat(A.page), /No invoices yet/);
 
@@ -2215,18 +2215,18 @@ await step("verticals: Build, Co-Build, Own and Boring Studio each have a page; 
   await A.page.goto("/portal/verticals/own");
   assert.match(await txt(A.page, '[data-list="tasks"]'), /Review the Q3 valuations/);
 
-  await B.page.goto("/portal/verticals/studio");
+  await B.page.goto("/portal/verticals/stack");
   assert.doesNotMatch(B.page.url(), /\/portal\/verticals/, "an LP cannot open the verticals");
 });
 
 await step("public site: every menu item is its own page with the shared menu and footer", async () => {
-  const pages = [["/build", "Build"], ["/co-build", "Co-Build"], ["/own", "Own"], ["/studio", "Studio"], ["/impact-marrow", "Impact Marrow"], ["/media", "Media"], ["/about", "About Us"]];
+  const pages = [["/build", "Build"], ["/co-build", "Co-Build"], ["/own", "Own"], ["/stack", "Boring Stack"], ["/impact-marrow", "Impact Marrow"], ["/media", "Media"], ["/about", "About Us"]];
   const p = B.page;
   await p.goto("/");
   for (const [href, label] of pages) {
     await p.click(`nav[aria-label="Site"] a[href="${href}"] >> visible=true`);
     await p.waitForURL((u) => u.pathname === href);
-    assert.equal(await p.locator("h1").first().innerText(), label === "Studio" ? "Boring Studio" : label);
+    assert.equal(await p.locator("h1").first().innerText(), label);
     assert.ok(await p.locator("[data-structure-map]").count(), "the map of Boring PE");
     assert.ok(await p.locator("section").first().locator("svg[data-illustration]").count(), "an illustration in the opening");
     assert.equal(await p.getAttribute(`nav[aria-label="Site"] a[aria-current="page"] >> visible=true`, "href"), href);
@@ -2248,6 +2248,14 @@ await step("public site: every menu item is its own page with the shared menu an
   await p.waitForURL(/\/media$/);
   assert.ok(await p.locator("#site-menu").isHidden(), "closes after a choice");
   await p.setViewportSize({ width: 1280, height: 800 });
+
+  // Boring Stack: founder advisory, with a request link that preselects the topic; the old address redirects.
+  await p.goto("/studio");
+  await p.waitForURL(/\/stack$/);
+  assert.match(await txt(p, "#advisory"), /Ways to work with Rahul[\s\S]*Mentoring[\s\S]*Pricing is on request/);
+  await p.click('a:has-text("Request a conversation")');
+  await p.waitForURL(/\/connect\?topic=Founder/);
+  assert.equal(await p.getAttribute("form[data-topic]", "data-topic"), "Founder advisory", "the topic is preselected");
 
   // The home page's cards lead to the pages.
   await p.goto("/");

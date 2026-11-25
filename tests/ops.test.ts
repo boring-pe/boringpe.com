@@ -3,12 +3,12 @@ import { test } from "node:test";
 import { GATED_STAGES, PILLARS, VERTICALS, isVertical, verticalBySlug, verticalLabel, parseAmount, parseDate, parseOptionalAmount, oneLine, inr } from "../src/lib/ops-fields.ts";
 import { ROLES, can } from "../src/lib/rbac.ts";
 
-test("the four verticals are Build, Own, Co-Build and Boring Studio (Enable)", () => {
-  assert.deepEqual(PILLARS.map((p) => p.label), ["Build", "Own", "Co-Build", "Boring Studio"]);
-  assert.deepEqual(VERTICALS.map((v) => v.label), ["Build", "Co-Build", "Own", "Boring Studio"]);
-  assert.equal(verticalBySlug("studio")?.id, "enable", "Boring Studio keeps the id 'enable'");
+test("the four verticals are Build, Own, Co-Build and Boring Stack (Enable)", () => {
+  assert.deepEqual(PILLARS.map((p) => p.label), ["Build", "Own", "Co-Build", "Boring Stack"]);
+  assert.deepEqual(VERTICALS.map((v) => v.label), ["Build", "Co-Build", "Own", "Boring Stack"]);
+  assert.equal(verticalBySlug("stack")?.id, "enable", "Boring Stack keeps the id 'enable'");
   assert.equal(verticalLabel("co_build"), "Co-Build");
-  assert.ok(isVertical("own") && !isVertical("studio"));
+  assert.ok(isVertical("own") && !isVertical("stack"));
 });
 
 test("amounts accept Indian commas and reject nonsense", () => {

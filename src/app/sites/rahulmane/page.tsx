@@ -35,6 +35,20 @@ export default async function RahulManePage() {
           <p className="mt-10 border-l-2 border-blue-500 pl-4 text-slate-400">{c.commerceNote}</p>
         ) : null}
 
+        <section className="mt-12 rounded-xl border border-slate-800 bg-slate-900/50 p-6" aria-labelledby="work-with-me" data-work-with-me>
+          <h2 id="work-with-me" className="text-xl font-semibold text-white">Work with me</h2>
+          <p className="mt-2 text-slate-400 leading-relaxed">
+            I share what I have learned building businesses with founders: advisory calls, mentoring, enablement strategy, and talks and workshops for
+            chambers and incubators. It runs through the Boring Stack at Boring PE.
+          </p>
+          <a
+            href="https://boringpe.com/stack#advisory"
+            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-400 hover:text-blue-300"
+          >
+            Founder advisory <ArrowRight className="w-4 h-4" />
+          </a>
+        </section>
+
         <div className="mt-12 flex flex-wrap items-center gap-4">
           <a
             href="https://boringpe.com"

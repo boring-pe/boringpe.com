@@ -15,7 +15,7 @@ export type Unit = {
   /** What it paid for investments it still holds, and what they are worth now. */
   cost: bigint;
   value: bigint;
-  /** Boring Studio fees it was charged in the period (account 5100). */
+  /** Boring Stack fees it was charged in the period (account 5100). */
   fees: bigint;
 };
 
@@ -44,7 +44,7 @@ const ZERO = 0n;
 
 /**
  * Adds up a set of units, counting money that moves inside the set once:
- * - Boring Studio fees, when the fee earner (Boring PE) is inside, are neither income nor expense;
+ * - Boring Stack fees, when the fee earner (Boring PE) is inside, are neither income nor expense;
  * - a gift between two units inside is not an expense (the receiver books it as capital);
  * - a stake one unit holds in another unit inside is dropped, since the company's own books
  *   already carry what it owns and owes.
