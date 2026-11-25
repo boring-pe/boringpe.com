@@ -96,7 +96,7 @@ export const SITES: Record<SiteId, { label: string; where: string; path: string;
         max: 200,
         multiline: true,
         default:
-          "A private enterprise that builds, co-builds, grows, invests in and acquires profitable, scalable and sustainable businesses, and investable and commercial projects.",
+          "A private enterprise that builds, co-builds, grows, invests in and acquires profitable, scalable and sustainable businesses, investable and commercial projects.",
       },
     ],
   },
