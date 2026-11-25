@@ -2,6 +2,9 @@ import { requireSection } from "@/lib/dal";
 import { listDeals, listParties } from "@/lib/ops";
 import { PARTY_KINDS, PILLARS, STAGES, inr, pillarLabel, stageLabel } from "@/lib/ops-fields";
 import { addDeal, addParty, moveDeal } from "./actions";
+import { Handshake } from "lucide-react";
+import { EmptyState } from "../_shell/status";
+import { SubmitButton } from "../_shell/buttons";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   "deal-added": { text: "Deal added." },
@@ -42,7 +45,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
 
       <section className={`${card} p-6`}>
         <h3 className="text-sm font-semibold text-white mb-4">Add a deal</h3>
-        <form action={addDeal} className="grid gap-3 md:grid-cols-4">
+        <form id="add" action={addDeal} className="grid gap-3 md:grid-cols-4 scroll-mt-28">
           <input name="name" required minLength={2} maxLength={140} placeholder="Deal name" className={input} />
           <select name="pillar" defaultValue="build" className={input} aria-label="Pillar">
             {PILLARS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
@@ -53,7 +56,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
           </select>
           <input name="value" inputMode="decimal" placeholder="Value in ₹ (optional)" className={input} />
           <input name="notes" maxLength={1000} placeholder="Notes (optional)" className={`${input} md:col-span-3`} />
-          <button type="submit" className={btn}>Add deal</button>
+          <SubmitButton pending="Adding…" className={btn}>Add deal</SubmitButton>
         </form>
       </section>
 
@@ -62,7 +65,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
           <h3 className="text-sm font-semibold text-white">Deals ({deals.length})</h3>
         </div>
         {deals.length === 0 ? (
-          <p className="px-6 py-4 text-sm text-slate-500">No deals yet.</p>
+          <div className="p-6"><EmptyState compact icon={Handshake} title="No deals yet" body="Add the first opportunity and move it through the stages as it progresses." action={{ label: "Add a deal", href: "#add" }} /></div>
         ) : (
           <ul className="divide-y divide-slate-800/80">
             {deals.map((d) => (
@@ -101,7 +104,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
             {PARTY_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
           </select>
           <input name="email" type="email" maxLength={254} placeholder="Email (optional)" className={input} />
-          <button type="submit" className={btn}>Add party</button>
+          <SubmitButton pending="Adding…" className={btn}>Add party</SubmitButton>
         </form>
         <ul className="text-sm text-slate-300 space-y-1">
           {parties.map((p) => (

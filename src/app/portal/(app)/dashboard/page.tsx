@@ -21,6 +21,7 @@ import { switchWorkspace } from "../_shell/prefs-actions";
 import { GUIDES, progress } from "@/lib/guides-calc";
 import { guideFacts } from "@/lib/guides";
 import { Checklist } from "../guides/checklist";
+import { DueChip } from "../_shell/status";
 
 const card = "rounded-xl border border-slate-800 bg-slate-900 p-5";
 const label = "text-xs font-medium uppercase tracking-wide text-slate-500";
@@ -136,7 +137,7 @@ export default async function DashboardPage() {
               <Link href="/portal/invoices?view=receivables" className={`${card} block`}>
                 <div className="flex items-center justify-between"><span className={label}>Owed to us</span><Receipt className="h-4 w-4 text-slate-500" /></div>
                 <div className="mt-2 text-2xl font-semibold text-white">{rupees(recv.due)}</div>
-                <div className={`text-xs ${recv.overdue > 0n ? "text-amber-400" : "text-slate-500"}`}>{recv.overdue > 0n ? `${compactRupees(recv.overdue)} overdue on ${recv.overdueCount} invoice${recv.overdueCount === 1 ? "" : "s"}` : "Nothing overdue"}</div>
+                <div className="mt-1 text-xs text-slate-500">{recv.overdue > 0n ? <DueChip state="overdue" label={`${compactRupees(recv.overdue)} overdue on ${recv.overdueCount} invoice${recv.overdueCount === 1 ? "" : "s"}`} /> : "Nothing overdue"}</div>
               </Link>
             ) : null}
             {owner ? (
@@ -179,7 +180,7 @@ export default async function DashboardPage() {
                 {seeMoney ? <div className="flex justify-between py-2"><dt className="text-slate-400">Paid out</dt><dd className="font-medium text-white">{inr(ops.money?.moneyout ?? 0)}</dd></div> : null}
                 {seeTasks ? (
                   <div className="flex justify-between py-2"><dt className="text-slate-400">Open tasks</dt>
-                    <dd className="font-medium text-white">{ops.tasks?.open ?? 0}{ops.tasks?.overdue ? <span className="ml-2 text-xs text-red-400">{ops.tasks.overdue} overdue</span> : null}</dd></div>
+                    <dd className="font-medium text-white">{ops.tasks?.open ?? 0}{ops.tasks?.overdue ? <span className="ml-2"><DueChip state="overdue" label={`${ops.tasks.overdue} overdue`} /></span> : null}</dd></div>
                 ) : null}
               </dl>
             </section>

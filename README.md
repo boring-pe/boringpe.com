@@ -240,6 +240,16 @@ or rejected, and comes back as **Re-KYC due** on a date set by risk (2 years hig
   nightly encrypted dumps, for running everything on your own servers in India. See
   `deploy/SELF-HOSTING.md`.
 
+## Portal UX rules
+
+Borrowed from Sevastack's audience rules and kept in `src/app/portal/(app)/_shell/`:
+
+- Anything that erases data, cancels a document, revokes a key or signs people out uses `ConfirmButton` (`buttons.tsx`): a dialog that says what will happen and whether it can be undone, with "Keep it" focused first.
+- Create forms submit through `SubmitButton`, which disables itself and names the work ("Adding…", "Issuing…") so nothing is sent twice.
+- Status is a `StatusChip` (`status.tsx`), one colour per meaning, always with a word: green done, amber waiting, orange overdue (`--p-late`), red wrong, blue in flight, grey ended. Due dates use `DueChip`.
+- An empty list is an `EmptyState`: icon, one line on what goes here, and the action that fills it.
+- No text below 11px; labels in sentence case.
+
 ## Everyday use
 
 - **+ New** (header, or press `N`): start an invoice, money entry, journal entry, task, deal,

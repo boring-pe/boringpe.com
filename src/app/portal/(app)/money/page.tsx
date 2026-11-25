@@ -7,6 +7,9 @@ import { listDeals, listMoney, listParties, unpostedMoneyCount } from "@/lib/ops
 import { CATEGORIES, categoryLabel, inr } from "@/lib/ops-fields";
 import { CURRENCIES } from "@/lib/assets-calc";
 import { addEntry, postOlderEntries } from "./actions";
+import { EmptyState, StatusChip } from "../_shell/status";
+import { Wallet } from "lucide-react";
+import { SubmitButton } from "../_shell/buttons";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   saved: { text: "Recorded." },
@@ -17,13 +20,6 @@ const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   backfilled: { text: "Older entries posted to the books." },
   "books-refused": { text: "The books refused that entry. Nothing was saved.", bad: true },
   "too-many": { text: "You already have 20 requests waiting.", bad: true },
-};
-const STATUS_STYLE: Record<string, string> = {
-  recorded: "text-green-400",
-  approved: "text-green-400",
-  awaiting_approval: "text-amber-400",
-  rejected: "text-red-400",
-  withdrawn: "text-slate-500",
 };
 const card = "bg-slate-900 border border-slate-800 rounded-xl";
 const input =
@@ -78,13 +74,13 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
       {owner && unposted > 0 ? (
         <form action={postOlderEntries} className={`${card} p-4 flex flex-wrap items-center justify-between gap-3`}>
           <span className="text-sm text-amber-300">{unposted} older {unposted === 1 ? "entry counts" : "entries count"} but {unposted === 1 ? "is" : "are"} not in the books yet.</span>
-          <button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Post them to the books</button>
+          <SubmitButton pending="Posting…">Post them to the books</SubmitButton>
         </form>
       ) : null}
 
       <section className={`${card} p-6`}>
         <h3 className="text-sm font-semibold text-white mb-4">Add an entry</h3>
-        <form action={addEntry} className="grid gap-3 md:grid-cols-4">
+        <form id="add" action={addEntry} className="grid gap-3 md:grid-cols-4 scroll-mt-28">
           <select name="direction" defaultValue="in" className={input} aria-label="Direction">
             <option value="in">Money in</option>
             <option value="out">Payment out</option>
@@ -112,9 +108,7 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
             {parties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <div className="md:col-span-4">
-            <button type="submit" className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-              Save
-            </button>
+            <SubmitButton>Save</SubmitButton>
           </div>
         </form>
       </section>
@@ -125,7 +119,7 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
           <VerticalFilter base="/portal/money" current={vertical} />
         </div>
         {entries.length === 0 ? (
-          <p className="px-6 py-4 text-sm text-slate-500">Nothing recorded yet.</p>
+          <div className="p-6"><EmptyState compact icon={Wallet} title={vertical ? "Nothing recorded for this vertical" : "Nothing recorded yet"} body="Record money in as it arrives, or a payment out, and it posts to the chosen entity's books." action={{ label: "Record an entry", href: "#add" }} /></div>
         ) : (
           <ul className="divide-y divide-slate-800/80 text-sm">
             {entries.map((e) => (
@@ -140,7 +134,7 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
                 {e.memo ? <span className="text-slate-400">{e.memo}</span> : null}
                 {e.deal_name ? <span className="text-xs text-slate-500">{e.deal_name}</span> : null}
                 {e.party_name ? <span className="text-xs text-slate-500">{e.party_name}</span> : null}
-                <span className={`text-xs font-semibold ${STATUS_STYLE[e.status]}`}>{e.status.replace("_", " ")}</span>
+                <StatusChip status={e.status} />
                 {e.entity_name ? <span className="text-xs text-slate-500">{e.entity_name}</span> : null}
                 {e.journal_entry_id ? <span className="text-xs text-green-400">in books</span> : null}
               </li>

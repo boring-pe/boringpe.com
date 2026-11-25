@@ -42,6 +42,15 @@ async function login(page, email, password) {
 
 const A = await ctx();
 
+/** A destructive button asks first: open its dialog, check it says it cannot be undone, then confirm. */
+async function confirmClick(page, trigger) {
+  await page.locator(trigger).first().click();
+  const dlg = page.locator("dialog[open][data-confirm-dialog]");
+  await dlg.waitFor();
+  assert.ok((await dlg.innerText()).trim().length > 40, "a confirm dialog says what will happen");
+  await dlg.locator("[data-confirm]").click();
+}
+
 await step("unauthenticated portal pages redirect to login", async () => {
   for (const path of ["/portal", "/portal/dashboard", "/portal/access", "/portal/account"]) {
     await A.page.goto(path);
@@ -330,7 +339,7 @@ await step("approvals: an Admin asks, the Super Admin approves with a note, the 
 
   await E.page.goto("/portal/approvals");
   const done = E.page.locator('li[data-approval="Approve first SPV"]');
-  assert.ok(/approved/.test(await done.innerText()));
+  assert.ok(/approved/i.test(await done.innerText()));
   assert.ok(/Go ahead/.test(await done.innerText()));
   assert.equal(await done.locator("button").count(), 0, "a decided request has no controls");
 });
@@ -347,10 +356,10 @@ await step("approvals: rejecting and withdrawing both work", async () => {
   await A.page.locator('li[data-approval="Pay supplier"] button:has-text("Reject")').click();
   await A.page.waitForSelector("text=Rejected.");
   await E.page.goto("/portal/approvals");
-  assert.ok(/rejected/.test(await E.page.locator('li[data-approval="Pay supplier"]').innerText()));
+  assert.ok(/rejected/i.test(await E.page.locator('li[data-approval="Pay supplier"]').innerText()));
   await E.page.locator('li[data-approval="Draft memo"] button:has-text("Withdraw")').click();
   await E.page.waitForSelector("text=Request withdrawn.");
-  assert.ok(/withdrawn/.test(await E.page.locator('li[data-approval="Draft memo"]').innerText()));
+  assert.ok(/withdrawn/i.test(await E.page.locator('li[data-approval="Draft memo"]').innerText()));
 });
 
 await step("an Admin cannot replay the decision form to approve their own request", async () => {
@@ -368,7 +377,7 @@ await step("an Admin cannot replay the decision form to approve their own reques
   });
   await A.page.goto("/portal/approvals");
   const text = await A.page.locator('li[data-approval="Replay target"]').innerText();
-  assert.ok(/pending/.test(text) && !/self/.test(text), "still pending");
+  assert.ok(/pending/i.test(text) && !/self/.test(text), "still pending");
 });
 
 await step("site content: the Super Admin edits Boring PE and the public page follows; markup stays text", async () => {
@@ -546,7 +555,7 @@ await step("money: bad amounts are refused, money in is recorded, a payment out 
   await E.page.click('button:has-text("Save")');
   await E.page.waitForSelector("text=Payment sent to the Super Admin");
   const text = await E.page.locator("main").innerText();
-  assert.ok(/awaiting approval/.test(text), "entry waits");
+  assert.ok(/awaiting approval/i.test(text), "entry waits");
   const cards = await E.page.locator("main .grid").first().innerText();
   assert.ok(/2,00,000/.test(cards), "money in counted");
   assert.ok(/Out \(approved\)\s*₹0\.00/i.test(cards.replace(/\n/g, " ")), "unapproved payment not counted");
@@ -568,7 +577,7 @@ await step("the owner approving a payment makes it count; rejecting one never do
   const cards = (await E.page.locator("main .grid").first().innerText()).replace(/\n/g, " ");
   assert.ok(/Out \(approved\)\s*₹25,000\.00/i.test(cards), "only the approved payment counts");
   const list = await E.page.locator("li[data-entry='Rejected spend']").innerText();
-  assert.ok(/rejected/.test(list));
+  assert.ok(/rejected/i.test(list));
 });
 
 await step("the owner's own payment counts at once, without asking anyone", async () => {
@@ -580,7 +589,7 @@ await step("the owner's own payment counts at once, without asking anyone", asyn
   await A.page.fill('input[name="memo"]', "Owner paid");
   await A.page.click('button:has-text("Save")');
   await A.page.waitForSelector("text=Recorded.");
-  assert.ok(/approved/.test(await A.page.locator("li[data-entry='Owner paid']").innerText()));
+  assert.ok(/approved/i.test(await A.page.locator("li[data-entry='Owner paid']").innerText()));
 });
 
 await step("money posts to the chosen entity's books when it counts, and never before", async () => {
@@ -624,7 +633,7 @@ await step("tasks: add, see overdue, mark done; the dashboard now shows real fig
   await E.page.selectOption('select[name="dealId"]', { label: "Alpha" });
   await E.page.click('button:has-text("Add task")');
   await E.page.waitForSelector("text=Task added.");
-  assert.ok(/overdue/.test(await E.page.locator('li[data-task="Send term sheet"]').innerText()));
+  assert.ok(/overdue/i.test(await E.page.locator('li[data-task="Send term sheet"]').innerText()));
   await E.page.locator('li[data-task="Send term sheet"] button:has-text("Mark done")').click();
   await E.page.waitForSelector("text=Marked done.");
   assert.ok(await E.page.locator('li[data-task="Send term sheet"] .line-through').count());
@@ -1027,7 +1036,7 @@ await step("access: links decide exactly what an LP sees", async () => {
   assert.ok(/1\.20x/.test(await B.page.locator('tr[data-holding="Acme Foods"]').innerText()));
   assert.ok(!/Alpha SPV stake/.test(await B.page.locator("main").innerText()), "Boring PE's own holding in the SPV stays hidden");
   await A.page.goto("/portal/portfolio?view=access");
-  await A.page.locator(`tr[data-scope="${LP} Acme Foods"] button:has-text("Remove")`).click();
+  await confirmClick(A.page, `tr[data-scope="${LP} Acme Foods"] [data-confirm-trigger]:has-text("Remove")`);
   await A.page.waitForSelector("text=Link removed");
   await B.page.goto("/portal/portfolio");
   assert.ok(!/Acme Foods/.test(await B.page.locator("main").innerText()));
@@ -1135,7 +1144,7 @@ await step("vault: shared documents reach linked people only; team-only ones nev
   await E.page.goto("/portal/vault");
   assert.equal(await E.page.locator('button:has-text("Delete")').count(), 0);
   await A.page.locator('tr[data-doc="Board notes"] summary').click();
-  await A.page.locator('tr[data-doc="Board notes"] button:has-text("Delete")').click();
+  await confirmClick(A.page, 'tr[data-doc="Board notes"] [data-confirm-trigger]:has-text("Delete")');
   await A.page.waitForSelector("text=File deleted");
 });
 
@@ -1163,7 +1172,7 @@ await step("drive: folders, files kept private, moving, and folders that are not
   assert.equal(await E.page.locator('[data-doc="Salary plan"]').count(), 0, "a private file never shows to others");
   assert.equal((await E.page.request.get(href)).status(), 404, "nor by direct link");
 
-  await A.page.click('button[value="delete"]');
+  await confirmClick(A.page, '[data-confirm-trigger]:has-text("Delete this folder")');
   await A.page.waitForSelector("text=Move or delete what is inside");
   await A.page.locator('[data-doc="Salary plan"] summary').click();
   await A.page.selectOption('[data-doc="Salary plan"] select[name="to"]', { label: "Board / 2026" });
@@ -1267,7 +1276,7 @@ await step("invoicing: within the state it is CGST plus SGST; a cancelled invoic
   assert.ok(/CGST ₹900\.00/.test(doc) && /SGST ₹900\.00/.test(doc) && !/IGST/.test(doc), doc);
   await A.page.click('button:has-text("Issue invoice")');
   await A.page.waitForSelector("text=Invoice issued");
-  await A.page.click('button:has-text("Cancel invoice")');
+  await confirmClick(A.page, '[data-confirm-trigger]:has-text("Cancel invoice")');
   await A.page.waitForSelector("text=Invoice cancelled");
   const month = new Date().toISOString().slice(0, 7);
   await A.page.goto(`/portal/invoices?view=gst&month=${month}`);
@@ -1283,7 +1292,7 @@ await step("invoicing: the Boring Stack fee is a real invoice; settling it moves
   await A.page.locator('tr[data-invoice="INV/2026-27/0001"] a').click();
   await A.page.waitForLoadState("networkidle");
   assert.ok(/Boring Stack fee: Alpha Co-Build, 2026-10/.test(await A.page.locator("[data-invoice-doc]").innerText()));
-  assert.equal(await A.page.locator('button:has-text("Cancel invoice")').count(), 0, "fee invoices are not cancelled by hand");
+  assert.equal(await A.page.locator('[data-confirm-trigger]:has-text("Cancel invoice")').count(), 0, "fee invoices are not cancelled by hand");
   await A.page.click('button:has-text("Settle between our entities")');
   await A.page.waitForSelector("text=Settled between our entities");
   await A.page.goto("/portal/invoices?view=receivables");
@@ -1507,7 +1516,7 @@ await step("API: keys authenticate, scopes limit them, money in posts to the boo
   await A.page.goto("/portal/money");
   assert.ok(/in books/.test(await A.page.locator("li[data-entry='Paid via API']").innerText()));
   await A.page.goto("/portal/integrations?view=api");
-  await A.page.locator('tr[data-key="Zapier"] button:has-text("Revoke")').click();
+  await confirmClick(A.page, 'tr[data-key="Zapier"] [data-confirm-trigger]:has-text("Revoke")');
   await A.page.waitForSelector("text=Key revoked");
   assert.equal((await api.request.get("/api/v1/me", { headers: auth })).status(), 401);
   await api.close();
@@ -2326,8 +2335,7 @@ await step("security: headers, crawler blocking, rate limits, watermark, exports
   }
 
   // The emergency brake signs out everyone but the Super Admin.
-  await A.page.check('input[name="confirm"]');
-  await A.page.click('button:has-text("Sign everyone else out")');
+  await confirmClick(A.page, '[data-confirm-trigger]:has-text("Sign everyone else out")');
   await A.page.waitForURL(/n=out/);
   await E.page.goto("/portal/dashboard");
   assert.match(E.page.url(), /\/portal\/login/);

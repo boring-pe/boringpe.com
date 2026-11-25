@@ -5,6 +5,7 @@ import { listSecrets } from "@/lib/secrets";
 import { workspaceLabel } from "@/lib/workspace-calc";
 import { addSecret, changeSecret, removeSecret, reveal } from "./actions";
 import { Reveal } from "./reveal";
+import { ConfirmButton } from "../_shell/buttons";
 
 const card = "rounded-xl border border-slate-800 bg-slate-900";
 const input = "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none";
@@ -59,7 +60,7 @@ export default async function SecretsPage({ searchParams }: { searchParams: Prom
                             <input name="secret" type="password" required placeholder="New secret" autoComplete="new-password" className="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white" />
                             <button className="text-blue-400 hover:text-blue-300">Save</button>
                           </form>
-                          <form action={removeSecret} className="mt-2"><input type="hidden" name="id" value={s.id} /><button className="text-red-400 hover:text-red-300">Delete</button></form>
+                          <form action={removeSecret} className="mt-2"><input type="hidden" name="id" value={s.id} /><ConfirmButton title={`Delete ${s.title}?`} body="The stored secret is erased from the vault and cannot be recovered. Anything that uses it will need a new one." confirm="Delete secret" className="text-red-400 hover:text-red-300">Delete</ConfirmButton></form>
                         </details>
                       ) : null}
                     </td>

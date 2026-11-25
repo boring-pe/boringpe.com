@@ -16,6 +16,9 @@ import { monthEnd } from "@/lib/venture-calc";
 import { invoiceAction, newInvoice, paymentLink, saveEntityGst, savePartyGst } from "./actions";
 import { linksFor, razorpayReady } from "@/lib/payments";
 import { PrintButton } from "./print-button";
+import { ConfirmButton, SubmitButton } from "../_shell/buttons";
+import { Receipt } from "lucide-react";
+import { DueChip, EmptyState, StatusChip, dueState } from "../_shell/status";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   drafted: { text: "Draft saved. Check it, then issue it." },
@@ -45,10 +48,6 @@ const th = "px-3 py-2 text-left text-xs uppercase tracking-wide text-slate-500";
 const td = "px-3 py-2 text-sm text-slate-300";
 const num = "px-3 py-2 text-sm text-right tabular-nums text-slate-200";
 const r = (d: string) => rupees(decimalToPaise(d));
-const STATUS: Record<string, string> = {
-  draft: "border-slate-700 text-slate-400", issued: "border-amber-500/40 bg-amber-500/10 text-amber-300",
-  paid: "border-green-500/40 bg-green-500/10 text-green-300", cancelled: "border-red-500/30 bg-red-500/10 text-red-300",
-};
 const VIEWS = [["list", "Invoices"], ["new", "New invoice"], ["receivables", "Receivables"], ["gst", "GST summary"], ["settings", "GST settings"]] as const;
 
 export default async function InvoicesPage({
@@ -88,6 +87,7 @@ export default async function InvoicesPage({
 }
 
 async function List({ vertical }: { vertical: string | null }) {
+  const today = new Date().toISOString().slice(0, 10);
   const rows = (await listInvoices()).filter((i) => !vertical || i.vertical === vertical);
   return (
     <div className="space-y-3">
@@ -96,7 +96,7 @@ async function List({ vertical }: { vertical: string | null }) {
       <table className="w-full">
         <thead><tr><th className={th}>Number</th><th className={th}>Date</th><th className={th}>From</th><th className={th}>To</th><th className={`${th} text-right`}>Total</th><th className={`${th} text-right`}>Outstanding</th><th className={th}>Vertical</th><th className={th}>Status</th></tr></thead>
         <tbody>
-          {rows.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-sm text-slate-500">No invoices yet.</td></tr> : rows.map((i) => {
+          {rows.length === 0 ? <tr><td colSpan={8} className="p-6"><EmptyState compact icon={Receipt} title="No invoices yet" body="Raise a GST invoice to a party; it posts to the books when you issue it." action={{ label: "New invoice", href: "/portal/invoices?view=new" }} /></td></tr> : rows.map((i) => {
             const out = decimalToPaise(i.total) - decimalToPaise(i.received) - decimalToPaise(i.tds);
             return (
               <tr key={i.id} className="border-t border-slate-800" data-invoice={i.number ?? `draft ${i.party_name}`}>
@@ -104,7 +104,7 @@ async function List({ vertical }: { vertical: string | null }) {
                 <td className={td}>{i.issue_date}</td><td className={td}>{i.entity_name}</td><td className={td}>{i.party_name}</td>
                 <td className={num}>{r(i.total)}</td><td className={num}>{i.status === "issued" ? rupees(out) : ""}</td>
                 <td className={td}>{verticalLabel(i.vertical)}</td>
-                <td className={td}><span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${STATUS[i.status]}`}>{i.status}</span></td>
+                <td className={td}><span className="inline-flex flex-wrap gap-1"><StatusChip status={i.status} />{i.status === "issued" && out > 0n && dueState(i.due_date, today) ? <DueChip state={dueState(i.due_date, today)!} /> : null}</span></td>
               </tr>
             );
           })}
@@ -157,7 +157,7 @@ async function NewInvoice() {
           </div>
         ))}
         <input name="notes" maxLength={500} placeholder="Notes for the customer (bank details, terms)" className={input} />
-        <button className={btn}>Save draft</button>
+        <SubmitButton className={btn}>Save draft</SubmitButton>
       </form>
     </section>
   );
@@ -220,8 +220,8 @@ async function Detail({ id, post, owner }: { id: string; post: boolean; owner: b
         {post && inv.status === "draft" ? (
           <form action={invoiceAction} className="flex gap-3">
             <input type="hidden" name="id" value={inv.id} />
-            <button name="what" value="issue" className={btn}>Issue invoice</button>
-            <button name="what" value="delete" className="text-sm text-red-300 hover:text-red-200">Delete draft</button>
+            <SubmitButton name="what" value="issue" pending="Issuing…" className={btn}>Issue invoice</SubmitButton>
+            <ConfirmButton name="what" value="delete" title="Delete this draft invoice?" body="The draft and its lines are removed for good. Nothing was issued, so the books are not affected." confirm="Delete draft">Delete draft</ConfirmButton>
           </form>
         ) : null}
         {owner && inv.status === "issued" && inv.buyer.entity_id && outstanding > 0n ? (
@@ -233,7 +233,7 @@ async function Detail({ id, post, owner }: { id: string; post: boolean; owner: b
         {owner && inv.status === "issued" && inv.source_type === "manual" && decimalToPaise(inv.received) + decimalToPaise(inv.tds) === 0n ? (
           <form action={invoiceAction}>
             <input type="hidden" name="id" value={inv.id} /><input type="hidden" name="date" value={today} />
-            <button name="what" value="cancel" className="rounded-md border border-red-500/40 px-4 py-2 text-sm text-red-300 hover:text-red-200">Cancel invoice</button>
+            <ConfirmButton name="what" value="cancel" title={`Cancel invoice ${inv.number ?? ""}?`} body="The invoice is marked cancelled and its entry in the books is reversed. The number is kept and cannot be reused. This cannot be undone." confirm="Cancel invoice" className="rounded-md border border-red-500/40 px-4 py-2 text-sm text-red-300 hover:text-red-200">Cancel invoice</ConfirmButton>
           </form>
         ) : null}
       </div>

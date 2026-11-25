@@ -9,6 +9,7 @@ import {
 import { canManagePeople } from "@/lib/rbac";
 import { bpsLabel } from "@/lib/venture-calc";
 import { addEmployee, askLeave, cancelLeave, decide, editEmployee, prepare, runAction } from "./actions";
+import { StatusChip } from "../_shell/status";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   "employee-added": { text: "Employee added." },
@@ -41,7 +42,6 @@ const th = "px-3 py-2 text-left text-xs uppercase tracking-wide text-slate-500";
 const td = "px-3 py-2 text-sm text-slate-300";
 const num = "px-3 py-2 text-sm text-right tabular-nums text-slate-200";
 const r = (d: string) => rupees(decimalToPaise(d));
-const STATUS: Record<string, string> = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", withdrawn: "text-slate-500" };
 
 export default async function PeoplePage({ searchParams }: { searchParams: Promise<{ view?: string; emp?: string; notice?: string }> }) {
   const user = await requireSection("people");
@@ -171,7 +171,7 @@ async function Leave({ userId }: { userId: string }) {
                     <button name="decision" value="approved" className="text-xs text-green-300 hover:text-green-200">Approve</button>
                     <button name="decision" value="rejected" className="text-xs text-red-300 hover:text-red-200">Reject</button>
                   </form>
-                ) : <span className={`capitalize ${STATUS[l.status] ?? ""}`}>{l.status}{l.decided_by_email ? ` by ${l.decided_by_email}` : ""}</span>}
+                ) : <span className="inline-flex items-center gap-1.5"><StatusChip status={l.status} />{l.decided_by_email ? <span className="text-xs text-slate-500">by {l.decided_by_email}</span> : null}</span>}
               </td>
             </tr>
           ))}
@@ -280,7 +280,7 @@ function LeaveTable({ rows, own }: { rows: Awaited<ReturnType<typeof listLeave>>
           {rows.length === 0 ? <tr><td className="px-3 py-4 text-sm text-slate-500">No leave yet.</td></tr> : rows.map((l) => (
             <tr key={l.id} className="border-t border-slate-800">
               <td className={td}>{leaveLabel(l.kind)}</td><td className={td}>{l.from_date} to {l.to_date}</td><td className={num}>{l.days} days</td>
-              <td className={td}><span className={`capitalize ${STATUS[l.status] ?? ""}`}>{l.status}</span></td>
+              <td className={td}><StatusChip status={l.status} /></td>
               <td className={td}>
                 {own && l.status === "pending" ? (
                   <form action={cancelLeave}><input type="hidden" name="leaveId" value={l.id} /><button className="text-xs text-slate-400 hover:text-white">Withdraw</button></form>

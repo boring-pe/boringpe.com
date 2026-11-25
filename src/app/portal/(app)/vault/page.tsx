@@ -9,6 +9,7 @@ import { canSeeFirmData } from "@/lib/rbac";
 import { DOC_CATEGORIES, MAX_DOC_BYTES, ALLOWED_EXTENSIONS, docCategoryLabel, fileSize, isDocCategory } from "@/lib/vault-fields";
 import { listVentures } from "@/lib/ventures";
 import { editFolder, move, newFolder, remove, upload } from "./actions";
+import { ConfirmButton } from "../_shell/buttons";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   uploaded: { text: "File added." },
@@ -141,7 +142,7 @@ export default async function VaultPage({ searchParams }: { searchParams: Promis
                         <form action={remove} className="mt-2">
                           <input type="hidden" name="id" value={d.id} />
                           <input type="hidden" name="folderId" value={folderId ?? ""} />
-                          <button className="text-red-300 hover:text-red-200">Delete</button>
+                          <ConfirmButton title={`Delete ${d.title}?`} body="The file is deleted from the vault for good, for everyone who can see it. This cannot be undone." confirm="Delete file" className="text-red-300 hover:text-red-200">Delete</ConfirmButton>
                         </form>
                       ) : null}
                     </details>
@@ -198,7 +199,7 @@ export default async function VaultPage({ searchParams }: { searchParams: Promis
                 </form>
                 <form action={editFolder} className="mt-2">
                   <input type="hidden" name="id" value={folder.id} />
-                  <button name="op" value="delete" className="text-xs text-red-300 hover:text-red-200">Delete this folder (only when empty)</button>
+                  <ConfirmButton name="op" value="delete" title={`Delete the folder ${folder.name}?`} body="Only an empty folder can be deleted. It is removed for everyone; files are never deleted with it." confirm="Delete folder" className="text-xs text-red-300 hover:text-red-200">Delete this folder (only when empty)</ConfirmButton>
                 </form>
               </div>
             ) : null}
