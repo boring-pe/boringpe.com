@@ -5,13 +5,13 @@ import { seeAlso } from "../_components/see-also";
 
 // The opening line is editable from the portal (Super Admin > Site content).
 export const revalidate = 60;
-export const generateMetadata = () => pageMeta("Impact Marrow", "/impact-marrow", "impactBody");
+export const generateMetadata = () => pageMeta("Impact Marrow", "/impact-marrow", "impactTagline");
 
 export default async function Page() {
   const c = await getSiteContent("boringpe");
   return (
     <div data-page="impact-marrow">
-      <PageHero here="impact-marrow" title="Impact Marrow" lead={c.impactBody} />
+      <PageHero here="impact-marrow" title="Impact Marrow" lead={c.impactTagline} body={c.impactBody} />
       <Rail title="How it is set up" intro="Beside the firm, with its own purpose.">
         <Points
           items={[

@@ -8,7 +8,7 @@ export function seeAlso(c: Record<string, string>, except: string) {
     { href: "/co-build", label: "Co-Build", note: firstSentence(c.coBuildBody) },
     { href: "/own", label: "Own", note: firstSentence(c.ownBody) },
     { href: "/studio", label: "Studio", note: firstSentence(c.enableBody) },
-    { href: "/impact-marrow", label: "Impact Marrow", note: firstSentence(c.impactBody) },
+    { href: "/impact-marrow", label: "Impact Marrow", note: c.impactTagline },
     { href: "/about", label: "About Us", note: firstSentence(c.aboutBody) },
   ].filter((x) => x.href !== except).slice(0, 3);
 }

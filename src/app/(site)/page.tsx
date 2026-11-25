@@ -75,7 +75,7 @@ export default async function Home() {
       <section className="py-16 px-6 border-t border-slate-800">
         <div className="max-w-7xl mx-auto grid gap-6 md:grid-cols-3">
           {[
-            { href: "/impact-marrow", eyebrow: "Beside Boring PE", name: "Impact Marrow", body: c.impactBody },
+            { href: "/impact-marrow", eyebrow: "Beside Boring PE", name: "Impact Marrow", body: c.impactTagline },
             { href: "/media", eyebrow: "Notes", name: "Media", body: c.mediaBody },
             { href: "/about", eyebrow: "The firm", name: "About Us", body: c.aboutBody },
           ].map((x) => (

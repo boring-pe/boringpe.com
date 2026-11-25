@@ -60,6 +60,12 @@ export const SITES: Record<SiteId, { label: string; where: string; path: string;
       },
       { key: "ctaLabel", label: "Founders button label", max: 60, default: "Start a Confidential Conversation" },
       {
+        key: "impactTagline",
+        label: "Impact Marrow tagline",
+        max: 80,
+        default: "We Power Social and Economic Progress",
+      },
+      {
         key: "impactBody",
         label: "Impact Marrow page",
         max: 600,

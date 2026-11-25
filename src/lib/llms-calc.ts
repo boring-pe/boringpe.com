@@ -34,7 +34,7 @@ export function buildLlmsTxt(c: Record<string, string>, base = SITE_URL): string
     "",
     "## Related",
     "",
-    `- [Impact Marrow](${base}/impact-marrow): ${line(c.impactBody)}`,
+    `- [Impact Marrow](${base}/impact-marrow): ${line(c.impactTagline)}. ${line(c.impactBody)}`,
     `- [About Boring PE](${base}/about): ${line(c.aboutBody)}`,
     "- [Rahul Mane](https://rahulmane.com): Owner of Boring PE.",
     "",
