@@ -1,45 +1,31 @@
 import { getSiteContent } from "@/lib/content";
-import { StackIllustration } from "../_components/illustrations";
-import { ContactBand, PageHero, Points, Rail, SeeAlso, Steps, TwoLists } from "../_components/page-shell";
+import { AdvisoryIllustration } from "../_components/illustrations";
+import { ContactBand, PageHero, Points, Rail, SeeAlso, Steps } from "../_components/page-shell";
 import { pageMeta } from "../_components/meta";
 import { seeAlso } from "../_components/see-also";
 
 // The opening line is editable from the portal (Super Admin > Site content).
 export const revalidate = 60;
-export const generateMetadata = () => pageMeta("Boring Stack", "/stack", "enableBody");
+export const generateMetadata = () => pageMeta("Boring Stack: Rahul Mane", "/stack", "stackBody");
 
 const ADVISORY_LINK = "/connect?topic=Founder%20advisory";
 
 export default async function Page() {
-  const c = await getSiteContent("boringpe");
+  const [c, r] = await Promise.all([getSiteContent("boringpe"), getSiteContent("rahulmane")]);
+  const bio = (r.bio ?? "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   return (
     <div data-page="stack">
-      <PageHero
-        art={<StackIllustration className="w-full h-auto" />}
-        title="Boring Stack"
-        lead={c.enableBody}
-        body="The Boring Stack is part of Boring PE itself, not a separate company. It runs the shared work every business needs, and it is where Rahul Mane shares what he has learned with founders outside the firm."
-      />
-      <Rail title="What the Stack provides" intro="Institutional-grade support, shared across every Boring PE business.">
-        <Points
-          items={[
-            { title: "Finance", body: "Books, invoicing, payments, reporting and cash planning, kept to one standard across every business." },
-            { title: "People", body: "Hiring, onboarding, payroll and policies, so teams are set up properly from the first hire." },
-            { title: "Legal", body: "Agreements, compliance and company records, handled carefully and kept in one place." },
-            { title: "Strategy", body: "Plans, numbers and regular reviews that keep each business pointed at durable growth." },
-            { title: "Systems", body: "The Boring PE portal and the tools behind it: one place for records, reports and approvals." },
-            { title: "Founder advisory", body: "Rahul Mane's consulting, mentoring and enablement strategy, open to founders outside Boring PE." },
-          ]}
-        />
-      </Rail>
-      <Rail title="Who the Stack serves" intro="Every part of Boring PE runs on it.">
-        <TwoLists
-          left={{ title: "Inside Boring PE", items: ["Build: businesses Boring PE starts", "Co-Build: businesses grown with founders", "Own: stakes Boring PE holds"] }}
-          right={{ title: "Outside Boring PE", items: ["Founders who want Rahul Mane's advice, mentoring or an enablement strategy", "Chambers, incubators and founder groups looking for talks and workshops"] }}
-        />
+      <PageHero art={<AdvisoryIllustration className="w-full h-auto" />} title="Boring Stack" lead={c.stackBody} />
+      <Rail title={r.name || "Rahul Mane"} intro={r.tagline}>
+        <div className="space-y-4 max-w-2xl text-slate-300 leading-relaxed" data-about-rahul>
+          {bio.map((p, k) => <p key={k}>{p}</p>)}
+          <p>
+            <a href="https://rahulmane.com" className="text-blue-400 hover:text-blue-300 underline underline-offset-4">More at rahulmane.com</a>
+          </p>
+        </div>
       </Rail>
 
-      <Rail id="advisory" title="Founder advisory" intro="Rahul Mane shares his expertise with founders: consulting, mentoring, advice and enablement strategy.">
+      <Rail id="advisory" title="Work with Rahul" intro="Consulting, mentoring, advice and enablement strategy for founders.">
         <div className="space-y-12">
           <div>
             <h3 className="text-white font-medium mb-5">What Rahul advises on</h3>

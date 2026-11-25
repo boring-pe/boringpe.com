@@ -4,7 +4,7 @@ import { ArrowRight } from "lucide-react";
 type Here = "build" | "co-build" | "own" | "stack" | "impact-marrow" | "about" | "media";
 
 /**
- * Where a page sits in Boring PE: the three activities side by side, Boring Stack underneath enabling
+ * Where a page sits in Boring PE: the three activities side by side, Boring Stack (Rahul Mane) underneath
  * them, Impact Marrow beside the firm. The current page is lit; every box links to its page.
  */
 export function StructureMap({ here }: { here: Here }) {
@@ -34,7 +34,7 @@ export function StructureMap({ here }: { here: Here }) {
             {box("own", "Own")}
           </div>
           <div aria-hidden className="mx-6 h-3 border-x border-dashed border-slate-700" />
-          {box("stack", "Boring Stack", "finance, HR, legal, strategy, systems and founder advisory")}
+          {box("stack", "Boring Stack", "Rahul Mane: advice, mentoring and enablement strategy")}
         </div>
         <div className="sm:w-32 sm:shrink-0 sm:self-stretch">
           {box("impact-marrow", "Impact Marrow", "beside the firm", "sm:h-full")}

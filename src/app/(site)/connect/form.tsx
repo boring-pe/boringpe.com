@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 import { submitConnect, type ConnectState } from "./actions";
 
 const TIMES = ["10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"];
-const TOPICS = ["Build", "Co-Build", "Own", "Boring Stack", "Founder advisory", "Impact Marrow", "Something else"];
+const TOPICS = ["Build", "Co-Build", "Own", "Founder advisory", "Impact Marrow", "Something else"];
 
 function weekdays(count: number) {
   const days: { iso: string; weekday: string; day: string }[] = [];

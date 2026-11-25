@@ -66,7 +66,7 @@ export function FirmElevation({ className }: Props) {
       {pillar(348, "Own")}
       {/* the foundation: Boring Stack */}
       <rect x={84} y={236} width={356} height={30} rx={2} stroke={BLUE} strokeWidth={2} fill="rgba(59,130,246,0.18)" />
-      <text x={262} y={256} textAnchor="middle" fill="#bfdbfe" fontSize={12} fontFamily="Inter, sans-serif">Boring Stack · finance · people · legal · strategy · systems</text>
+      <text x={262} y={256} textAnchor="middle" fill="#bfdbfe" fontSize={12} fontFamily="Inter, sans-serif">Boring Stack · Rahul Mane&apos;s experience behind every business</text>
       {/* Impact Marrow beside the firm */}
       <g>
         <line x1={540} y1={266} x2={540} y2={186} stroke={INK} strokeWidth={2} />
@@ -160,37 +160,45 @@ export function OwnIllustration({ className }: Props) {
   );
 }
 
-/** Boring Stack: five shared services wired into one hub that every business plugs into. */
-export function StackIllustration({ className }: Props) {
-  const node = (x: number, y: number, label: string, glyph: React.ReactNode) => (
+/**
+ * Boring Stack, Rahul Mane's page: a founder's route drawn on a map, from where the business is to
+ * where it is going, with guidance at the turns (a call, mentoring, a strategy) and a compass.
+ */
+export function AdvisoryIllustration({ className }: Props) {
+  const stop = (x: number, y: number, label: string, anchor: "start" | "end" = "start") => (
     <g key={label}>
-      <line x1={200} y1={150} x2={x} y2={y} stroke={FAINT} strokeWidth={1.25} strokeDasharray="3 4" />
-      <rect x={x - 34} y={y - 24} width={68} height={48} rx={6} stroke={INK} strokeWidth={1.5} fill="rgba(15,23,42,0.9)" />
-      <g transform={`translate(${x - 10} ${y - 16})`}>{glyph}</g>
-      <text x={x} y={y + 18} textAnchor="middle" fill={LIGHT} fontSize={10} fontFamily="Inter, sans-serif">{label}</text>
+      <circle cx={x} cy={y} r={9} stroke={BLUE} strokeWidth={2} fill="rgba(15,23,42,0.95)" />
+      <circle cx={x} cy={y} r={3} fill={BLUE} />
+      <text x={anchor === "start" ? x + 15 : x - 15} y={y + 4} textAnchor={anchor} fill={LIGHT} fontSize={10} fontFamily="Inter, sans-serif">{label}</text>
     </g>
   );
-  const s = { stroke: BLUE, strokeWidth: 1.5 };
   return (
     <Frame className={className}>
-      {node(76, 70, "Finance", <><rect x={0} y={0} width={20} height={16} rx={1} {...s} /><path d="M4 12 L8 7 L12 9 L17 3" {...s} /></>)}
-      {node(324, 70, "People", <><circle cx={6} cy={5} r={3} {...s} /><circle cx={15} cy={5} r={3} {...s} /><path d="M0 16 C1 10, 11 10, 12 16 M9 16 C10 10, 20 10, 21 16" {...s} /></>)}
-      {node(60, 214, "Legal", <><rect x={2} y={0} width={16} height={17} rx={1} {...s} /><path d="M5 5 H15 M5 9 H15 M5 13 H11" {...s} /></>)}
-      {node(340, 214, "Strategy", <><circle cx={10} cy={8} r={8} {...s} /><path d="M10 8 L15 3 M10 0 V3" {...s} /></>)}
-      {node(200, 262, "Systems", <><rect x={0} y={0} width={20} height={6} rx={1} {...s} /><rect x={0} y={9} width={20} height={6} rx={1} {...s} /><circle cx={4} cy={3} r={0.8} fill={BLUE} /><circle cx={4} cy={12} r={0.8} fill={BLUE} /></>)}
-      {/* the hub */}
-      <circle cx={200} cy={150} r={46} stroke={BLUE} strokeWidth={2} fill="rgba(59,130,246,0.16)" />
-      <circle cx={200} cy={150} r={60} stroke={FAINT} strokeWidth={1} strokeDasharray="2 5" />
-      <text x={200} y={146} textAnchor="middle" fill="#dbeafe" fontSize={13} fontFamily="'IBM Plex Serif', Georgia, serif">Boring</text>
-      <text x={200} y={162} textAnchor="middle" fill="#dbeafe" fontSize={13} fontFamily="'IBM Plex Serif', Georgia, serif">Stack</text>
-      {/* the businesses it serves, along the top */}
-      {[["Build", 150], ["Co-Build", 200], ["Own", 250]].map(([l, x]) => (
-        <g key={l as string}>
-          <line x1={x as number} y1={34} x2={200} y2={104} stroke={BLUE} strokeOpacity={0.45} strokeWidth={1.25} />
-          <rect x={(x as number) - 22} y={14} width={44} height={20} rx={3} stroke={SOFT} strokeWidth={1.25} />
-          <text x={x as number} y={28} textAnchor="middle" fill={SOFT} fontSize={9} fontFamily="Inter, sans-serif">{l}</text>
-        </g>
-      ))}
+      {/* map grid */}
+      {[60, 110, 160, 210, 260].map((y) => <line key={`h${y}`} x1={24} y1={y} x2={376} y2={y} stroke={FAINT} strokeWidth={0.75} strokeDasharray="2 6" />)}
+      {[60, 130, 200, 270, 340].map((x) => <line key={`v${x}`} x1={x} y1={30} x2={x} y2={276} stroke={FAINT} strokeWidth={0.75} strokeDasharray="2 6" />)}
+      {/* contour hills */}
+      <path d="M250 96 C 280 64, 340 66, 360 104 C 340 96, 290 94, 250 96 Z" stroke={INK} strokeWidth={1.25} />
+      <path d="M268 94 C 290 76, 326 78, 340 98" stroke={FAINT} strokeWidth={1} />
+      {/* the route */}
+      <path d="M52 250 C 96 250, 104 204, 140 196 S 212 214, 226 172 S 232 112, 300 86" stroke={BLUE} strokeWidth={2.25} strokeDasharray="7 6" />
+      {/* start: where the business is */}
+      <rect x={38} y={238} width={24} height={24} rx={3} stroke={LIGHT} strokeWidth={1.5} fill={WASH} />
+      <text x={50} y={282} textAnchor="middle" fill={SOFT} fontSize={9} fontFamily="Inter, sans-serif">today</text>
+      {stop(140, 196, "advisory call")}
+      {stop(226, 172, "mentoring", "end")}
+      {stop(252, 118, "strategy", "end")}
+      {/* destination */}
+      <line x1={300} y1={86} x2={300} y2={48} stroke={LIGHT} strokeWidth={1.75} />
+      <path d="M300 48 L330 56 L300 64 Z" stroke={BLUE} strokeWidth={1.5} fill="rgba(59,130,246,0.3)" />
+      {/* compass */}
+      <g transform="translate(76 76)">
+        <circle r={26} stroke={INK} strokeWidth={1.5} fill="rgba(15,23,42,0.9)" />
+        <circle r={20} stroke={FAINT} strokeWidth={1} strokeDasharray="1 4" />
+        <path d="M0 -18 L5 0 L0 18 L-5 0 Z" stroke={SOFT} strokeWidth={1} />
+        <path d="M0 -18 L5 0 L-5 0 Z" fill={BLUE} />
+        <text y={-30} textAnchor="middle" fill={SOFT} fontSize={9} fontFamily="Inter, sans-serif">N</text>
+      </g>
     </Frame>
   );
 }

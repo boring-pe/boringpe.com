@@ -44,10 +44,18 @@ export const SITES: Record<SiteId, { label: string; where: string; path: string;
       { key: "ownBody", label: "Own, part of Boring PE", max: 300, multiline: true, default: "Boring PE takes ownership and holds business interests. Own is separate from Build and from Co-Build." },
       {
         key: "enableBody",
-        label: "Enable, through Boring Stack",
+        label: "Enable (internal description, not shown on the public site)",
         max: 300,
         multiline: true,
         default: "Enable is not one of those three. It runs through Boring Stack and supports Boring PE. It does not build, co-build or own.",
+      },
+      {
+        key: "stackBody",
+        label: "Boring Stack page: Rahul Mane",
+        max: 400,
+        multiline: true,
+        default:
+          "Boring Stack is Rahul Mane's page at Boring PE. Here he shares what he has learned building businesses with founders, through consulting, mentoring, advice and enablement strategy.",
       },
       { key: "foundersTitle", label: "Founders section title", max: 120, default: "You Built It. We Protect and Scale It." },
       {
@@ -79,7 +87,7 @@ export const SITES: Record<SiteId, { label: string; where: string; path: string;
         label: "About Us page",
         max: 800,
         multiline: true,
-        default: "Boring PE is a private enterprise. Build, Co-Build, and Own are its three activities. The Boring Stack enables them. Impact Marrow sits beside the firm.",
+        default: "Boring PE is a private enterprise. Build, Co-Build, and Own are its three activities. Impact Marrow sits beside the firm. Through Boring Stack, Rahul Mane shares his expertise with founders.",
       },
       { key: "contactEmail", label: "Contact email", max: 254, email: true, default: "hello@boringpe.com" },
       {

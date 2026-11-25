@@ -33,7 +33,7 @@ export default async function Page() {
           items={[
             { title: "Find a lasting need", body: "We look for work that is needed in every economic cycle and is underserved or poorly run today." },
             { title: "Design the business model", body: "We work out how the business earns, what it costs to run and how it grows before anything is spent." },
-            { title: "Set it up on the Boring Stack", body: "Finance, HR, legal, strategy and systems come from Boring Stack, so the new team can focus on customers from the first day." },
+            { title: "Set it up properly", body: "Finance, HR, legal, strategy and systems are in place from Boring PE, so the new team can focus on customers from the first day." },
             { title: "Run it for steady growth", body: "We put people in place, measure what matters and reinvest cash flow where it compounds." },
           ]}
         />

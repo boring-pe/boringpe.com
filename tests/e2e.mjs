@@ -2230,7 +2230,7 @@ await step("public site: every menu item is its own page with the shared menu an
     assert.ok(await p.locator("[data-structure-map]").count(), "the map of Boring PE");
     assert.ok(await p.locator("section").first().locator("svg[data-illustration]").count(), "an illustration in the opening");
     assert.equal(await p.getAttribute(`nav[aria-label="Site"] a[aria-current="page"] >> visible=true`, "href"), href);
-    assert.match(await p.title(), new RegExp(`^${label} · Boring PE`));
+    assert.match(await p.title(), new RegExp(`^${label}(: [^·]+)? · Boring PE`));
     assert.ok(await p.locator("footer").count(), "shared footer");
   }
   // On a laptop every page is in the bar; on a phone the menu opens, closes on Escape and after a choice.
@@ -2253,6 +2253,8 @@ await step("public site: every menu item is its own page with the shared menu an
   await p.goto("/studio");
   await p.waitForURL(/\/stack$/);
   assert.match(await txt(p, "#advisory"), /Ways to work with Rahul[\s\S]*Mentoring[\s\S]*Pricing is on request/);
+  assert.ok(await p.locator("[data-about-rahul]").count(), "Boring Stack is Rahul Mane's page");
+  assert.doesNotMatch(await flat(p), /What the Stack provides|Who the Stack serves/, "internal services are not described publicly");
   await p.click('a:has-text("Request a conversation")');
   await p.waitForURL(/\/connect\?topic=Founder/);
   assert.equal(await p.getAttribute("form[data-topic]", "data-topic"), "Founder advisory", "the topic is preselected");
