@@ -24,7 +24,7 @@ export function buildLlmsTxt(c: Record<string, string>, base = SITE_URL): string
     `- [Build](${base}/build): ${line(c.buildBody)}`,
     `- [Co-Build](${base}/co-build): ${line(c.coBuildBody)}`,
     `- [Own](${base}/own): ${line(c.ownBody)}`,
-    `- [Boring Stack](${base}/stack): ${line(c.enableBody)}`,
+    `- [Boring Stack](${base}/stack): ${line(c.stackBody)}`,
     `- [Founder advisory](${base}/stack#advisory): Rahul Mane advises founders on building, running and growing their businesses: advisory calls, mentoring, enablement strategy, talks and workshops. Pricing on request.`,
     "",
     "## For founders",

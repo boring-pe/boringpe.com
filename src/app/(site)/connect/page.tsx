@@ -3,7 +3,7 @@ import { ConnectForm } from "./form";
 
 export const metadata: Metadata = {
   title: "Connect with Us | Boring PE",
-  description: "Pick a time to talk with Boring PE about Build, Co-Build, Own, Boring Stack, founder advisory or Impact Marrow.",
+  description: "Pick a time to talk with Boring PE about Build, Co-Build, Own, founder advisory with Rahul Mane or Impact Marrow.",
 };
 
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<{ topic?: string }> }) {

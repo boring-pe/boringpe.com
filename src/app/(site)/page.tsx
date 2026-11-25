@@ -3,7 +3,7 @@ import { getSiteContent } from '@/lib/content';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Philosophy } from './_components/philosophy';
-import { BuildIllustration, CoBuildIllustration, FirmElevation, OwnIllustration, StackIllustration } from './_components/illustrations';
+import { BuildIllustration, CoBuildIllustration, FirmElevation, OwnIllustration, AdvisoryIllustration } from './_components/illustrations';
 
 // Wording is editable from the portal (Super Admin > Site content); changes show within a minute.
 export const revalidate = 60;
@@ -72,11 +72,11 @@ export default async function Home() {
               <div>
             <div className="text-xs font-semibold text-slate-500 mb-1">Separate from the three</div>
             <h3 className="text-xl font-bold text-white mb-3">Boring Stack</h3>
-            <p className="text-sm text-slate-400 leading-relaxed max-w-3xl">{c.enableBody}</p>
+            <p className="text-sm text-slate-400 leading-relaxed max-w-3xl">{c.stackBody}</p>
             <span className="mt-4 inline-flex items-center gap-1 text-sm text-blue-400 group-hover:text-blue-300">Read more <ArrowRight className="w-4 h-4" /></span>
           
               </div>
-              <StackIllustration className="w-full h-auto max-w-xs mx-auto" />
+              <AdvisoryIllustration className="w-full h-auto max-w-xs mx-auto" />
             </div>
           </Link>
         </div>
