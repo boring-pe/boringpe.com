@@ -45,11 +45,11 @@ export function StructureMap({ here }: { here: Here }) {
   );
 }
 
-/** A page's opening: the title and its text on the left, the map of Boring PE on the right. */
-export function PageHero({ title, lead, body, here }: { title: string; lead: string; body?: string; here: Here }) {
+/** A page's opening: the title and its text on the left, the page's illustration on the right. */
+export function PageHero({ title, lead, body, art }: { title: string; lead: string; body?: string; art: React.ReactNode }) {
   return (
     <section className="pt-32 pb-14 md:pt-40 md:pb-20 px-6 border-b border-slate-800">
-      <div className="max-w-6xl mx-auto grid gap-12 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-end">
+      <div className="max-w-6xl mx-auto grid gap-10 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-center">
         <div className="max-w-2xl">
           <h1 className="text-5xl md:text-6xl text-white mb-6">{title}</h1>
           <p className="text-xl md:text-2xl text-slate-200 leading-snug mb-5">{lead}</p>
@@ -59,7 +59,7 @@ export function PageHero({ title, lead, body, here }: { title: string; lead: str
               ))
             : null}
         </div>
-        <StructureMap here={here} />
+        <div className="mx-auto w-full max-w-md lg:max-w-none">{art}</div>
       </div>
     </section>
   );
@@ -164,10 +164,14 @@ export function ContactBand({ title, body, label, email }: { title: string; body
   );
 }
 
-/** Links to the other parts of the firm, at the foot of each page. */
-export function SeeAlso({ items }: { items: { href: string; label: string; note: string }[] }) {
+/** The map of where this page sits, then links to the other parts of the firm, at the foot of each page. */
+export function SeeAlso({ items, here }: { items: { href: string; label: string; note: string }[]; here: Here }) {
   return (
     <nav aria-label="More from Boring PE" className="px-6">
+      <div className="max-w-6xl mx-auto grid gap-10 py-14 border-b border-slate-800 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16">
+        <h2 className="text-2xl md:text-3xl text-white">Where this sits</h2>
+        <StructureMap here={here} />
+      </div>
       <div className="max-w-6xl mx-auto grid divide-y divide-slate-800 py-6 md:grid-cols-3 md:divide-x md:divide-y-0">
         {items.map((x) => (
           <Link key={x.href} href={x.href} className="group block py-6 md:px-6 md:first:pl-0">

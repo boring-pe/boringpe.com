@@ -1,8 +1,9 @@
 import React from 'react';
 import { getSiteContent } from '@/lib/content';
 import Link from 'next/link';
-import { Building2, HeartHandshake, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Philosophy } from './_components/philosophy';
+import { BuildIllustration, CoBuildIllustration, FirmElevation, OwnIllustration, StudioIllustration } from './_components/illustrations';
 
 // Wording is editable from the portal (Super Admin > Site content); changes show within a minute.
 export const revalidate = 60;
@@ -32,6 +33,9 @@ export default async function Home() {
             </Link>
           </div>
         </div>
+        <div className="max-w-5xl mx-auto mt-16 md:mt-20">
+          <FirmElevation className="w-full h-auto" />
+        </div>
       </section>
 
       <Philosophy />
@@ -49,12 +53,12 @@ export default async function Home() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { id: "build", n: "1", name: "Build", body: c.buildBody, Icon: Building2 },
-              { id: "co-build", n: "2", name: "Co-Build", body: c.coBuildBody, Icon: HeartHandshake },
-              { id: "own", n: "3", name: "Own", body: c.ownBody, Icon: ShieldCheck },
-            ].map(({ id, n, name, body, Icon }) => (
+              { id: "build", n: "1", name: "Build", body: c.buildBody, Art: BuildIllustration },
+              { id: "co-build", n: "2", name: "Co-Build", body: c.coBuildBody, Art: CoBuildIllustration },
+              { id: "own", n: "3", name: "Own", body: c.ownBody, Art: OwnIllustration },
+            ].map(({ id, n, name, body, Art }) => (
               <Link key={name} id={id} href={`/${id}`} className="group scroll-mt-28 p-8 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-600 transition-colors">
-                <Icon className="w-10 h-10 text-blue-500 mb-6" />
+                <Art className="w-full h-auto mb-6 -mt-2" />
                 <div className="text-xs font-semibold text-blue-400 mb-1">Part of Boring PE · {n}</div>
                 <h3 className="text-xl font-bold text-white mb-3">{name}</h3>
                 <p className="text-sm text-slate-400 leading-relaxed">{body}</p>
@@ -64,10 +68,16 @@ export default async function Home() {
           </div>
 
           <Link id="studio" href="/studio" className="group block scroll-mt-28 mt-6 p-8 bg-slate-900/60 border border-slate-800 rounded-xl hover:border-slate-600 transition-colors">
+            <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_18rem] md:items-center">
+              <div>
             <div className="text-xs font-semibold text-slate-500 mb-1">Separate from the three</div>
             <h3 className="text-xl font-bold text-white mb-3">Studio</h3>
             <p className="text-sm text-slate-400 leading-relaxed max-w-3xl">{c.enableBody}</p>
             <span className="mt-4 inline-flex items-center gap-1 text-sm text-blue-400 group-hover:text-blue-300">Read more <ArrowRight className="w-4 h-4" /></span>
+          
+              </div>
+              <StudioIllustration className="w-full h-auto max-w-xs mx-auto" />
+            </div>
           </Link>
         </div>
       </section>

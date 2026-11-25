@@ -1,4 +1,5 @@
 import { getSiteContent } from "@/lib/content";
+import { BuildIllustration } from "../_components/illustrations";
 import { ContactBand, PageHero, Points, Rail, SeeAlso, Steps } from "../_components/page-shell";
 import { pageMeta } from "../_components/meta";
 import { seeAlso } from "../_components/see-also";
@@ -12,7 +13,7 @@ export default async function Page() {
   return (
     <div data-page="build">
       <PageHero
-        here="build"
+        art={<BuildIllustration className="w-full h-auto" />}
         title="Build"
         lead={c.buildBody}
         body="Build is where Boring PE starts businesses of its own: companies that do necessary work well, earn from the start and keep earning."
@@ -38,7 +39,7 @@ export default async function Page() {
         />
       </Rail>
       <ContactBand title="Want to build with us?" body="If you run an operation or know a market that fits, we would like to hear from you." label={c.ctaLabel} email={c.contactEmail} />
-      <SeeAlso items={seeAlso(c, "/build")} />
+      <SeeAlso here="build" items={seeAlso(c, "/build")} />
     </div>
   );
 }

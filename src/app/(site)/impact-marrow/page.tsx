@@ -1,4 +1,5 @@
 import { getSiteContent } from "@/lib/content";
+import { ImpactIllustration } from "../_components/illustrations";
 import { PageHero, Points, Rail, SeeAlso } from "../_components/page-shell";
 import { pageMeta } from "../_components/meta";
 import { seeAlso } from "../_components/see-also";
@@ -11,7 +12,7 @@ export default async function Page() {
   const c = await getSiteContent("boringpe");
   return (
     <div data-page="impact-marrow">
-      <PageHero here="impact-marrow" title="Impact Marrow" lead={c.impactTagline} body={c.impactBody} />
+      <PageHero art={<ImpactIllustration className="w-full h-auto" />} title="Impact Marrow" lead={c.impactTagline} body={c.impactBody} />
       <Rail title="How it is set up" intro="Beside the firm, with its own purpose.">
         <Points
           items={[
@@ -22,7 +23,7 @@ export default async function Page() {
           ]}
         />
       </Rail>
-      <SeeAlso items={seeAlso(c, "/impact-marrow")} />
+      <SeeAlso here="impact-marrow" items={seeAlso(c, "/impact-marrow")} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { getSiteContent } from "@/lib/content";
+import { CoBuildIllustration } from "../_components/illustrations";
 import { ContactBand, PageHero, Questions, Rail, SeeAlso, Steps, TwoLists } from "../_components/page-shell";
 import { pageMeta } from "../_components/meta";
 import { seeAlso } from "../_components/see-also";
@@ -11,7 +12,7 @@ export default async function Page() {
   const c = await getSiteContent("boringpe");
   return (
     <div data-page="co-build">
-      <PageHero here="co-build" title="Co-Build" lead={c.coBuildBody} body={c.foundersBody} />
+      <PageHero art={<CoBuildIllustration className="w-full h-auto" />} title="Co-Build" lead={c.coBuildBody} body={c.foundersBody} />
       <Rail title="Who it is for" intro="Founders and owners of businesses that already work.">
         <TwoLists
           left={{
@@ -55,7 +56,7 @@ export default async function Page() {
         />
       </Rail>
       <ContactBand title={c.foundersTitle} body="Tell us about your business. The first conversation is confidential and commits you to nothing." label={c.ctaLabel} email={c.contactEmail} />
-      <SeeAlso items={seeAlso(c, "/co-build")} />
+      <SeeAlso here="co-build" items={seeAlso(c, "/co-build")} />
     </div>
   );
 }
