@@ -18,8 +18,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
               <Building2 className="w-6 h-6 text-blue-500" />
               <span className="text-lg font-bold text-white">BORING PE</span>
             </div>
-            <p className="text-slate-500 text-sm max-w-sm mb-6">{c.footerTagline}</p>
-            <p className="text-slate-600 text-xs">
+            <p className="text-justify text-slate-500 text-sm max-w-sm mb-6">{c.footerTagline}</p>
+            <p className="text-justify text-slate-600 text-xs">
               © {new Date().getFullYear()} Boring PE Venture. All Rights Reserved. Content may not be copied, republished or used to train AI models without permission.
             </p>
           </div>
