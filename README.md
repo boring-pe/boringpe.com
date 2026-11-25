@@ -240,6 +240,17 @@ or rejected, and comes back as **Re-KYC due** on a date set by risk (2 years hig
   nightly encrypted dumps, for running everything on your own servers in India. See
   `deploy/SELF-HOSTING.md`.
 
+## Dashboard
+
+The dashboard home is laid out like Sevastack's. It answers three questions in order: how are we doing, what needs me, and what just happened.
+
+- **Period picker** (`?period=`): this month, last month, this quarter, this financial year (default), last financial year, last 12 months. A period that is still running stops at today and is compared with the same number of days one period earlier (`src/lib/dashboard-calc.ts`, unit-tested).
+- **Figures**: cash today, plus income and expenses for the period with the change against the earlier span. Each tile opens its report.
+- **Chart**: income and expenses per day or month with the same time a year earlier. Hover a bar for its figures, click it to open that month's report, use the legend to hide a series. "See the figures" shows the same numbers as a table. Recharts loads only on the client, after the page paints.
+- **What needs attention**: overdue invoices, your overdue and due-soon tasks, approvals waiting, critical and warning insights, and money not yet in the books. Each row opens the page where the work gets done. With nothing to do it says "All clear".
+- **Lists**: your tasks, the next three days of meetings and recent activity, in tabs.
+- External people still see only what is linked to them.
+
 ## Portal UX rules
 
 Borrowed from Sevastack's audience rules and kept in `src/app/portal/(app)/_shell/`:

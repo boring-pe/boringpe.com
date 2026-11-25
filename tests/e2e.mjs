@@ -2120,6 +2120,61 @@ await step("encrypted backup: a strong passphrase is required and the file is se
   await writeFile(process.env.E2E_BACKUP_OUT ?? "/tmp/e2e-backup.bpbak", buf);
 });
 
+await step("dashboard: the period picker, an interactive chart, a to-do list and tabs", async () => {
+  await A.page.goto("/portal/dashboard");
+  await A.page.waitForSelector("[data-period-picker]");
+  assert.equal(await A.page.locator('[data-period="fy"]').getAttribute("aria-checked"), "true", "this financial year by default");
+  for (const k of ["cash", "income", "expense"]) assert.equal(await A.page.locator(`[data-kpi="${k}"]`).count(), 1, k);
+  assert.match(await txt(A.page, '[data-kpi="income"]'), /%|nothing to compare/);
+
+  await A.page.click('[data-period="12m"]');
+  await A.page.waitForURL(/period=12m/);
+  await A.page.waitForFunction(() => document.querySelector('[data-period="12m"]')?.getAttribute("aria-checked") === "true");
+  assert.match(await txt(A.page, "[data-flows]"), /Last 12 months/);
+  await A.page.waitForSelector("[data-flow-chart] .recharts-surface");
+  const bars = A.page.locator("[data-flow-chart] .recharts-bar-rectangle");
+  assert.ok((await bars.count()) > 0, "the chart draws bars");
+
+  // Hiding a series is a toggle, not a navigation.
+  await A.page.click('[data-series="expense"]');
+  assert.equal(await A.page.locator('[data-series="expense"]').getAttribute("aria-pressed"), "false");
+  await A.page.click('[data-series="expense"]');
+
+  // The figures behind the chart are there as a table too, each month opening its report.
+  await A.page.click("[data-flows] summary");
+  const first = A.page.locator("[data-flow-table] tbody a").first();
+  await first.click();
+  await A.page.waitForURL(/\/portal\/reports\?from=\d{4}-\d{2}-\d{2}&to=\d{4}-\d{2}-\d{2}/);
+
+  // Clicking a bar opens the report for that month.
+  await A.page.goto("/portal/dashboard?period=12m");
+  await A.page.waitForSelector("[data-flow-chart] .recharts-bar-rectangle");
+  await A.page.locator("[data-flow-chart] .recharts-bar-rectangle").last().click({ force: true });
+  await A.page.waitForURL(/\/portal\/reports\?from=/);
+
+  // A period with nothing in it says so and offers a way out.
+  await A.page.goto("/portal/dashboard?period=nonsense");
+  assert.equal(await A.page.locator('[data-period="fy"]').getAttribute("aria-checked"), "true", "an unknown period falls back");
+
+  // To-dos open the place where the work gets done; tabs switch in place.
+  await A.page.goto("/portal/dashboard");
+  if (await A.page.locator("[data-todo]").count()) {
+    const href = await A.page.locator("[data-todo]").first().getAttribute("href");
+    assert.match(href, /^\/portal\//);
+  } else {
+    assert.equal(await A.page.locator("[data-all-clear]").count(), 1);
+  }
+  await A.page.click('[data-tab="activity"]');
+  assert.ok(await A.page.locator("#panel-activity").isVisible());
+  assert.ok(!(await A.page.locator("#panel-tasks").isVisible()));
+  await A.page.keyboard.press("ArrowLeft");
+  assert.equal(await A.page.locator('[data-tab="meetings"]').getAttribute("aria-selected"), "true", "arrow keys move between tabs");
+
+  // External people still see only what is linked to them.
+  await B.page.goto("/portal/dashboard?period=12m");
+  assert.equal(await B.page.locator("[data-period-picker], [data-flows], [data-kpi]").count(), 0);
+});
+
 await step("everyday use: getting started, + New, breadcrumbs, shortcuts, guides and activity", async () => {
   await A.page.goto("/portal/dashboard");
   if (await A.page.locator("[data-getting-started]").count()) {
