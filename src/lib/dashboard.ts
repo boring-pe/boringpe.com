@@ -3,6 +3,7 @@ import { decimalToPaise } from "./books";
 import { entityIdsInView, workspaceContext } from "./workspaces";
 import { fiscalYearOf } from "./hr-calc";
 import { fillMonths, monthsBetween } from "./mis-calc";
+import { addMonths, bucketKeys, type Bucket, type Range } from "./dashboard-calc";
 
 /** Group cash (bank, cash, payment gateway) at the end of each of the last `n` months. */
 export async function cashTrend(n = 12) {
@@ -78,4 +79,55 @@ export async function cashByWorkspace() {
     [enterable],
   );
   return enterable.map((w) => ({ workspace: w, cash: decimalToPaise(rows.find((r) => r.workspace === w)?.cash ?? "0") }));
+}
+
+/** Income and expenses (fees between our own entities taken out) for each day or month from `from` to `to`. */
+async function flowRows(from: string, to: string, bucket: Bucket) {
+  const sql = await getSql();
+  const fmt = bucket === "day" ? "YYYY-MM-DD" : "YYYY-MM";
+  const rows = await sql.query<{ k: string; income: string; expense: string }>(
+    `select to_char(e.entry_date, '${fmt}') as k,
+            coalesce(sum(l.credit - l.debit) filter (where a.type = 'income' and e.source_type <> 'venture_fee'), 0)::text as income,
+            coalesce(sum(l.debit - l.credit) filter (where a.type = 'expense' and a.code <> '5100'), 0)::text as expense
+       from journal_lines l join journal_entries e on e.id = l.entry_id join ledger_accounts a on a.id = l.account_id
+      where e.entry_date between $1::date and $2::date and a.type in ('income', 'expense') and a.entity_id = any($3::text[]) group by 1`,
+    [from, to, await entityIdsInView()],
+  );
+  return new Map(rows.map((r) => [r.k, { income: decimalToPaise(r.income), expense: decimalToPaise(r.expense) }]));
+}
+
+/**
+ * The figures behind the period picker: each day or month of the period with the same bucket a
+ * year earlier, and the totals of the span it is compared with.
+ */
+export async function periodFlows(range: Range) {
+  const lastYear = (d: string) => addMonths(d, -12);
+  const [now, before, prev] = await Promise.all([
+    flowRows(range.from, range.to, range.bucket),
+    flowRows(lastYear(range.from), lastYear(range.to), range.bucket),
+    flowRows(range.prevFrom, range.prevTo, "month"),
+  ]);
+  const shift = (k: string) => (k.length === 10 ? lastYear(k) : lastYear(`${k}-01`).slice(0, 7));
+  const buckets = bucketKeys(range.from, range.to, range.bucket).map((key) => {
+    const n = now.get(key), b = before.get(shift(key));
+    return { key, income: n?.income ?? 0n, expense: n?.expense ?? 0n, lastYearIncome: b?.income ?? 0n };
+  });
+  const sum = (m: Map<string, { income: bigint; expense: bigint }>, f: "income" | "expense") => [...m.values()].reduce((s, x) => s + x[f], 0n);
+  return {
+    buckets,
+    income: sum(now, "income"),
+    expense: sum(now, "expense"),
+    prevIncome: sum(prev, "income"),
+    prevExpense: sum(prev, "expense"),
+  };
+}
+
+/** The latest things done in the portal, for the dashboard's activity tab. */
+export async function recentActivity(limit = 8) {
+  const sql = await getSql();
+  return sql.query<{ id: string; actor_email: string | null; action: string; detail: string | null; at: string }>(
+    `select id::text, actor_email, action, detail, to_char(created_at at time zone 'Asia/Kolkata', 'YYYY-MM-DD HH24:MI') as at
+       from access_audit order by created_at desc, id desc limit $1`,
+    [limit],
+  );
 }

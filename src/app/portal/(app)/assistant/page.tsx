@@ -13,6 +13,7 @@ import { ROLES, ROLE_META, isRole } from "@/lib/rbac";
 import type { UserRow } from "@/lib/users";
 import { decideAction, removeThread, saveAssistantSettings, saveMyPolicy, saveRolePolicy, sendMessage } from "./actions";
 import { Composer } from "./composer";
+import { ConfirmButton } from "../_shell/buttons";
 
 const card = "rounded-xl border border-slate-800 bg-slate-900";
 const input = "rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-white";
@@ -186,7 +187,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
             {thread ? (
               <form action={removeThread} className="mt-2 text-right">
                 <input type="hidden" name="threadId" value={thread.id} />
-                <button className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-red-400"><Trash2 className="h-3.5 w-3.5" />Delete this conversation</button>
+                <ConfirmButton title="Delete this conversation?" body="Every message in it is deleted for good. This cannot be undone." confirm="Delete conversation" className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-red-400"><Trash2 className="h-3.5 w-3.5" />Delete this conversation</ConfirmButton>
               </form>
             ) : null}
           </div>

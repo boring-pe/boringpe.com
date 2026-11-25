@@ -10,6 +10,7 @@ import { ROLE_META, isRole } from "@/lib/rbac";
 import { SCOPE_LABEL, externalUsers, listScopes, myView } from "@/lib/scopes";
 import { listVentures } from "@/lib/ventures";
 import { addAccess, addCap, addHolding, addHoldingTxn, dropAccess } from "./actions";
+import { ConfirmButton } from "../_shell/buttons";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   "holding-added": { text: "Holding added. Record the investment below." },
@@ -315,7 +316,7 @@ async function AccessLinks({ entities }: { entities: Awaited<ReturnType<typeof l
                 <td className={td}>{sc.user_email}</td><td className={td}>{roleLabel(sc.user_role)}</td>
                 <td className={td}>{SCOPE_LABEL[sc.scope_type]}: {sc.ref_name ?? "(removed)"}</td>
                 <td className={td}>
-                  <form action={dropAccess}><input type="hidden" name="scopeId" value={sc.id} /><button className="text-xs text-red-300 hover:text-red-200">Remove</button></form>
+                  <form action={dropAccess}><input type="hidden" name="scopeId" value={sc.id} /><ConfirmButton title={`Remove ${sc.user_email}'s access?`} body={`They will no longer see ${sc.ref_name ?? "this"} in the portal. You can grant it again later.`} confirm="Remove access" className="text-xs text-red-300 hover:text-red-200">Remove</ConfirmButton></form>
                 </td>
               </tr>
             ))}

@@ -240,6 +240,27 @@ or rejected, and comes back as **Re-KYC due** on a date set by risk (2 years hig
   nightly encrypted dumps, for running everything on your own servers in India. See
   `deploy/SELF-HOSTING.md`.
 
+## Dashboard
+
+The dashboard home is laid out like Sevastack's. It answers three questions in order: how are we doing, what needs me, and what just happened.
+
+- **Period picker** (`?period=`): this month, last month, this quarter, this financial year (default), last financial year, last 12 months. A period that is still running stops at today and is compared with the same number of days one period earlier (`src/lib/dashboard-calc.ts`, unit-tested).
+- **Figures**: cash today, plus income and expenses for the period with the change against the earlier span. Each tile opens its report.
+- **Chart**: income and expenses per day or month with the same time a year earlier. Hover a bar for its figures, click it to open that month's report, use the legend to hide a series. "See the figures" shows the same numbers as a table. Recharts loads only on the client, after the page paints.
+- **What needs attention**: overdue invoices, your overdue and due-soon tasks, approvals waiting, critical and warning insights, and money not yet in the books. Each row opens the page where the work gets done. With nothing to do it says "All clear".
+- **Lists**: your tasks, the next three days of meetings and recent activity, in tabs.
+- External people still see only what is linked to them.
+
+## Portal UX rules
+
+Borrowed from Sevastack's audience rules and kept in `src/app/portal/(app)/_shell/`:
+
+- Anything that erases data, cancels a document, revokes a key or signs people out uses `ConfirmButton` (`buttons.tsx`): a dialog that says what will happen and whether it can be undone, with "Keep it" focused first.
+- Create forms submit through `SubmitButton`, which disables itself and names the work ("Adding…", "Issuing…") so nothing is sent twice.
+- Status is a `StatusChip` (`status.tsx`), one colour per meaning, always with a word: green done, amber waiting, orange overdue (`--p-late`), red wrong, blue in flight, grey ended. Due dates use `DueChip`.
+- An empty list is an `EmptyState`: icon, one line on what goes here, and the action that fills it.
+- No text below 11px; labels in sentence case.
+
 ## Everyday use
 
 - **+ New** (header, or press `N`): start an invoice, money entry, journal entry, task, deal,

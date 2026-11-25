@@ -2,6 +2,7 @@ import { listApprovals, type ApprovalRow } from "@/lib/approvals";
 import { APPROVAL_KINDS } from "@/lib/approval-kinds";
 import { requireSection } from "@/lib/dal";
 import { decide, requestApproval, withdrawRequest } from "./actions";
+import { StatusChip } from "../_shell/status";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   requested: { text: "Request sent to the Super Admin." },
@@ -17,12 +18,6 @@ const NOTICES: Record<string, { text: string; bad?: boolean }> = {
 const card = "bg-slate-900 border border-slate-800 rounded-xl";
 const input =
   "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none";
-const STATUS_STYLE: Record<ApprovalRow["status"], string> = {
-  pending: "text-amber-400",
-  approved: "text-green-400",
-  rejected: "text-red-400",
-  withdrawn: "text-slate-500",
-};
 
 function when(value: Date) {
   return value.toISOString().slice(0, 16).replace("T", " ");
@@ -39,7 +34,7 @@ function Item({ item, children }: { item: ApprovalRow; children?: React.ReactNod
         <span className="text-xs text-slate-500">{when(item.created_at)}</span>
         <span className="text-xs uppercase tracking-wide text-blue-400">{kindLabel(item.kind)}</span>
         <span className="text-white font-medium">{item.title}</span>
-        <span className={`text-xs font-semibold ${STATUS_STYLE[item.status]}`}>{item.status}</span>
+        <StatusChip status={item.status} />
         <span className="text-xs text-slate-500">from {item.requested_by_email}</span>
       </div>
       {item.detail ? <p className="mt-2 text-sm text-slate-400 whitespace-pre-wrap">{item.detail}</p> : null}

@@ -5,6 +5,7 @@ import { API_SCOPES, PROVIDERS, WEBHOOK_EVENTS } from "@/lib/integration-catalog
 import { listApiKeys, listIntegrations, listWebhooks, recentLog } from "@/lib/integrations";
 import { keyAction, newApiKey, newWebhook, saveService, serviceAction, webhookAction } from "./actions";
 import { NewKeyForm, NewWebhookForm } from "./create-forms";
+import { ConfirmButton } from "../_shell/buttons";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   connected: { text: "Saved and the connection test passed." },
@@ -135,7 +136,7 @@ async function ApiKeys() {
               <tr key={k.id} className="border-t border-slate-800" data-key={k.name}>
                 <td className={td}>{k.name}<div className="text-xs text-slate-500">{k.created_at} · {k.creator}</div></td>
                 <td className={td}><code>{k.prefix}…</code></td><td className={td}>{k.scopes.join(", ")}</td><td className={td}>{k.last_used_at ?? "never"}</td>
-                <td className={td}>{k.revoked_at ? <span className="text-red-300">Revoked</span> : <form action={keyAction}><input type="hidden" name="id" value={k.id} /><button className="text-xs text-red-300 hover:text-red-200">Revoke</button></form>}</td>
+                <td className={td}>{k.revoked_at ? <span className="text-red-300">Revoked</span> : <form action={keyAction}><input type="hidden" name="id" value={k.id} /><ConfirmButton title={`Revoke the key ${k.name}?`} body="Anything using this key stops working at once. A revoked key cannot be turned back on; you would create a new one." confirm="Revoke key" className="text-xs text-red-300 hover:text-red-200">Revoke</ConfirmButton></form>}</td>
               </tr>
             ))}
           </tbody>
@@ -167,7 +168,7 @@ async function Webhooks() {
                 <td className={td}>
                   <form action={webhookAction} className="flex gap-3"><input type="hidden" name="id" value={h.id} />
                     <button name="what" value="ping" className="text-xs text-blue-300 hover:text-blue-200">Send test</button>
-                    <button name="what" value="remove" className="text-xs text-red-300 hover:text-red-200">Remove</button>
+                    <ConfirmButton name="what" value="remove" title="Remove this webhook?" body={`Events will no longer be sent to ${h.url}.`} confirm="Remove webhook" className="text-xs text-red-300 hover:text-red-200">Remove</ConfirmButton>
                   </form>
                 </td>
               </tr>

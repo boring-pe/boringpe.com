@@ -196,7 +196,7 @@ export default async function NetWorthPage({ searchParams }: { searchParams: Pro
                     <Link href={q(n.key)} className={`block whitespace-nowrap hover:text-blue-300 ${here ? "text-blue-300" : "text-white"}`} style={{ paddingLeft: `${Math.max(0, n.depth - (r.tree.children.length === 1 ? 1 : 0)) * 1.1}rem` }}>
                       {n.name}
                       {n.level !== "unit" || n.children.length ? (
-                        <span className="ml-2 rounded-full border border-slate-700 px-1.5 text-[10px] font-normal uppercase tracking-wide text-slate-500">
+                        <span className="ml-2 rounded-full border border-slate-700 px-1.5 text-[11px] font-normal uppercase tracking-wide text-slate-500">
                           {n.level === "all" ? "total" : n.level === "workspace" ? "workspace" : "with its units"}
                         </span>
                       ) : null}

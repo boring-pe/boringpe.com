@@ -4,6 +4,7 @@ import { requireSection } from "@/lib/dal";
 import { ROLE_META, type Role } from "@/lib/rbac";
 import { securityOverview } from "@/lib/security";
 import { signOutEveryone } from "./actions";
+import { ConfirmButton } from "../_shell/buttons";
 
 const card = "rounded-xl border border-slate-800 bg-slate-900";
 const when = (d: Date | string | null) => (d ? new Date(d).toISOString().slice(0, 16).replace("T", " ") : "never");
@@ -150,8 +151,7 @@ export default async function SecurityPage({ searchParams }: { searchParams: Pro
           <h3 className="text-sm font-semibold text-white">Sign everyone else out</h3>
           <p className="mt-2 text-sm text-slate-400">If a device is lost or you suspect someone else has a session, end every session except yours. Everyone signs in again.</p>
           <form action={signOutEveryone} className="mt-3 space-y-3">
-            <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" name="confirm" value="yes" /> I want to sign out every other seat now</label>
-            <button className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500">Sign everyone else out</button>
+            <ConfirmButton name="confirm" value="yes" title="Sign everyone else out?" body="Every session except yours ends now, on every device. Everyone, including Admins and partners, has to sign in again." confirm="Sign everyone out" className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500">Sign everyone else out</ConfirmButton>
           </form>
         </section>
       </div>

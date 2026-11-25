@@ -5,6 +5,9 @@ import { isVertical, verticalLabel } from "@/lib/ops-fields";
 import { listAssignees, listDeals, listTasks } from "@/lib/ops";
 import { can, canSeeFirmData } from "@/lib/rbac";
 import { addTask, toggleTask } from "./actions";
+import { DueChip, EmptyState, dueState } from "../_shell/status";
+import { ListChecks } from "lucide-react";
+import { SubmitButton } from "../_shell/buttons";
 
 const NOTICES: Record<string, { text: string; bad?: boolean }> = {
   added: { text: "Task added." },
@@ -48,7 +51,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
 
       <section className={`${card} p-6`}>
         <h3 className="text-sm font-semibold text-white mb-4">Add a task</h3>
-        <form action={addTask} className="grid gap-3 md:grid-cols-4">
+        <form id="add" action={addTask} className="grid gap-3 md:grid-cols-4 scroll-mt-28">
           <input name="title" required minLength={2} maxLength={200} placeholder="Task" className={`${input} md:col-span-2`} />
           <select name="assigneeId" defaultValue="" className={input} aria-label="Assignee">
             <option value="">Unassigned</option>
@@ -63,9 +66,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
             </select>
           ) : null}
           <div className="md:col-span-4">
-            <button type="submit" className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-              Add task
-            </button>
+            <SubmitButton pending="Adding…">Add task</SubmitButton>
           </div>
         </form>
       </section>
@@ -76,11 +77,10 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
           <VerticalFilter base="/portal/tasks" current={vertical} />
         </div>
         {tasks.length === 0 ? (
-          <p className="px-6 py-4 text-sm text-slate-500">No tasks yet.</p>
+          <div className="p-6"><EmptyState compact icon={ListChecks} title={vertical ? `No ${verticalLabel(vertical)} tasks yet` : "No tasks yet"} body="Add a task with an owner and a due date; overdue ones show on the dashboard." action={{ label: "Add a task", href: "#add" }} /></div>
         ) : (
           <ul className="divide-y divide-slate-800/80 text-sm">
             {tasks.map((t) => {
-              const overdue = !t.done && t.due_date !== null && t.due_date < today;
               return (
                 <li key={t.id} className="px-6 py-3 flex flex-wrap items-center gap-x-4 gap-y-1" data-task={t.title}>
                   <form action={toggleTask}>
@@ -95,8 +95,8 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                   {t.assignee_email ? <span className="text-xs text-slate-500">{t.assignee_email}</span> : null}
                   {seeDeals && t.deal_name ? <span className="text-xs text-slate-500">{t.deal_name}</span> : null}
                   {t.due_date ? (
-                    <span className={`text-xs ${overdue ? "text-red-400" : "text-slate-500"}`}>
-                      due {t.due_date}{overdue ? " (overdue)" : ""}
+                    <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                      due {t.due_date}{!t.done && dueState(t.due_date, today) ? <DueChip state={dueState(t.due_date, today)!} /> : null}
                     </span>
                   ) : null}
                 </li>
