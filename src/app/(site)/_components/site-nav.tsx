@@ -7,11 +7,11 @@ import { Building2, Menu, X } from "lucide-react";
 import { SITE_PAGES } from "./pages";
 
 /**
- * The site menu. From laptop width up, every page is a link in the bar with "Get in touch" on the
+ * The site menu. From laptop width up, every page is a link in the bar with "Connect with Us" on the
  * right; on smaller screens a button opens a full-width panel that closes on a choice, a tap
  * outside or Escape.
  */
-export function SiteNav({ email }: { email: string }) {
+export function SiteNav() {
   const path = usePathname();
   // The page the menu was opened on: moving to another page closes it.
   const [openOn, setOpenOn] = useState<string | null>(null);
@@ -58,12 +58,12 @@ export function SiteNav({ email }: { email: string }) {
           ))}
         </ul>
 
-        <a
-          href={`mailto:${email}`}
+        <Link
+          href="/connect"
           className="hidden lg:inline-flex shrink-0 items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
         >
-          Get in touch
-        </a>
+          Connect with Us
+        </Link>
 
         <button
           type="button"
@@ -93,9 +93,9 @@ export function SiteNav({ email }: { email: string }) {
           ))}
         </ul>
         <div className="max-w-7xl mx-auto px-7 pb-5">
-          <a href={`mailto:${email}`} className="flex justify-center rounded-md bg-blue-600 px-4 py-3 text-base font-medium text-white hover:bg-blue-500">
-            Get in touch
-          </a>
+          <Link href="/connect" onClick={() => setOpen(false)} className="flex justify-center rounded-md bg-blue-600 px-4 py-3 text-base font-medium text-white hover:bg-blue-500">
+            Connect with Us
+          </Link>
         </div>
       </div>
     </nav>

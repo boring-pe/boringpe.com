@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const PAGES = ["", "/build", "/co-build", "/own", "/studio", "/impact-marrow", "/media", "/about"];
+const PAGES = ["", "/build", "/co-build", "/own", "/studio", "/impact-marrow", "/media", "/about", "/connect"];
 
 /** The public pages of boringpe.com, for search engines. The portal is never listed. */
 export default function sitemap(): MetadataRoute.Sitemap {
