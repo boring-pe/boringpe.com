@@ -2120,6 +2120,73 @@ await step("encrypted backup: a strong passphrase is required and the file is se
   await writeFile(process.env.E2E_BACKUP_OUT ?? "/tmp/e2e-backup.bpbak", buf);
 });
 
+await step("shell: the menu lights the page, folds, shrinks to icons; quick add stays on the page; lists filter as you type", async () => {
+  // The page you are on is lit, in its group's colour.
+  await A.page.goto("/portal/tasks");
+  assert.equal(await A.page.locator('[data-nav="tasks"]').getAttribute("aria-current"), "page");
+  assert.equal(await A.page.locator('[data-nav="dashboard"]').getAttribute("aria-current"), null);
+
+  // A group folds away, and stays folded after a reload; opening one of its pages unfolds it.
+  const group = A.page.locator('[data-nav-group="super"]');
+  await group.click();
+  assert.equal(await group.getAttribute("aria-expanded"), "false");
+  await A.page.reload();
+  assert.equal(await A.page.locator('[data-nav-group="super"]').getAttribute("aria-expanded"), "false", "fold remembered");
+  await A.page.goto("/portal/console");
+  assert.equal(await A.page.locator('[data-nav-group="super"]').getAttribute("aria-expanded"), "true", "its page unfolds it");
+
+  // The sidebar shrinks to icons, remembered too; labels hide but every link keeps its name.
+  await A.page.click("[data-rail-toggle]");
+  assert.equal(await A.page.locator("#portal-nav").getAttribute("data-rail"), "true");
+  await A.page.reload();
+  assert.equal(await A.page.locator("#portal-nav").getAttribute("data-rail"), "true", "rail remembered");
+  assert.ok(!(await A.page.locator('[data-nav="tasks"] .rail-hide').isVisible()));
+  assert.equal(await A.page.locator('[data-nav="tasks"]').getAttribute("title"), "Tasks");
+  await A.page.keyboard.press("[");
+  await A.page.waitForFunction(() => document.querySelector("#portal-nav")?.getAttribute("data-rail") === "false");
+
+  // Quick add: a task from the dashboard, without leaving it.
+  await A.page.goto("/portal/dashboard");
+  await A.page.click("[data-new-menu] summary");
+  await A.page.click('[data-quick-open="task"]');
+  await A.page.waitForSelector('dialog[open][data-quick] [data-quick-form="task"]');
+  await A.page.fill('[data-quick-form="task"] input[name="title"]', "Quick follow-up with Acme");
+  await A.page.click('[data-quick-form="task"] button[type="submit"]');
+  await A.page.waitForSelector("[data-quick-toast]");
+  assert.match(await txt(A.page, "[data-quick-toast]"), /Task added/);
+  assert.match(A.page.url(), /\/portal\/dashboard/, "still on the dashboard");
+  assert.equal(await A.page.locator("dialog[open][data-quick]").count(), 0, "the panel closed");
+
+  // A refused entry keeps the panel open and says why.
+  await A.page.click("[data-new-menu] summary");
+  await A.page.click('[data-quick-open="deal"]');
+  await A.page.waitForSelector('[data-quick-form="deal"]');
+  await A.page.fill('[data-quick-form="deal"] input[name="name"]', "Bad value deal");
+  await A.page.fill('[data-quick-form="deal"] input[name="value"]', "lots");
+  await A.page.click('[data-quick-form="deal"] button[type="submit"]');
+  await A.page.waitForSelector("[data-quick-error]");
+  assert.match(await txt(A.page, "[data-quick-error]"), /not valid/);
+  await A.page.keyboard.press("Escape");
+
+  // Lists filter as you type, keep the filter in the address, and say when nothing matches.
+  await A.page.goto("/portal/tasks");
+  await A.page.waitForSelector("[data-filter-search]");
+  const total = await A.page.locator('[data-filter-list="tasks"] [data-row]').count();
+  await A.page.keyboard.press("/");
+  await A.page.keyboard.type("quick follow");
+  await A.page.waitForFunction(() => document.querySelectorAll('[data-filter-list="tasks"] [data-row]:not([hidden])').length === 1);
+  assert.match(await txt(A.page, "[data-filter-count]"), new RegExp(`1 of ${total} task`));
+  await A.page.waitForFunction(() => location.search.includes("q=quick"));
+  await A.page.reload();
+  await A.page.waitForFunction(() => document.querySelectorAll('[data-filter-list="tasks"] [data-row]:not([hidden])').length === 1);
+  await A.page.fill("[data-filter-search]", "no such task anywhere");
+  await A.page.waitForSelector("[data-filter-empty]");
+  await A.page.click("[data-filter-empty] button");
+  await A.page.click('[data-filter-chip="done"]');
+  const done = await A.page.locator('[data-filter-list="tasks"] [data-row]:not([hidden])').count();
+  assert.equal(done, await A.page.locator('[data-filter-list="tasks"] [data-row][data-tags~="done"]').count());
+});
+
 await step("dashboard: the period picker, an interactive chart, a to-do list and tabs", async () => {
   await A.page.goto("/portal/dashboard");
   await A.page.waitForSelector("[data-period-picker]");

@@ -1,17 +1,13 @@
 import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  Activity, BadgeCheck, Scale, Hammer, Handshake, Sparkle, BarChart3, Bell, Bot, Compass, KeySquare, BookOpen, Building2, CalendarDays, ClipboardCheck, Crown, FileText, FolderKanban, HeartHandshake,
-  Inbox as InboxIcon, LayoutDashboard, Landmark, ListChecks, Lock, LogOut, MessageCircle, Package, Pin, Plug, Receipt,
-  Rocket, ShieldCheck, Sparkles, Target, Crosshair, UserCircle, Users, Wallet,
-} from "lucide-react";
+import { cookies } from "next/headers";
+import { Bell, LogOut, UserCircle } from "lucide-react";
 import { needsAccountFirst, requireUser } from "@/lib/dal";
 import { unreadCount } from "@/lib/notify";
 import { getSettings } from "@/lib/assistant";
 import { getPrefs } from "@/lib/prefs";
 import { GROUPS, ROLE_META, allowedSections, type SectionId } from "@/lib/rbac";
-import { togglePin } from "./_shell/prefs-actions";
 import { WorkspaceSwitcher } from "./_shell/workspace-switcher";
 import { Crumbs, NewMenu, Shortcuts, type NewItem } from "./_shell/ux";
 import { sectionInView, workspaceLabel } from "@/lib/workspace-calc";
@@ -23,30 +19,29 @@ import { PortalFrame } from "./frame";
 import { signOutAction } from "./sign-out";
 import { PortalGuard } from "./_shell/guard";
 import { IDLE_MINUTES } from "@/lib/security-calc";
+import { navBadges } from "@/lib/nav-badges";
+import { FOLD_COOKIE, parseFolds, RAIL_COOKIE } from "@/lib/nav-calc";
+import { QuickAddHost } from "./_shell/quick-add";
+import type { QuickKind } from "./_shell/quick-actions";
+import { SidebarNav, type NavEntry, type NavGroup } from "./_shell/sidebar-nav";
 
 export const metadata: Metadata = {
   title: "Boring Portal",
   robots: { index: false, follow: false },
 };
 
-const ICONS: Record<SectionId, React.ElementType> = {
-  console: Crown, security: ShieldCheck, integrations: Plug, content: FileText, approvals: ClipboardCheck, reports: BarChart3, networth: Scale, personal: Lock,
-  dashboard: LayoutDashboard, assistant: Bot, intelligence: Sparkles, inbox: InboxIcon, calendar: CalendarDays, whatsapp: MessageCircle, portfolio: Building2,
-  ventures: Rocket, deals: Target, money: Wallet, books: BookOpen, invoices: Receipt, bank: Landmark, assets: Package,
-  budgets: Crosshair, tasks: ListChecks, people: Users, vault: FolderKanban, marrow: HeartHandshake, access: ShieldCheck, kyc: BadgeCheck, secrets: KeySquare, guides: Compass, activity: Activity, v_build: Hammer, v_co_build: Handshake, v_own: Landmark, v_studio: Sparkle,
-};
 
 const link =
-  "group/link flex flex-1 min-w-0 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800/60 hover:text-white";
+  "rail-center group/link flex flex-1 min-w-0 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800/60 hover:text-white";
 
 /** Quick actions offered in the command palette, each only to people who can use the page it opens. */
 /** What "+ New" offers, each shown only to people who can open that page. */
-const NEW_ITEMS: { section: SectionId; label: string; href: string; note: string }[] = [
+const NEW_ITEMS: { section: SectionId; label: string; href: string; note: string; quick?: QuickKind }[] = [
   { section: "invoices", label: "Invoice", href: "/portal/invoices?view=new", note: "Bill a customer, with GST" },
-  { section: "money", label: "Money in or out", href: "/portal/money", note: "Record a receipt or ask to pay" },
+  { section: "money", label: "Money in or out", href: "/portal/money", note: "Record a receipt or ask to pay", quick: "money" },
   { section: "books", label: "Journal entry", href: "/portal/books?view=journal", note: "Post to the books" },
-  { section: "tasks", label: "Task", href: "/portal/tasks", note: "Something to do, with a due date" },
-  { section: "deals", label: "Deal or contact", href: "/portal/deals", note: "Add to the pipeline" },
+  { section: "tasks", label: "Task", href: "/portal/tasks", note: "Something to do, with a due date", quick: "task" },
+  { section: "deals", label: "Deal", href: "/portal/deals", note: "Add to the pipeline", quick: "deal" },
   { section: "calendar", label: "Meeting", href: "/portal/calendar", note: "Schedule and invite" },
   { section: "vault", label: "File or folder", href: "/portal/vault", note: "Upload to the drive" },
   { section: "kyc", label: "KYC case", href: "/portal/kyc?view=new", note: "Verify a person or company" },
@@ -74,7 +69,9 @@ export default async function PortalLayout({ children }: { children: React.React
   const user = await requireUser();
   const meta = ROLE_META[user.role];
   // Until a temporary password is replaced, the only open page is Account.
-  const [unread, prefs, ws, assistant] = await Promise.all([unreadCount(user.id), getPrefs(user.id), workspaceContext(), getSettings()]);
+  const [unread, prefs, ws, assistant, badges, jar] = await Promise.all([unreadCount(user.id), getPrefs(user.id), workspaceContext(), getSettings(), navBadges(user), cookies()]);
+  const initialRail = jar.get(RAIL_COOKIE)?.value === "1";
+  const initialFolded = parseFolds(jar.get(FOLD_COOKIE)?.value, ["pinned", ...GROUPS.map((g) => g.id)]);
   const assistantName = assistant.name;
   // The menu follows the workspace on view: Personal has no ventures or payroll, Impact Marrow no deal pipeline.
   const accountFirst = await needsAccountFirst(user);
@@ -82,72 +79,38 @@ export default async function PortalLayout({ children }: { children: React.React
   const pinned = prefs.pinned.map((id) => items.find((i) => i.id === id)).filter((i): i is (typeof items)[number] => Boolean(i));
   const initials = (user.name ?? user.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || meta.initials;
 
-  const navItem = (item: (typeof items)[number], isPinned: boolean) => {
-    const Icon = ICONS[item.id];
-    return (
-      <div key={`${isPinned ? "pin" : "nav"}-${item.id}`} className="group flex items-center">
-        <Link href={item.href} className={link}>
-          <Icon className="h-4 w-4 shrink-0 text-slate-500 transition-colors group-hover/link:text-blue-400" />
-          <span className="truncate">{item.label}</span>
-        </Link>
-        <form action={togglePin.bind(null, item.id)}>
-          <button
-            aria-label={`${prefs.pinned.includes(item.id) ? "Unpin" : "Pin"} ${item.label}`}
-            className={`rounded-md p-1.5 text-slate-500 transition hover:text-blue-400 focus:opacity-100 ${prefs.pinned.includes(item.id) ? "opacity-70" : "opacity-0 group-hover:opacity-100"}`}
-          >
-            <Pin className={`h-3.5 w-3.5 ${prefs.pinned.includes(item.id) ? "fill-current" : ""}`} />
-          </button>
-        </form>
-      </div>
-    );
-  };
+  const entry = (i: (typeof items)[number]): NavEntry => ({ id: i.id, href: i.href, label: i.label, ...(badges[i.id] ? { badge: badges[i.id] } : {}) });
+  const navGroups: NavGroup[] = GROUPS.map((g) => ({ id: g.id, label: g.label, items: items.filter((i) => i.group === g.id).map(entry) })).filter((g) => g.items.length);
 
   const sidebar = (
     <>
-      <div className="flex h-16 items-center gap-3 border-b border-slate-800 px-5 md:h-20">
+      <div className="rail-center flex h-16 items-center gap-3 border-b border-slate-800 px-5 md:h-20">
         <WorkspaceSwitcher view={ws.view} views={accountFirst ? [ws.view] : ws.views} />
       </div>
       <div className="px-3 pt-4 md:hidden">
         <SearchButton wide />
       </div>
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4" aria-label="Portal">
-        {pinned.length ? (
-          <div className="space-y-0.5">
-            <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-600">Pinned</div>
-            {pinned.map((i) => navItem(i, true))}
-          </div>
-        ) : null}
-        {GROUPS.map((group) => {
-          const inGroup = items.filter((item) => item.group === group.id);
-          if (inGroup.length === 0) return null;
-          return (
-            <div key={group.id} className="space-y-0.5">
-              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-600">{group.label}</div>
-              {inGroup.map((i) => navItem(i, false))}
-            </div>
-          );
-        })}
-      </nav>
+      <SidebarNav groups={navGroups} pinned={pinned.map(entry)} initialFolded={initialFolded} />
       <div className="space-y-1 border-t border-slate-800 p-3">
-        <Link href="/portal/notifications" className={link}>
-          <Bell className="h-4 w-4 text-slate-500" />
-          Notifications{unread ? <span className="ml-auto rounded-full bg-blue-600 px-2 text-xs text-white">{unread}</span> : null}
+        <Link href="/portal/notifications" className={link} title="Notifications" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}>
+          <span className="relative shrink-0"><Bell className="h-4 w-4 text-slate-500" />{unread ? <span aria-hidden className="rail-only absolute -right-1 -top-1 h-2 w-2 rounded-full bg-blue-600" /> : null}</span>
+          <span className="rail-hide">Notifications</span>{unread ? <span className="rail-hide ml-auto rounded-full bg-blue-600 px-2 text-xs text-white">{unread}</span> : null}
         </Link>
-        <Link href="/portal/account" className={link}>
-          <UserCircle className="h-4 w-4 text-slate-500" />
-          Account and appearance
+        <Link href="/portal/account" className={link} title="Account and appearance" aria-label="Account and appearance">
+          <UserCircle className="h-4 w-4 shrink-0 text-slate-500" />
+          <span className="rail-hide">Account and appearance</span>
         </Link>
-        <div className="flex items-center gap-3 px-3 py-2">
+        <div className="rail-center flex items-center gap-3 px-3 py-2" title={`${user.name ?? user.email} · ${meta.label}`}>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">{initials}</div>
-          <div className="min-w-0 flex-1">
+          <div className="rail-hide min-w-0 flex-1">
             <div className="truncate text-sm font-medium text-white">{user.name ?? user.email}</div>
             <div className="text-xs text-slate-500">{meta.label}</div>
           </div>
         </div>
         <form action={signOutAction} className="px-1">
-          <button type="submit" className={`${link} w-full`}>
-            <LogOut className="h-4 w-4 text-slate-500" />
-            Sign out
+          <button type="submit" className={`${link} w-full`} title="Sign out" aria-label="Sign out">
+            <LogOut className="h-4 w-4 shrink-0 text-slate-500" />
+            <span className="rail-hide">Sign out</span>
           </button>
         </form>
       </div>
@@ -155,7 +118,8 @@ export default async function PortalLayout({ children }: { children: React.React
   );
 
   const has = (id: string) => items.some((i) => i.id === id);
-  const newItems: NewItem[] = NEW_ITEMS.filter((n) => has(n.section)).map(({ href, label, note }) => ({ href, label, note }));
+  const newItems: NewItem[] = NEW_ITEMS.filter((n) => has(n.section)).map(({ href, label, note, quick }) => ({ href, label, note, ...(quick ? { quick } : {}) }));
+  const quickKinds = NEW_ITEMS.filter((n) => n.quick && has(n.section)).map((n) => n.quick!);
   const groupLabel = (g: string) => GROUPS.find((x) => x.id === g)?.label ?? "";
 
   const headerEnd = (
@@ -187,12 +151,13 @@ export default async function PortalLayout({ children }: { children: React.React
   ];
 
   return (
-    <PortalFrame sidebar={sidebar} headerEnd={headerEnd} prefs={{ theme: prefs.theme, accent: prefs.accent, density: prefs.density }}>
+    <PortalFrame sidebar={sidebar} headerEnd={headerEnd} prefs={{ theme: prefs.theme, accent: prefs.accent, density: prefs.density }} initialRail={initialRail}>
       <Suspense fallback={null}><NavProgress /></Suspense>
       <Crumbs items={items.map((i) => ({ href: i.href, label: i.label, group: groupLabel(i.group) }))} workspace={workspaceLabel(ws.view)} />
       {children}
       <Shortcuts allowed={items.map((i) => i.href)} />
       <CommandPalette items={palette} />
+      <QuickAddHost allowed={quickKinds} />
       <PortalGuard email={user.email} idleMinutes={IDLE_MINUTES} today={new Date().toISOString().slice(0, 10)} />
     </PortalFrame>
   );

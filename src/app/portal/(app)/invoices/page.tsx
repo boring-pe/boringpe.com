@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FilterBar } from "../_shell/filter-bar";
 import { VerticalSelect } from "../_shell/vertical-select";
 import { VerticalFilter } from "../_shell/vertical-filter";
 import { isVertical, verticalLabel } from "@/lib/ops-fields";
@@ -93,13 +94,14 @@ async function List({ vertical }: { vertical: string | null }) {
     <div className="space-y-3">
     <VerticalFilter base="/portal/invoices" current={vertical} />
     <section className={`${card} overflow-x-auto`}>
+      {rows.length ? <FilterBar list="invoices" placeholder="Search number, party, entity" noun={["invoice", "invoices"]} chips={[{ id: "draft", label: "Draft" }, { id: "issued", label: "Issued" }, { id: "overdue", label: "Overdue" }, { id: "paid", label: "Paid" }, { id: "cancelled", label: "Cancelled" }]} /> : null}
       <table className="w-full">
         <thead><tr><th className={th}>Number</th><th className={th}>Date</th><th className={th}>From</th><th className={th}>To</th><th className={`${th} text-right`}>Total</th><th className={`${th} text-right`}>Outstanding</th><th className={th}>Vertical</th><th className={th}>Status</th></tr></thead>
-        <tbody>
+        <tbody data-filter-list="invoices">
           {rows.length === 0 ? <tr><td colSpan={8} className="p-6"><EmptyState compact icon={Receipt} title="No invoices yet" body="Raise a GST invoice to a party; it posts to the books when you issue it." action={{ label: "New invoice", href: "/portal/invoices?view=new" }} /></td></tr> : rows.map((i) => {
             const out = decimalToPaise(i.total) - decimalToPaise(i.received) - decimalToPaise(i.tds);
             return (
-              <tr key={i.id} className="border-t border-slate-800" data-invoice={i.number ?? `draft ${i.party_name}`}>
+              <tr key={i.id} className="border-t border-slate-800" data-invoice={i.number ?? `draft ${i.party_name}`} data-row data-tags={`${i.status}${i.status === "issued" && out > 0n && dueState(i.due_date, today) === "overdue" ? " overdue" : ""}`}>
                 <td className={td}><Link href={`/portal/invoices?inv=${i.id}`} className="text-blue-300 hover:text-blue-200">{i.number ?? "Draft"}</Link></td>
                 <td className={td}>{i.issue_date}</td><td className={td}>{i.entity_name}</td><td className={td}>{i.party_name}</td>
                 <td className={num}>{r(i.total)}</td><td className={num}>{i.status === "issued" ? rupees(out) : ""}</td>

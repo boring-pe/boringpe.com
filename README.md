@@ -240,6 +240,30 @@ or rejected, and comes back as **Re-KYC due** on a date set by risk (2 years hig
   nightly encrypted dumps, for running everything on your own servers in India. See
   `deploy/SELF-HOSTING.md`.
 
+## Portal shell
+
+The shell follows Sevastack's interface, adapted for the portal.
+
+- **Sidebar** (`_shell/sidebar-nav.tsx`):
+  - The page you are on is lit.
+  - Each group has its own icon colour (`nav-icons.ts`).
+  - Groups fold open and shut with a short ease, remembered on this device in the `portal_fold` cookie. Opening a page in a folded group unfolds it.
+  - The bar shrinks to an icon rail ("Collapse sidebar", or `[`), remembered in `portal_rail`. Both cookies are read on the server, so the first paint is already right.
+  - Counts that need you sit beside their page (`lib/nav-badges.ts`): approvals waiting (owner), your overdue tasks, overdue invoices.
+- **Feedback on clicks**:
+  - Menu and dashboard links prefetch when you rest on them or focus them (`_shell/nav-link.tsx`), not whenever they scroll into view.
+  - A clicked link shows its own spinner.
+  - While the next page loads, the current one dims and a pill says "Opening Tasks…".
+  - There is deliberately no `loading.tsx`: a streamed placeholder would turn the server's access redirects into soft client redirects.
+- **Quick add** (`_shell/quick-add.tsx`): "+ New" opens a side panel for a task, money or a deal, without leaving the page.
+  - It runs the page's own server action (`_shell/quick-actions.ts`), so checks, approvals, audit and notifications are identical.
+  - The action's redirect is caught and its notice shown in the panel instead.
+  - The menu items stay links to the full page, so they work before scripts load.
+- **Filter bars** (`_shell/filter-bar.tsx`): money, tasks, deals and invoices share one search-and-chips bar.
+  - It filters the rows already on the page as you type and shows "3 of 12".
+  - It keeps `q` and `f` in the address, offers "Clear filters" when nothing matches, and `/` jumps to it.
+  - Rows opt in with `data-row` and `data-tags`.
+
 ## Dashboard
 
 The dashboard home is laid out like Sevastack's. It answers three questions in order: how are we doing, what needs me, and what just happened.

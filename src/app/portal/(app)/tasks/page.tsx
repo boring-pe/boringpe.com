@@ -1,4 +1,6 @@
 import { requireSection } from "@/lib/dal";
+import { FilterBar } from "../_shell/filter-bar";
+import { TASK_NOTICES } from "@/lib/notices";
 import { VerticalSelect } from "../_shell/vertical-select";
 import { VerticalFilter } from "../_shell/vertical-filter";
 import { isVertical, verticalLabel } from "@/lib/ops-fields";
@@ -9,12 +11,7 @@ import { DueChip, EmptyState, dueState } from "../_shell/status";
 import { ListChecks } from "lucide-react";
 import { SubmitButton } from "../_shell/buttons";
 
-const NOTICES: Record<string, { text: string; bad?: boolean }> = {
-  added: { text: "Task added." },
-  done: { text: "Marked done." },
-  reopened: { text: "Reopened." },
-  invalid: { text: "That was not valid. Give the task a short title.", bad: true },
-};
+const NOTICES = TASK_NOTICES;
 const card = "bg-slate-900 border border-slate-800 rounded-xl";
 const input =
   "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none";
@@ -79,10 +76,13 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         {tasks.length === 0 ? (
           <div className="p-6"><EmptyState compact icon={ListChecks} title={vertical ? `No ${verticalLabel(vertical)} tasks yet` : "No tasks yet"} body="Add a task with an owner and a due date; overdue ones show on the dashboard." action={{ label: "Add a task", href: "#add" }} /></div>
         ) : (
-          <ul className="divide-y divide-slate-800/80 text-sm">
+          <>
+          <FilterBar list="tasks" placeholder="Search tasks, owners, deals" noun={["task", "tasks"]} chips={[{ id: "open", label: "Open" }, { id: "overdue", label: "Overdue" }, { id: "soon", label: "Due this week" }, { id: "done", label: "Done" }]} />
+          <ul className="divide-y divide-slate-800/80 text-sm" data-filter-list="tasks">
             {tasks.map((t) => {
+              const due = !t.done && t.due_date ? dueState(t.due_date, today) : null;
               return (
-                <li key={t.id} className="px-6 py-3 flex flex-wrap items-center gap-x-4 gap-y-1" data-task={t.title}>
+                <li key={t.id} className="px-6 py-3 flex flex-wrap items-center gap-x-4 gap-y-1" data-task={t.title} data-row data-tags={[t.done ? "done" : "open", due === "overdue" ? "overdue" : "", due === "dueSoon" ? "soon" : ""].join(" ")}>
                   <form action={toggleTask}>
                     <input type="hidden" name="id" value={t.id} />
                     <input type="hidden" name="done" value={t.done ? "false" : "true"} />
@@ -103,6 +103,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
               );
             })}
           </ul>
+          </>
         )}
       </section>
     </div>

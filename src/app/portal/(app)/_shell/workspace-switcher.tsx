@@ -28,7 +28,7 @@ export function WorkspaceSwitcher({ view, views }: { view: View; views: View[] }
   const title = (
     <>
       <Mark view={view} />
-      <div className="min-w-0 flex-1 leading-tight">
+      <div className="rail-hide min-w-0 flex-1 leading-tight">
         <div className="truncate font-serif text-base font-semibold tracking-tight text-white" data-workspace-current>{workspaceLabel(view)}</div>
         <div className="truncate text-[11px] uppercase tracking-[0.18em] text-slate-500">{views.length > 1 ? "Workspace" : "Portal"}</div>
       </div>
@@ -39,10 +39,10 @@ export function WorkspaceSwitcher({ view, views }: { view: View; views: View[] }
     <details className="group relative w-full" data-workspace-switcher>
       <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg p-1 -m-1 hover:bg-slate-800/60 [&::-webkit-details-marker]:hidden">
         {title}
-        <ChevronsUpDown className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+        <ChevronsUpDown className="rail-hide h-4 w-4 shrink-0 text-slate-500" aria-hidden />
         <span className="sr-only">Switch workspace</span>
       </summary>
-      <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-xl border border-slate-800 bg-slate-900 p-1.5 shadow-xl">
+      <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[15rem] rounded-xl border border-slate-800 bg-slate-900 p-1.5 shadow-xl">
         {views.map((v) => (
           <form key={v} action={switchWorkspace.bind(null, v)}>
             <button

@@ -1,4 +1,6 @@
 import { requireSection } from "@/lib/dal";
+import { FilterBar } from "../_shell/filter-bar";
+import { MONEY_NOTICES } from "@/lib/notices";
 import { VerticalSelect } from "../_shell/vertical-select";
 import { VerticalFilter } from "../_shell/vertical-filter";
 import { isVertical, verticalLabel } from "@/lib/ops-fields";
@@ -11,16 +13,7 @@ import { EmptyState, StatusChip } from "../_shell/status";
 import { Wallet } from "lucide-react";
 import { SubmitButton } from "../_shell/buttons";
 
-const NOTICES: Record<string, { text: string; bad?: boolean }> = {
-  saved: { text: "Recorded." },
-  requested: { text: "Payment sent to the Super Admin. It counts once approved." },
-  invalid: { text: "That was not valid. Check the amount and category.", bad: true },
-  memo: { text: "Say what the payment is for.", bad: true },
-  rate: { text: "Give the amount and the rate in rupees per unit, for example 83.45.", bad: true },
-  backfilled: { text: "Older entries posted to the books." },
-  "books-refused": { text: "The books refused that entry. Nothing was saved.", bad: true },
-  "too-many": { text: "You already have 20 requests waiting.", bad: true },
-};
+const NOTICES = MONEY_NOTICES;
 const card = "bg-slate-900 border border-slate-800 rounded-xl";
 const input =
   "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none";
@@ -121,9 +114,11 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
         {entries.length === 0 ? (
           <div className="p-6"><EmptyState compact icon={Wallet} title={vertical ? "Nothing recorded for this vertical" : "Nothing recorded yet"} body="Record money in as it arrives, or a payment out, and it posts to the chosen entity's books." action={{ label: "Record an entry", href: "#add" }} /></div>
         ) : (
-          <ul className="divide-y divide-slate-800/80 text-sm">
+          <>
+          <FilterBar list="money" placeholder="Search memo, party, deal, amount" noun={["entry", "entries"]} chips={[{ id: "in", label: "Money in" }, { id: "out", label: "Payments out" }, { id: "awaiting_approval", label: "Awaiting approval" }, { id: "unposted", label: "Not in books" }, { id: "rejected", label: "Rejected" }]} />
+          <ul className="divide-y divide-slate-800/80 text-sm" data-filter-list="money">
             {entries.map((e) => (
-              <li key={e.id} className="px-6 py-3 flex flex-wrap items-baseline gap-x-4 gap-y-1" data-entry={e.memo || e.id}>
+              <li key={e.id} className="px-6 py-3 flex flex-wrap items-baseline gap-x-4 gap-y-1" data-entry={e.memo || e.id} data-row data-tags={[e.direction, e.status, (e.status === "recorded" || e.status === "approved") && !e.journal_entry_id ? "unposted" : ""].join(" ")}>
                 <span className="text-xs text-slate-500">{e.entry_date}</span>
                 <span className={e.direction === "in" ? "text-green-400" : "text-slate-200"}>
                   {e.direction === "in" ? "+" : "-"}{inr(e.amount)}
@@ -140,6 +135,7 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
               </li>
             ))}
           </ul>
+          </>
         )}
       </section>
     </div>
