@@ -1,4 +1,5 @@
 import { getSiteContent } from "@/lib/content";
+import { OwnIllustration } from "../_components/illustrations";
 import { ContactBand, PageHero, Points, Rail, SeeAlso, Steps } from "../_components/page-shell";
 import { pageMeta } from "../_components/meta";
 import { seeAlso } from "../_components/see-also";
@@ -12,7 +13,7 @@ export default async function Page() {
   return (
     <div data-page="own">
       <PageHero
-        here="own"
+        art={<OwnIllustration className="w-full h-auto" />}
         title="Own"
         lead={c.ownBody}
         body="Own is how Boring PE holds stakes in good businesses it did not start: buying in, keeping the business steady and letting it compound."
@@ -37,7 +38,7 @@ export default async function Page() {
         />
       </Rail>
       <ContactBand title="Thinking about the future of your business?" body="If you own a business like this and are thinking about what comes next, we would like to talk." label={c.ctaLabel} email={c.contactEmail} />
-      <SeeAlso items={seeAlso(c, "/own")} />
+      <SeeAlso here="own" items={seeAlso(c, "/own")} />
     </div>
   );
 }

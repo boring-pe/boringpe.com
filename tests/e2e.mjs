@@ -2228,6 +2228,7 @@ await step("public site: every menu item is its own page with the shared menu an
     await p.waitForURL((u) => u.pathname === href);
     assert.equal(await p.locator("h1").first().innerText(), label === "Studio" ? "Boring Studio" : label);
     assert.ok(await p.locator("[data-structure-map]").count(), "the map of Boring PE");
+    assert.ok(await p.locator("section").first().locator("svg[data-illustration]").count(), "an illustration in the opening");
     assert.equal(await p.getAttribute(`nav[aria-label="Site"] a[aria-current="page"] >> visible=true`, "href"), href);
     assert.match(await p.title(), new RegExp(`^${label} · Boring PE`));
     assert.ok(await p.locator("footer").count(), "shared footer");

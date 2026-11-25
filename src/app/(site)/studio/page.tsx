@@ -1,4 +1,5 @@
 import { getSiteContent } from "@/lib/content";
+import { StudioIllustration } from "../_components/illustrations";
 import { ContactBand, PageHero, Points, Rail, SeeAlso, TwoLists } from "../_components/page-shell";
 import { pageMeta } from "../_components/meta";
 import { seeAlso } from "../_components/see-also";
@@ -12,7 +13,7 @@ export default async function Page() {
   return (
     <div data-page="studio">
       <PageHero
-        here="studio"
+        art={<StudioIllustration className="w-full h-auto" />}
         title="Boring Studio"
         lead={c.enableBody}
         body="Studio is part of Boring PE itself, not a separate company. It runs the shared work every business needs, so each team can spend its time on customers."
@@ -35,7 +36,7 @@ export default async function Page() {
         />
       </Rail>
       <ContactBand title={c.foundersTitle} body="Co-Build partners plug into Studio from the first day." label={c.ctaLabel} email={c.contactEmail} />
-      <SeeAlso items={seeAlso(c, "/studio")} />
+      <SeeAlso here="studio" items={seeAlso(c, "/studio")} />
     </div>
   );
 }

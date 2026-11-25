@@ -1,4 +1,5 @@
 import { getSiteContent } from "@/lib/content";
+import { AboutIllustration } from "../_components/illustrations";
 import { ContactBand, PageHero, Points, Rail, SeeAlso } from "../_components/page-shell";
 import { pageMeta } from "../_components/meta";
 import { seeAlso } from "../_components/see-also";
@@ -11,7 +12,7 @@ export default async function Page() {
   const c = await getSiteContent("boringpe");
   return (
     <div data-page="about">
-      <PageHero here="about" title="About Us" lead={c.aboutBody} body={c.intro} />
+      <PageHero art={<AboutIllustration className="w-full h-auto" />} title="About Us" lead={c.aboutBody} body={c.intro} />
       <Rail title="What we believe" intro="Fundamentals over hype. Enduring value over short-term trends.">
         <div className="space-y-5 max-w-2xl text-slate-300 leading-relaxed">
           <p>Successful enterprises are not built through ideas alone. They need the right combination of business model, capital, people, capabilities, systems and long-term execution.</p>
@@ -35,7 +36,7 @@ export default async function Page() {
         </p>
       </Rail>
       <ContactBand title={c.foundersTitle} body={c.foundersBody} label={c.ctaLabel} email={c.contactEmail} />
-      <SeeAlso items={seeAlso(c, "/about")} />
+      <SeeAlso here="about" items={seeAlso(c, "/about")} />
     </div>
   );
 }
