@@ -206,3 +206,36 @@ body {
   background: var(--p-surface); color: var(--p-text); padding: 0; box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.5); }
 .portal dialog.confirm::backdrop { background: rgb(2 6 23 / 0.55); backdrop-filter: blur(2px); }
 .portal dialog.confirm[open] { animation: portal-toast-in .2s cubic-bezier(.2,.8,.2,1); }
+
+/* Sidebar: one soft colour per group, and the icon rail. */
+.portal .nav-tint { color: var(--hue); background: color-mix(in oklab, var(--hue) 13%, transparent); }
+@media (prefers-color-scheme: dark) {
+  .portal:not([data-theme="light"]) .nav-tint { color: color-mix(in oklab, var(--hue) 45%, white); background: color-mix(in oklab, var(--hue) 26%, transparent); }
+}
+.portal[data-theme="dark"] .nav-tint { color: color-mix(in oklab, var(--hue) 45%, white); background: color-mix(in oklab, var(--hue) 26%, transparent); }
+.portal .rail-only { display: none; }
+@media (min-width: 768px) {
+  .portal [data-rail="true"] .rail-hide { display: none !important; }
+  .portal [data-rail="true"] .rail-only { display: block; }
+  .portal [data-rail="true"] .rail-center { justify-content: center; }
+}
+
+/* Quick-add panel: slides in from the right, full height. */
+.portal dialog.sheet { margin: 0 0 0 auto; height: 100dvh; max-height: 100dvh; width: min(28rem, 100vw); max-width: 100vw; padding: 0; border: 0; border-left: 1px solid var(--p-line); background: var(--p-surface); color: var(--p-text); box-shadow: -12px 0 40px rgb(0 0 0 / .25); }
+.portal dialog.sheet::backdrop { background: rgb(0 0 0 / .45); backdrop-filter: blur(2px); }
+.portal dialog.sheet[open] { animation: portal-sheet-in .2s ease-out; }
+@keyframes portal-sheet-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .portal dialog.sheet[open] { animation: none; } }
+
+/* While the next page loads, the current one dims (after a beat, so quick ones never flash) and names what is opening. */
+.portal main[data-navigating] > * { opacity: .45; pointer-events: none; transition: opacity .15s ease .15s; }
+.portal main[data-navigating]::before {
+  content: "Opening " attr(data-navigating) "…";
+  position: fixed; z-index: 70; top: 5.5rem; left: 50%; transform: translateX(-50%);
+  max-width: calc(100vw - 2rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  border: 1px solid var(--p-line); border-radius: 999px; padding: .4rem .9rem; font-size: .8125rem; font-weight: 500;
+  background: var(--p-surface); color: var(--p-text); box-shadow: 0 6px 20px rgb(0 0 0 / .18);
+  opacity: 0; animation: portal-opening-in .2s ease .25s forwards;
+}
+@keyframes portal-opening-in { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .portal main[data-navigating] > * { transition: none; } .portal main[data-navigating]::before { animation: none; opacity: 1; } }

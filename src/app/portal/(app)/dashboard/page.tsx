@@ -27,6 +27,7 @@ import { GUIDES, progress } from "@/lib/guides-calc";
 import { guideFacts } from "@/lib/guides";
 import { Checklist } from "../guides/checklist";
 import { DueChip, EmptyState, dueState } from "../_shell/status";
+import { IntentLink, PendingVeil } from "../_shell/nav-link";
 
 const card = "rounded-xl border border-slate-800 bg-slate-900 p-5";
 const label = "text-xs font-medium uppercase tracking-wide text-slate-500";
@@ -55,10 +56,10 @@ const TONE: Record<Todo["tone"], string> = { overdue: "var(--p-late)", soon: "va
 /** A headline figure that opens the page behind it. */
 function Tile({ href, title, icon: Icon, value, children, accent = false, data }: { href: string; title: string; icon: LucideIcon; value: string; children?: React.ReactNode; accent?: boolean; data: string }) {
   return (
-    <Link
+    <IntentLink
       href={href}
       data-kpi={data}
-      className={`group block rounded-xl border p-4 ${lift} ${accent ? "border-transparent bg-blue-600 text-white" : "border-slate-800 bg-slate-900"}`}
+      className={`group relative block rounded-xl border p-4 ${lift} ${accent ? "border-transparent bg-blue-600 text-white" : "border-slate-800 bg-slate-900"}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className={`text-sm font-medium ${accent ? "text-white/85" : "text-slate-400"}`}>{title}</span>
@@ -66,7 +67,8 @@ function Tile({ href, title, icon: Icon, value, children, accent = false, data }
       </div>
       <div className={`mt-1.5 break-words text-xl font-semibold tabular-nums tracking-tight text-white sm:text-2xl`}>{value}</div>
       <div className={`mt-0.5 text-xs ${accent ? "text-white/80" : "text-slate-500"}`}>{children}</div>
-    </Link>
+      <PendingVeil />
+    </IntentLink>
   );
 }
 
@@ -242,10 +244,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           {strip.length ? (
             <div className="flex flex-wrap rounded-xl border border-slate-800 bg-slate-900 p-1" data-operations>
               {strip.map((s, i) => (
-                <Link key={s.label} href={s.href} data-strip={s.data} className={`flex min-w-[9rem] flex-1 flex-col gap-0.5 rounded-lg px-3 py-2 transition-colors hover:bg-slate-800/60 ${i ? "sm:border-l sm:border-slate-800 sm:rounded-none" : ""}`}>
+                <IntentLink key={s.label} href={s.href} data-strip={s.data} className={`relative flex min-w-[9rem] flex-1 flex-col gap-0.5 rounded-lg px-3 py-2 transition-colors hover:bg-slate-800/60 ${i ? "sm:border-l sm:border-slate-800 sm:rounded-none" : ""}`}>
                   <span className="text-xs text-slate-500">{s.label}</span>
                   <span className="text-base font-semibold tabular-nums text-white">{s.value}</span>
-                </Link>
+                <PendingVeil />
+                </IntentLink>
               ))}
             </div>
           ) : null}
@@ -313,7 +316,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <ul className="space-y-1">
                   {todos.map((t) => (
                     <li key={t.key}>
-                      <Link href={t.href} data-todo={t.key} data-tone={t.tone} className="group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-slate-800/60">
+                      <IntentLink href={t.href} data-todo={t.key} data-tone={t.tone} className="group relative flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-slate-800/60">
                         <span aria-hidden className="grid h-5 w-5 shrink-0 place-items-center rounded-full border-2" style={{ borderColor: TONE[t.tone] }}>
                           <span className="h-1.5 w-1.5 rounded-full" style={{ background: TONE[t.tone] }} />
                         </span>
@@ -321,7 +324,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         <span className="shrink-0 rounded-md border border-slate-700 px-2 py-0.5 text-xs font-medium text-slate-200 group-hover:border-slate-500" style={t.tone === "overdue" ? { color: TONE.overdue, borderColor: "color-mix(in oklab, var(--p-late) 45%, transparent)" } : undefined}>
                           {t.cta}
                         </span>
-                      </Link>
+                      <PendingVeil />
+                      </IntentLink>
                     </li>
                   ))}
                 </ul>

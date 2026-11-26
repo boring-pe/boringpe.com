@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, Keyboard, Plus, X } from "lucide-react";
+import { ChevronRight, Keyboard, PanelRight, Plus, X } from "lucide-react";
+import { openQuick } from "./quick-add";
+import type { QuickKind } from "./quick-actions";
 
 export type NavItem = { href: string; label: string; group: string };
-export type NewItem = { href: string; label: string; note: string };
+export type NewItem = { href: string; label: string; note: string; quick?: QuickKind };
 
 /** "Workspace › Group › Page" above every page, so you always know where you are. */
 export function Crumbs({ items, workspace }: { items: NavItem[]; workspace: string }) {
@@ -42,7 +44,28 @@ export function NewMenu({ items }: { items: NewItem[] }) {
         <Plus className="h-4 w-4" /><span className="hidden sm:inline">New</span>
       </summary>
       <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-slate-800 bg-slate-900 p-1.5 shadow-xl">
-        {items.map((i) => (
+        {items.map((i) => i.quick ? (
+          // A link to the page, so it still works before scripts load; with them it opens the panel instead.
+          <Link
+            key={i.href + i.label}
+            href={i.href}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+              e.preventDefault();
+              if (ref.current) ref.current.open = false;
+              openQuick(i.quick!);
+            }}
+            className="flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left hover:bg-slate-800/60"
+            data-new-item={i.label}
+            data-quick-open={i.quick}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm text-white">{i.label}</span>
+              <span className="block text-xs text-slate-500">{i.note}</span>
+            </span>
+            <PanelRight aria-label="Opens here, without leaving the page" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" />
+          </Link>
+        ) : (
           <Link key={i.href + i.label} href={i.href} onClick={() => { if (ref.current) ref.current.open = false; }} className="block rounded-lg px-3 py-2 hover:bg-slate-800/60" data-new-item={i.label}>
             <span className="block text-sm text-white">{i.label}</span>
             <span className="block text-xs text-slate-500">{i.note}</span>
@@ -108,6 +131,7 @@ export function Shortcuts({ allowed }: { allowed: string[] }) {
         <ul className="mt-3 divide-y divide-slate-800 text-sm">
           {row("Ctrl K", "Search and jump anywhere")}
           {row("N", "Create something new")}
+          {row("[", "Fold the sidebar to icons, or open it again")}
           {go.map(([k, , label]) => row(`G ${k.toUpperCase()}`, `Go to ${label}`))}
           {row("?", "Show or hide this list")}
         </ul>

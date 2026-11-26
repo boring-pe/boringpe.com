@@ -1,4 +1,6 @@
 import { requireSection } from "@/lib/dal";
+import { FilterBar } from "../_shell/filter-bar";
+import { DEAL_NOTICES } from "@/lib/notices";
 import { listDeals, listParties } from "@/lib/ops";
 import { PARTY_KINDS, PILLARS, STAGES, inr, pillarLabel, stageLabel } from "@/lib/ops-fields";
 import { addDeal, addParty, moveDeal } from "./actions";
@@ -6,16 +8,7 @@ import { Handshake } from "lucide-react";
 import { EmptyState } from "../_shell/status";
 import { SubmitButton } from "../_shell/buttons";
 
-const NOTICES: Record<string, { text: string; bad?: boolean }> = {
-  "deal-added": { text: "Deal added." },
-  "party-added": { text: "Party added." },
-  moved: { text: "Stage updated." },
-  requested: { text: "Sent to the Super Admin. The stage changes once it is approved." },
-  invalid: { text: "That was not valid. Check the name, pillar and amount.", bad: true },
-  "owner-only": { text: "Only the Super Admin can move a closed deal.", bad: true },
-  "already-waiting": { text: "That deal already has a move waiting for approval.", bad: true },
-  "too-many": { text: "You already have 20 requests waiting.", bad: true },
-};
+const NOTICES = DEAL_NOTICES;
 const card = "bg-slate-900 border border-slate-800 rounded-xl";
 const input =
   "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none";
@@ -67,9 +60,11 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
         {deals.length === 0 ? (
           <div className="p-6"><EmptyState compact icon={Handshake} title="No deals yet" body="Add the first opportunity and move it through the stages as it progresses." action={{ label: "Add a deal", href: "#add" }} /></div>
         ) : (
-          <ul className="divide-y divide-slate-800/80">
+          <>
+          <FilterBar list="deals" placeholder="Search deals, parties, notes" noun={["deal", "deals"]} chips={[...STAGES.map((s) => ({ id: s.id, label: s.label })), { id: "waiting", label: "Awaiting approval" }]} />
+          <ul className="divide-y divide-slate-800/80" data-filter-list="deals">
             {deals.map((d) => (
-              <li key={d.id} className="px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2" data-deal={d.name}>
+              <li key={d.id} className="px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2" data-deal={d.name} data-row data-tags={`${d.stage} ${d.pillar}${d.pending_stage ? " waiting" : ""}`}>
                 <div className="min-w-0 flex-1">
                   <div className="text-white font-medium">{d.name}</div>
                   <div className="text-xs text-slate-500">
@@ -93,6 +88,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
               </li>
             ))}
           </ul>
+          </>
         )}
       </section>
 
