@@ -253,7 +253,7 @@ await step("Super Admin lands on the console and sees all three workspaces; dash
   assert.match(A.page.url(), /\/portal\/console$/);
   // Group headings are rendered uppercase, so compare without case.
   const nav = (await A.page.locator('nav[aria-label="Portal"]').innerText()).toLowerCase();
-  for (const label of ["Super Admin", "Security", "Intelligence", "Net worth", "Verticals", "Build", "Co-Build", "Own", "Boring Stack", "Ventures", "Infrastructure", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
+  for (const label of ["Overview", "Pipeline & contacts", "Verticals & holdings", "Money & books", "People & work", "Records & compliance", "Admin", "Contacts", "Security", "Insights", "Net worth", "Build", "Co-Build", "Own", "Boring Stack", "Ventures", "Rahul Mane · private", "Console", "Site content", "Approvals", "Personal desk"]) {
     assert.ok(nav.includes(label.toLowerCase()), label);
   }
   await A.page.goto("/portal/dashboard");
@@ -291,7 +291,7 @@ await step("an Admin cannot open the console, site content or the personal desk"
     assert.match(E.page.url(), /\/portal\/dashboard$/, path);
   }
   const nav = (await E.page.locator('nav[aria-label="Portal"]').innerText()).toLowerCase();
-  for (const group of ["intelligence", "ventures", "infrastructure"]) assert.ok(nav.includes(group), `the ${group} group is there`);
+  for (const group of ["overview", "pipeline & contacts", "verticals & holdings", "money & books", "people & work", "records & compliance"]) assert.ok(nav.includes(group), `the ${group} group is there`);
   for (const label of ["super admin", "personal desk", "site content", "console", "rahul mane"]) {
     assert.ok(!nav.includes(label), `Admin must not see ${label}`);
   }
@@ -725,7 +725,7 @@ await step("portfolio: the owner adds a holding, invests, and an Admin marks a v
   await A.page.selectOption('select[name="kind"]', "invest");
   await A.page.fill('input[name="amount"]', "10,00,000");
   await A.page.fill('input[name="date"]', "2026-04-10");
-  await A.page.click('button:has-text("Record")');
+  await A.page.click('main button:has-text("Record")');
   await A.page.waitForSelector("text=Investment recorded");
   await A.page.goto("/portal/books?view=overview");
   assert.ok(/Investments\s*₹10,00,000\.00/.test(await flat(A.page)), "posted to Boring PE's books");
@@ -738,7 +738,7 @@ await step("portfolio: the owner adds a holding, invests, and an Admin marks a v
   await E.page.selectOption('select[name="kind"]', "valuation");
   await E.page.fill('input[name="amount"]', "15,00,000");
   await E.page.fill('input[name="date"]', "2026-09-30");
-  await E.page.click('button:has-text("Record")');
+  await E.page.click('main button:has-text("Record")');
   await E.page.waitForSelector("text=Valuation recorded");
   assert.ok(/MOIC\s*1\.50x/.test(await flat(E.page)), await flat(E.page));
 });
@@ -763,14 +763,14 @@ await step("portfolio: an exit cannot recover more than cost; a full exit books 
   await A.page.selectOption('select[name="kind"]', "exit");
   await A.page.fill('input[name="amount"]', "12,00,000");
   await A.page.fill('input[name="costRecovered"]', "11,00,000");
-  await A.page.click('button:has-text("Record")');
+  await A.page.click('main button:has-text("Record")');
   await A.page.waitForSelector("text=cannot recover more cost");
   await A.page.waitForLoadState("networkidle");
   await A.page.selectOption('select[name="kind"]', "exit");
   await A.page.fill('input[name="amount"]', "12,00,000");
   await A.page.fill('input[name="costRecovered"]', "10,00,000");
   await A.page.check('input[name="markExited"]');
-  await A.page.click('button:has-text("Record")');
+  await A.page.click('main button:has-text("Record")');
   await A.page.waitForSelector("text=Exit recorded");
   const text = await flat(A.page);
   assert.ok(/Realised gain\s*₹2,00,000\.00/i.test(text) && /exited/i.test(text), text);
@@ -789,7 +789,7 @@ await step("portfolio: investing into our own SPV posts its capital and fills it
   await A.page.selectOption('select[name="kind"]', "invest");
   await A.page.fill('input[name="amount"]', "80,000");
   await A.page.fill('input[name="shares"]', "8000");
-  await A.page.click('button:has-text("Record")');
+  await A.page.click('main button:has-text("Record")');
   await A.page.waitForSelector("text=Investment recorded");
   await E.page.goto("/portal/portfolio?view=cap");
   await E.page.waitForLoadState("networkidle");
@@ -2127,13 +2127,13 @@ await step("shell: the menu lights the page, folds, shrinks to icons; quick add 
   assert.equal(await A.page.locator('[data-nav="dashboard"]').getAttribute("aria-current"), null);
 
   // A group folds away, and stays folded after a reload; opening one of its pages unfolds it.
-  const group = A.page.locator('[data-nav-group="super"]');
+  const group = A.page.locator('[data-nav-group="admin"]');
   await group.click();
   assert.equal(await group.getAttribute("aria-expanded"), "false");
   await A.page.reload();
-  assert.equal(await A.page.locator('[data-nav-group="super"]').getAttribute("aria-expanded"), "false", "fold remembered");
+  assert.equal(await A.page.locator('[data-nav-group="admin"]').getAttribute("aria-expanded"), "false", "fold remembered");
   await A.page.goto("/portal/console");
-  assert.equal(await A.page.locator('[data-nav-group="super"]').getAttribute("aria-expanded"), "true", "its page unfolds it");
+  assert.equal(await A.page.locator('[data-nav-group="admin"]').getAttribute("aria-expanded"), "true", "its page unfolds it");
 
   // The sidebar shrinks to icons, remembered too; labels hide but every link keeps its name.
   await A.page.click("[data-rail-toggle]");
@@ -2185,6 +2185,103 @@ await step("shell: the menu lights the page, folds, shrinks to icons; quick add 
   await A.page.click('[data-filter-chip="done"]');
   const done = await A.page.locator('[data-filter-list="tasks"] [data-row]:not([hidden])').count();
   assert.equal(done, await A.page.locator('[data-filter-list="tasks"] [data-row][data-tags~="done"]').count());
+});
+
+await step("workflows: contact, deal to cash, deal to holding, and spend to bank, each step one click from the record", async () => {
+  // A contact, then a Boring Stack deal with them.
+  await A.page.goto("/portal/parties");
+  await A.page.fill('#add input[name="name"]', "Northwind Labs");
+  await A.page.fill('#add input[name="email"]', "ops@northwind.example");
+  await A.page.click('#add button[type="submit"]');
+  await A.page.waitForSelector('[data-party="Northwind Labs"]');
+  await A.page.goto("/portal/deals");
+  await A.page.fill('#add input[name="name"]', "Northwind advisory");
+  await A.page.selectOption('#add select[name="pillar"]', "enable");
+  await A.page.selectOption('#add select[name="partyId"]', { label: "Northwind Labs" });
+  await A.page.click('#add button[type="submit"]');
+  await A.page.waitForSelector("text=Deal added");
+  await A.page.click('a[data-deal-link]:has-text("Northwind advisory")');
+  await A.page.waitForSelector('[data-deal-record="Northwind advisory"]');
+  assert.equal(await A.page.locator('[data-step="win"]').getAttribute("data-state"), "current");
+  assert.match(await txt(A.page, "[data-workflow]"), /Deal to cash/);
+
+  // Closing it (the owner moves it directly) opens the next step as a task and KYC for the contact.
+  await A.page.selectOption(`select[aria-label="Stage for Northwind advisory"]`, "closed");
+  await A.page.click('[data-deal-record] form:has(select[name="stage"]) button[type="submit"]');
+  await A.page.waitForSelector("text=Stage updated");
+  await A.page.click('a[data-deal-link]:has-text("Northwind advisory")');
+  await A.page.waitForSelector('[data-deal-record="Northwind advisory"]');
+  assert.equal(await A.page.locator('[data-step="win"]').getAttribute("data-state"), "done");
+  assert.equal(await A.page.locator('[data-step="kyc"]').getAttribute("data-state"), "current");
+  assert.match(await txt(A.page, '[data-step="kyc"]'), /KYC is in progress/, "a KYC case was opened for the contact");
+  assert.equal(await A.page.locator('[data-record-task="Northwind advisory: raise the first invoice"]').count(), 1, "the next step is a task");
+  const dealUrl = A.page.url();
+
+  // Raise the invoice from the deal: the contact is already chosen and the invoice is tied to the deal.
+  await A.page.click('[data-links="invoices"] a:has-text("Raise an invoice")');
+  await A.page.waitForSelector("[data-invoice-deal]");
+  assert.match(await A.page.locator('select[name="partyId"] option:checked').innerText(), /Northwind Labs/);
+  await A.page.fill('input[name="desc0"]', "Strategy retainer");
+  await A.page.fill('input[name="sac0"]', "998311");
+  await A.page.fill('input[name="rate0"]', "50,000");
+  await A.page.click('button:has-text("Save draft")');
+  await A.page.waitForSelector("text=Draft saved");
+  await A.page.goto(dealUrl);
+  assert.match(await txt(A.page, '[data-step="invoice"]'), /draft is waiting/);
+  await A.page.click('[data-links="invoices"] li a');
+  await A.page.click('button:has-text("Issue invoice")');
+  await A.page.waitForSelector("text=issued", { timeout: 15000 }).catch(() => {});
+  await A.page.goto(dealUrl);
+  assert.equal(await A.page.locator('[data-step="invoice"]').getAttribute("data-state"), "done");
+  assert.match(await txt(A.page, '[data-step="paid"]'), /still owed/);
+
+  // A task and a document kept on the deal.
+  await A.page.fill('#tasks input[name="title"]', "Send the kickoff deck");
+  await A.page.click('#tasks button[type="submit"]');
+  await A.page.waitForSelector("text=Task added to this record");
+  await A.page.setInputFiles('#documents input[type="file"]', { name: "engagement-letter.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n% test\n") });
+  await A.page.click('#documents button[type="submit"]');
+  await A.page.waitForSelector("text=Document attached");
+  assert.match(await txt(A.page, '[data-links="documents"]'), /engagement-letter/);
+
+  // The contact's page gathers it all.
+  await A.page.click('[data-deal-record] a:has-text("Northwind Labs")');
+  await A.page.waitForSelector('[data-party-record="Northwind Labs"]');
+  for (const [k, re] of [["deals", /Northwind advisory/], ["invoices", /BP|INV|\d/], ["tasks", /raise the first invoice/], ["documents", /engagement-letter/], ["kyc", /Northwind Labs/]]) {
+    assert.match(await txt(A.page, `[data-links="${k}"]`), re, k);
+  }
+  assert.match(await txt(A.page, "[data-party-facts]"), /Owed to us\s*₹/);
+
+  // Deal to holding: an Own deal, closed, then its holding recorded from the step's own link.
+  await A.page.goto("/portal/deals");
+  await A.page.fill('#add input[name="name"]', "Harbor Foods stake");
+  await A.page.selectOption('#add select[name="pillar"]', "own");
+  await A.page.click('#add button[type="submit"]');
+  await A.page.waitForSelector("text=Deal added");
+  await A.page.click('a[data-deal-link]:has-text("Harbor Foods stake")');
+  await A.page.waitForSelector('[data-deal-record="Harbor Foods stake"]');
+  assert.match(await txt(A.page, "[data-workflow]"), /Deal to holding/);
+  assert.match(await txt(A.page, '[data-step="kyc"]'), /Link a contact/);
+  await A.page.selectOption(`select[aria-label="Stage for Harbor Foods stake"]`, "closed");
+  await A.page.click('[data-deal-record] form:has(select[name="stage"]) button[type="submit"]');
+  await A.page.waitForSelector("text=Stage updated");
+  await A.page.click('a[data-deal-link]:has-text("Harbor Foods stake")');
+  await A.page.waitForSelector('[data-deal-record="Harbor Foods stake"]');
+  await A.page.click('[data-links="holding"] a');
+  await A.page.waitForSelector("[data-holding-deal]");
+  assert.equal(await A.page.inputValue('#add-holding input[name="name"]'), "Harbor Foods stake");
+  await A.page.click('#add-holding button:has-text("Add holding")');
+  await A.page.waitForSelector("text=Holding added");
+  await A.page.goto("/portal/deals");
+  await A.page.click('a[data-deal-link]:has-text("Harbor Foods stake")');
+  await A.page.waitForSelector('[data-deal-record="Harbor Foods stake"]');
+  assert.equal(await A.page.locator('[data-step="holding"]').getAttribute("data-state"), "done");
+
+  // The pipeline shows each closed deal's progress; money shows each entry's way to the bank.
+  await A.page.goto("/portal/deals");
+  assert.ok((await A.page.locator('[data-deal="Northwind advisory"] [data-step-dots]').count()) === 1);
+  await A.page.goto("/portal/money");
+  assert.ok((await A.page.locator('[data-filter-list="money"] [data-step-dots]').count()) > 0);
 });
 
 await step("dashboard: the period picker, an interactive chart, a to-do list and tabs", async () => {
@@ -2252,7 +2349,7 @@ await step("everyday use: getting started, + New, breadcrumbs, shortcuts, guides
   assert.ok(offered.includes("Invoice") && offered.includes("KYC case") && offered.includes("Invite someone"), offered.join(", "));
   await A.page.click('[data-new-item="Invoice"]');
   await A.page.waitForURL(/\/portal\/invoices\?view=new/);
-  assert.match(await txt(A.page, "[data-crumbs]"), /Infrastructure.*Invoices/s);
+  assert.match(await txt(A.page, "[data-crumbs]"), /Money & books.*Invoices/s);
 
   await B.page.goto("/portal/dashboard");
   if (await B.page.locator("[data-new-menu]").count()) {

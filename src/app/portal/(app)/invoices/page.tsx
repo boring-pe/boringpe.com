@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FilterBar } from "../_shell/filter-bar";
+import { getDeal } from "@/lib/ops";
 import { VerticalSelect } from "../_shell/vertical-select";
 import { VerticalFilter } from "../_shell/vertical-filter";
 import { isVertical, verticalLabel } from "@/lib/ops-fields";
@@ -54,7 +55,7 @@ const VIEWS = [["list", "Invoices"], ["new", "New invoice"], ["receivables", "Re
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; inv?: string; notice?: string; e?: string; month?: string; vertical?: string }>;
+  searchParams: Promise<{ view?: string; inv?: string; notice?: string; e?: string; month?: string; vertical?: string; deal?: string }>;
 }) {
   const user = await requireSection("invoices");
   const sp = await searchParams;
@@ -78,7 +79,7 @@ export default async function InvoicesPage({
         ))}
       </nav>
       {sp.inv ? <Detail id={sp.inv} post={post} owner={user.role === "super_admin"} />
-        : view === "new" ? <NewInvoice />
+        : view === "new" ? <NewInvoice dealId={sp.deal} />
         : view === "receivables" ? <Receivables />
         : view === "gst" ? <Gst entity={sp.e} month={sp.month} />
         : view === "settings" ? <Settings />
@@ -117,20 +118,26 @@ async function List({ vertical }: { vertical: string | null }) {
   );
 }
 
-async function NewInvoice() {
-  const [profiles, parties] = await Promise.all([gstProfiles(), listPartiesGst()]);
+async function NewInvoice({ dealId }: { dealId?: string }) {
+  const [profiles, parties, deal] = await Promise.all([gstProfiles(), listPartiesGst(), dealId ? getDeal(dealId) : Promise.resolve(null)]);
   const today = new Date().toISOString().slice(0, 10);
   const due = new Date(Date.parse(`${today}T00:00:00Z`) + 15 * 86_400_000).toISOString().slice(0, 10);
   const home = profiles[0]?.state_code ?? "27";
   return (
     <section className={`${card} p-6`}>
       {parties.length === 0 ? <p className="mb-4 text-sm text-amber-300">Add the customer as a party first (Deal Pipeline → parties), then its GSTIN under GST settings.</p> : null}
+      {deal ? (
+        <p className="mb-4 rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm text-blue-200" data-invoice-deal>
+          For the deal <Link href={`/portal/deals/${deal.id}`} className="font-medium underline">{deal.name}</Link>. The invoice is tied to it and shows on its page.
+        </p>
+      ) : null}
       <form action={newInvoice} className="space-y-4">
+        {deal ? <input type="hidden" name="dealId" value={deal.id} /> : null}
         <div className="grid gap-3 md:grid-cols-3">
           <select name="entityId" defaultValue={profiles[0]?.id} className={input} aria-label="From">
             {profiles.map((e) => <option key={e.id} value={e.id}>From {e.name}{e.gstin ? ` (${e.gstin})` : " (no GSTIN)"}</option>)}
           </select>
-          <select name="partyId" className={input} aria-label="Bill to">
+          <select name="partyId" defaultValue={deal?.party_id ?? undefined} className={input} aria-label="Bill to">
             {parties.map((p) => <option key={p.id} value={p.id}>To {p.name}{p.gstin ? ` (${p.gstin})` : ""}</option>)}
           </select>
           <select name="placeOfSupply" defaultValue={home} className={input} aria-label="Place of supply">

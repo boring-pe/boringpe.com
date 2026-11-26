@@ -16,6 +16,8 @@ import { position } from "@/lib/portfolio-calc";
 import { can, canSeeFirmData } from "@/lib/rbac";
 import { myView } from "@/lib/scopes";
 import { firmInsights } from "@/lib/insights";
+import { stuckMoney } from "@/lib/workflows";
+import { entityIdsInView } from "@/lib/workspaces";
 import { compactRupees, Sparkline, StageBars } from "./charts";
 import { FlowChart } from "./flow-chart-lazy";
 import type { FlowPoint } from "./flow-chart";
@@ -122,6 +124,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     seeBooks && seeMoney ? unpostedMoneyCount() : Promise.resolve(0),
     seeActivity ? recentActivity(8) : Promise.resolve([]),
   ]);
+  // Posted a week ago and still not on a bank statement: the spend-to-bank workflow has stalled.
+  const stuck = seeBooks && can(user.role, "bank") ? await stuckMoney(await entityIdsInView()) : 0;
   const urgent = (intel?.insights ?? []).filter((i) => i.severity === "critical" || i.severity === "warning");
 
   const totalDeals = ops.deals.reduce((n, d) => n + d.n, 0);
@@ -146,6 +150,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     ...(pending ? [{ key: "approvals", label: `${plural(pending, "approval")} waiting for your decision`, cta: "Decide", href: "/portal/approvals", tone: "soon" as const }] : []),
     ...(mySoon ? [{ key: "tasks-soon", label: `${plural(mySoon, "task")} due this week`, cta: "Open", href: "/portal/tasks", tone: "soon" as const }] : []),
     ...urgent.filter((i) => i.severity === "warning").slice(0, 3).map((i) => ({ key: i.id, label: i.title, cta: "See why", href: i.href, tone: "soon" as const })),
+    ...(stuck ? [{ key: "stuck", label: `${plural(stuck, "payment or receipt", "payments and receipts")} in the books but not on the bank statement after a week`, cta: "Reconcile", href: "/portal/bank", tone: "soon" as const }] : []),
     ...(unposted ? [{ key: "unposted", label: `${plural(unposted, "money entry", "money entries")} not in the books yet`, cta: "Post", href: "/portal/money", tone: "info" as const }] : []),
   ];
 

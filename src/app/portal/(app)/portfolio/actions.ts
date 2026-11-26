@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { linkToDeal } from "@/lib/workflows";
 import { requireSection } from "@/lib/dal";
 import { parsePaise } from "@/lib/accounting";
 import { listEntities } from "@/lib/books";
@@ -31,6 +32,8 @@ export async function addHolding(formData: FormData) {
   const id = await createHolding({
     name, holderEntityId: holder, assetClass, pillar, targetEntityId: target || null, notes, by: user.id,
   });
+  const dealId = String(formData.get("dealId") ?? "");
+  if (dealId) await linkToDeal("holdings", id, dealId);
   await audit({ actorId: user.id, actorEmail: user.email, action: "holding_added", detail: name });
   back(`h=${id}`, "holding-added");
 }

@@ -1,6 +1,7 @@
 "use server";
 
 import { isVertical } from "@/lib/ops-fields";
+import { linkInvoiceDeal } from "@/lib/workflows";
 import { setVertical } from "@/lib/verticals";
 
 import { redirect } from "next/navigation";
@@ -62,6 +63,9 @@ export async function newInvoice(formData: FormData) {
   });
   const vertical = formData.get("vertical");
   if (isVertical(vertical)) await setVertical("invoices", id, vertical);
+  // Raised from a deal's page: tie it to the deal so the deal's workflow can follow it.
+  const dealId = String(formData.get("dealId") ?? "");
+  if (dealId) await linkInvoiceDeal(id, dealId);
   await audit({ actorId: user.id, actorEmail: user.email, action: "invoice_drafted", detail: id });
   back(`inv=${id}`, "drafted");
 }
