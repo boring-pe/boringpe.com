@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { linkToDeal } from "@/lib/workflows";
 import { requireSection } from "@/lib/dal";
 import { parsePaise } from "@/lib/accounting";
 import { listEntities } from "@/lib/books";
@@ -35,6 +36,8 @@ export async function addVenture(formData: FormData) {
     fee: { type: feeType, fixed: feeType === "fixed" ? fixed : 0n, bps: feeType === "percent" ? bps : 0 },
   });
   if (id === "exists") back("", "exists");
+  const dealId = String(formData.get("dealId") ?? "");
+  if (dealId) await linkToDeal("ventures", id, dealId);
   await audit({ actorId: user.id, actorEmail: user.email, action: "venture_added", detail: name });
   back(`v=${id}`, "venture-added");
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getDeal } from "@/lib/ops";
 import { requireSection } from "@/lib/dal";
 import { rupees } from "@/lib/accounting";
 import { decimalToPaise, listEntities } from "@/lib/books";
@@ -37,7 +38,7 @@ function feeText(v: VentureRow) {
   return "No fee";
 }
 
-export default async function VenturesPage({ searchParams }: { searchParams: Promise<{ v?: string; notice?: string }> }) {
+export default async function VenturesPage({ searchParams }: { searchParams: Promise<{ v?: string; notice?: string; deal?: string }> }) {
   const user = await requireSection("ventures");
   const sp = await searchParams;
   const banner = sp.notice ? NOTICES[sp.notice] : undefined;
@@ -78,22 +79,24 @@ export default async function VenturesPage({ searchParams }: { searchParams: Pro
               </tbody>
             </table>
           </section>
-          {canManagePortfolio(user.role) ? <AddVenture /> : null}
+          {canManagePortfolio(user.role) ? <AddVenture dealId={sp.deal} /> : null}
         </>
       )}
     </div>
   );
 }
 
-async function AddVenture() {
-  const entities = await listEntities();
+async function AddVenture({ dealId }: { dealId?: string }) {
+  const [entities, deal] = await Promise.all([listEntities(), dealId ? getDeal(dealId) : Promise.resolve(null)]);
   return (
-    <section className={`${card} p-6`}>
+    <section id="add-venture" className={`${card} scroll-mt-28 p-6`}>
       <h3 className="text-sm font-semibold text-white mb-1">Add a venture</h3>
+      {deal ? <p className="my-3 rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm text-blue-200" data-venture-deal>From the deal <Link href={`/portal/deals/${deal.id}`} className="font-medium underline">{deal.name}</Link>. The venture is tied to it.</p> : null}
       <p className="text-xs text-slate-500 mb-4">A venture inside Boring PE pays no fee to itself. Give it its own SPV when equity is shared.</p>
       <form action={addVenture} className="grid gap-3 md:grid-cols-3">
-        <input name="name" required maxLength={120} placeholder="Venture name" className={input} />
-        <select name="pillar" defaultValue="build" className={input} aria-label="Vertical">
+        {deal ? <input type="hidden" name="dealId" value={deal.id} /> : null}
+        <input name="name" required maxLength={120} defaultValue={deal?.name} placeholder="Venture name" className={input} />
+        <select name="pillar" defaultValue={deal?.pillar === "co_build" ? "co_build" : "build"} className={input} aria-label="Vertical">
           <option value="build">Build</option><option value="co_build">Co-Build</option>
         </select>
         <select name="entityId" defaultValue={entities[0]?.id} className={input} aria-label="Books">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getDeal } from "@/lib/ops";
 import { requireSection } from "@/lib/dal";
 import { ENTITY_KINDS, rupees } from "@/lib/accounting";
 import { decimalToPaise, listEntities } from "@/lib/books";
@@ -42,7 +43,7 @@ const kindLabel = (id: string) => ENTITY_KINDS.find((k) => k.id === id)?.label ?
 export default async function PortfolioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; h?: string; e?: string; notice?: string }>;
+  searchParams: Promise<{ view?: string; h?: string; e?: string; notice?: string; deal?: string }>;
 }) {
   const user = await requireSection("portfolio");
   const sp = await searchParams;
@@ -88,14 +89,14 @@ export default async function PortfolioPage({
       ) : view === "cap" ? (
         <CapTables entities={entities} selected={sp.e} manage={manage} />
       ) : (
-        <Holdings entities={entities} manage={manage} />
+        <Holdings entities={entities} manage={manage} dealId={sp.deal} />
       )}
     </div>
   );
 }
 
-async function Holdings({ entities, manage }: { entities: Awaited<ReturnType<typeof listEntities>>; manage: boolean }) {
-  const holdings = await listHoldings();
+async function Holdings({ entities, manage, dealId }: { entities: Awaited<ReturnType<typeof listEntities>>; manage: boolean; dealId?: string }) {
+  const [holdings, deal] = await Promise.all([listHoldings(), dealId ? getDeal(dealId) : Promise.resolve(null)]);
   const rows = holdings.map((h) => ({ h, p: position(toTxns(h)) }));
   const sum = (f: (p: ReturnType<typeof position>) => bigint) => rows.reduce((s, r) => s + f(r.p), 0n);
   const invested = sum((p) => p.invested);
@@ -136,17 +137,19 @@ async function Holdings({ entities, manage }: { entities: Awaited<ReturnType<typ
       </section>
 
       {manage ? (
-        <section className={`${card} p-6`}>
+        <section id="add-holding" className={`${card} scroll-mt-28 p-6`}>
           <h3 className="text-sm font-semibold text-white mb-4">Add a holding</h3>
+          {deal ? <p className="mb-4 rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm text-blue-200" data-holding-deal>From the deal <Link href={`/portal/deals/${deal.id}`} className="font-medium underline">{deal.name}</Link>. The holding is tied to it.</p> : null}
           <form action={addHolding} className="grid gap-3 md:grid-cols-3">
-            <input name="name" required maxLength={120} placeholder="Name, e.g. Acme Foods Pvt Ltd" className={input} />
+            {deal ? <input type="hidden" name="dealId" value={deal.id} /> : null}
+            <input name="name" required maxLength={120} defaultValue={deal?.name} placeholder="Name, e.g. Acme Foods Pvt Ltd" className={input} />
             <select name="holderEntityId" defaultValue={entities[0]?.id} className={input} aria-label="Held by">
               {entities.map((e) => <option key={e.id} value={e.id}>Held by {e.name}</option>)}
             </select>
             <select name="assetClass" defaultValue="startup" className={input} aria-label="Asset class">
               {ASSET_CLASSES.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
             </select>
-            <select name="pillar" defaultValue="own" className={input} aria-label="Vertical">
+            <select name="pillar" defaultValue={deal && deal.pillar !== "enable" ? deal.pillar : "own"} className={input} aria-label="Vertical">
               {(["own", "build", "co_build"] as const).map((p) => <option key={p} value={p}>{pillarLabel(p)}</option>)}
             </select>
             <select name="targetEntityId" defaultValue="" className={input} aria-label="Our entity invested in">

@@ -29,3 +29,18 @@ export const DEAL_NOTICES: Record<string, Notice> = {
   "already-waiting": { text: "That deal already has a move waiting for approval.", bad: true },
   "too-many": { text: "You already have 20 requests waiting.", bad: true },
 };
+
+/** Deal and contact record pages. */
+export const RECORD_NOTICES: Record<string, Notice> = {
+  "task-added": { text: "Task added to this record." },
+  "doc-added": { text: "Document attached. It is also in the BIDU Vault." },
+  "party-linked": { text: "Contact linked to the deal." },
+  "kyc-started": { text: "KYC case opened. Send the contact their link from the KYC page." },
+  "kyc-exists": { text: "This contact already has a KYC case.", bad: true },
+  "chat-linked": { text: "WhatsApp chat linked to this contact." },
+  "no-file": { text: "Choose a file to attach.", bad: true },
+  "too-big": { text: "That file is over 4 MB. Attach a smaller one.", bad: true },
+  type: { text: "That file type is not accepted. Use PDF, an image, Word, Excel or text.", bad: true },
+  forbidden: { text: "Your role cannot do that here.", bad: true },
+  invalid: { text: "That was not valid. Check the fields and try again.", bad: true },
+};

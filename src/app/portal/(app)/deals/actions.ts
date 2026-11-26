@@ -21,6 +21,8 @@ export async function addParty(formData: FormData) {
   if (emailRaw && !looksLikeEmail(emailRaw)) back("invalid");
   await createParty({ name, kind, email: emailRaw || null, notes: oneLine(formData.get("notes"), 500), by: user.id });
   await audit({ actorId: user.id, actorEmail: user.email, action: "party_added", detail: name });
+  // Added from the Contacts page: go back there.
+  if (formData.get("from") === "parties") redirect("/portal/parties?notice=party-added");
   back("party-added");
 }
 
@@ -51,7 +53,7 @@ export async function moveDeal(formData: FormData) {
 
   if (!owner && deal.stage === "closed") back("owner-only");
   if (owner || !GATED_STAGES.includes(stage)) {
-    await setStage(deal.id, stage);
+    await setStage(deal.id, stage, { id: user.id, email: user.email });
     await audit({ actorId: user.id, actorEmail: user.email, action: "deal_moved", detail: `${deal.name}: ${deal.stage} to ${stage}` });
     back("moved");
   }

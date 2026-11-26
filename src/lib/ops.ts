@@ -3,6 +3,7 @@ import { decimalToPaise, ensureCharts, postByCodes } from "./books";
 import { counts, moneyLines } from "./money-books";
 import { entityIdsInView, workspaceContext, workspaceForNew } from "./workspaces";
 import type { ApprovalRow } from "./approvals";
+import { onDealClosed } from "./workflows";
 import type { Category, PartyKind, Pillar, Stage } from "./ops-fields";
 
 export type PartyRow = { id: string; name: string; kind: PartyKind; email: string | null; notes: string; created_at: Date };
@@ -90,12 +91,14 @@ export async function createDeal(d: {
   );
   return rows[0].id;
 }
-export async function setStage(id: string, stage: Stage) {
+export async function setStage(id: string, stage: Stage, actor: { id: string | null; email: string | null } = { id: null, email: null }) {
   const sql = await getSql();
   const rows = await sql.query(
     "update deals set stage = $2, pending_stage = null, updated_at = now() where id = $1 returning id",
     [id, stage],
   );
+  // Closing a deal opens its next step (a task, and KYC for the contact). Once per deal.
+  if (rows.length && stage === "closed") await onDealClosed(id, actor);
   return rows.length > 0;
 }
 /** Parks a gated move. Fails (false) if the deal already has one waiting. */
@@ -262,10 +265,14 @@ export async function applyDecision(row: ApprovalRow, outcome: "approved" | "rej
     });
   } else if (row.ref_type === "deal_stage") {
     if (outcome === "approved") {
-      await sql.query(
-        "update deals set stage = pending_stage, pending_stage = null, updated_at = now() where id = $1 and pending_stage is not null",
+      const moved = await sql.query<{ stage: string }>(
+        "update deals set stage = pending_stage, pending_stage = null, updated_at = now() where id = $1 and pending_stage is not null returning stage",
         [row.ref_id],
       );
+      if (moved[0]?.stage === "closed") {
+        const email = actorId ? (await sql.query<{ email: string }>("select email from users where id = $1", [actorId]))[0]?.email ?? null : null;
+        await onDealClosed(row.ref_id, { id: actorId, email });
+      }
     } else {
       await sql.query("update deals set pending_stage = null where id = $1", [row.ref_id]);
     }

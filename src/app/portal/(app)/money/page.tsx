@@ -1,4 +1,7 @@
 import { requireSection } from "@/lib/dal";
+import { matchedJournals, spendFor } from "@/lib/workflows";
+import { todayIST } from "@/lib/dashboard-calc";
+import { StepDots } from "../_shell/workflow";
 import { FilterBar } from "../_shell/filter-bar";
 import { MONEY_NOTICES } from "@/lib/notices";
 import { VerticalSelect } from "../_shell/vertical-select";
@@ -9,7 +12,7 @@ import { listDeals, listMoney, listParties, unpostedMoneyCount } from "@/lib/ops
 import { CATEGORIES, categoryLabel, inr } from "@/lib/ops-fields";
 import { CURRENCIES } from "@/lib/assets-calc";
 import { addEntry, postOlderEntries } from "./actions";
-import { EmptyState, StatusChip } from "../_shell/status";
+import { DueChip, EmptyState, StatusChip } from "../_shell/status";
 import { Wallet } from "lucide-react";
 import { SubmitButton } from "../_shell/buttons";
 
@@ -26,6 +29,9 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
     listMoney(), listDeals(), listParties(), listEntities(), unpostedMoneyCount(),
   ]);
   const entries = allEntries.filter((e) => !vertical || e.vertical === vertical);
+  // Each entry's way to the bank statement: request, approval, books, bank.
+  const matched = await matchedJournals(entries.map((e) => e.journal_entry_id).filter((j): j is string => Boolean(j)));
+  const today = todayIST();
   const banner = notice ? NOTICES[notice] : undefined;
   const owner = user.role === "super_admin";
 
@@ -115,10 +121,10 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
           <div className="p-6"><EmptyState compact icon={Wallet} title={vertical ? "Nothing recorded for this vertical" : "Nothing recorded yet"} body="Record money in as it arrives, or a payment out, and it posts to the chosen entity's books." action={{ label: "Record an entry", href: "#add" }} /></div>
         ) : (
           <>
-          <FilterBar list="money" placeholder="Search memo, party, deal, amount" noun={["entry", "entries"]} chips={[{ id: "in", label: "Money in" }, { id: "out", label: "Payments out" }, { id: "awaiting_approval", label: "Awaiting approval" }, { id: "unposted", label: "Not in books" }, { id: "rejected", label: "Rejected" }]} />
+          <FilterBar list="money" placeholder="Search memo, party, deal, amount" noun={["entry", "entries"]} chips={[{ id: "in", label: "Money in" }, { id: "out", label: "Payments out" }, { id: "awaiting_approval", label: "Awaiting approval" }, { id: "unposted", label: "Not in books" }, { id: "stuck", label: "Not on bank statement" }, { id: "rejected", label: "Rejected" }]} />
           <ul className="divide-y divide-slate-800/80 text-sm" data-filter-list="money">
             {entries.map((e) => (
-              <li key={e.id} className="px-6 py-3 flex flex-wrap items-baseline gap-x-4 gap-y-1" data-entry={e.memo || e.id} data-row data-tags={[e.direction, e.status, (e.status === "recorded" || e.status === "approved") && !e.journal_entry_id ? "unposted" : ""].join(" ")}>
+              <li key={e.id} className="px-6 py-3 flex flex-wrap items-baseline gap-x-4 gap-y-1" data-entry={e.memo || e.id} data-row data-tags={[e.direction, e.status, (e.status === "recorded" || e.status === "approved") && !e.journal_entry_id ? "unposted" : "", spendFor(e, matched, today).stuck ? "stuck" : ""].join(" ")}>
                 <span className="text-xs text-slate-500">{e.entry_date}</span>
                 <span className={e.direction === "in" ? "text-green-400" : "text-slate-200"}>
                   {e.direction === "in" ? "+" : "-"}{inr(e.amount)}
@@ -132,6 +138,8 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
                 <StatusChip status={e.status} />
                 {e.entity_name ? <span className="text-xs text-slate-500">{e.entity_name}</span> : null}
                 {e.journal_entry_id ? <span className="text-xs text-green-400">in books</span> : null}
+                <span className="basis-full sm:basis-auto sm:ml-auto"><StepDots steps={spendFor(e, matched, today).steps} label="Payment" /></span>
+                {spendFor(e, matched, today).stuck ? <DueChip state="overdue" label="Not on the bank statement after a week" /> : null}
               </li>
             ))}
           </ul>

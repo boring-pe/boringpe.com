@@ -1,4 +1,7 @@
+import Link from "next/link";
 import { requireSection } from "@/lib/dal";
+import { dealStepsFor } from "@/lib/workflows";
+import { StepDots } from "../_shell/workflow";
 import { FilterBar } from "../_shell/filter-bar";
 import { DEAL_NOTICES } from "@/lib/notices";
 import { listDeals, listParties } from "@/lib/ops";
@@ -18,6 +21,8 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
   await requireSection("deals");
   const { notice } = await searchParams;
   const [deals, parties] = await Promise.all([listDeals(), listParties()]);
+  // Deals at Closing or beyond show how far their workflow has come.
+  const flows = await dealStepsFor(deals.filter((d) => d.stage === "closing" || d.stage === "closed").map((d) => d.id));
   const banner = notice ? NOTICES[notice] : undefined;
 
   return (
@@ -66,10 +71,11 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
             {deals.map((d) => (
               <li key={d.id} className="px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2" data-deal={d.name} data-row data-tags={`${d.stage} ${d.pillar}${d.pending_stage ? " waiting" : ""}`}>
                 <div className="min-w-0 flex-1">
-                  <div className="text-white font-medium">{d.name}</div>
+                  <Link href={`/portal/deals/${d.id}`} className="font-medium text-white hover:text-blue-300" data-deal-link>{d.name}</Link>
                   <div className="text-xs text-slate-500">
-                    {pillarLabel(d.pillar)} · {d.party_name ?? "No party"} · {inr(d.value)}
+                    {pillarLabel(d.pillar)} · {d.party_id ? <Link href={`/portal/parties/${d.party_id}`} className="hover:text-slate-300">{d.party_name}</Link> : "No party"} · {inr(d.value)}
                   </div>
+                  {flows.get(d.id) ? <div className="mt-1.5"><StepDots steps={flows.get(d.id)!} label={`${d.name} workflow`} /></div> : null}
                   {d.notes ? <div className="mt-1 text-xs text-slate-400">{d.notes}</div> : null}
                 </div>
                 <div className="text-sm text-slate-300">
@@ -104,9 +110,10 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
         </form>
         <ul className="text-sm text-slate-300 space-y-1">
           {parties.map((p) => (
-            <li key={p.id}>{p.name} <span className="text-xs text-slate-500">{p.kind}{p.email ? ` · ${p.email}` : ""}</span></li>
+            <li key={p.id}><Link href={`/portal/parties/${p.id}`} className="hover:text-white">{p.name}</Link> <span className="text-xs text-slate-500">{p.kind}{p.email ? ` · ${p.email}` : ""}</span></li>
           ))}
         </ul>
+        {parties.length ? <Link href="/portal/parties" className="mt-3 inline-flex text-xs text-blue-400 hover:text-blue-300">All contacts, with their deals, invoices and KYC</Link> : null}
       </section>
     </div>
   );

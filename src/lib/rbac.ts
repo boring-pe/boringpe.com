@@ -24,6 +24,7 @@ export type SectionId =
   | "portfolio"
   | "ventures"
   | "deals"
+  | "parties"
   | "money"
   | "books"
   | "invoices"
@@ -40,65 +41,80 @@ export type SectionId =
   | "access"
   | "personal";
 
-export type Group = "super" | "intelligence" | "ventures" | "infrastructure" | "personal";
+/**
+ * The menu's groups, MECE: each page answers to exactly one, and together they cover the firm.
+ * Overview (what is happening) · Pipeline (who we deal with) · Verticals (what we build and own)
+ * · Money (every rupee and its books) · Work (people and what they do) · Records (proof we keep)
+ * · Admin (how the portal itself runs) · Personal (Rahul's own).
+ */
+export type Group = "overview" | "pipeline" | "verticals" | "finance" | "work" | "records" | "admin" | "personal";
 
 export const GROUPS: { id: Group; label: string }[] = [
-  { id: "super", label: "Super Admin" },
-  { id: "intelligence", label: "Intelligence" },
-  { id: "ventures", label: "Verticals" },
-  { id: "infrastructure", label: "Infrastructure" },
+  { id: "overview", label: "Overview" },
+  { id: "pipeline", label: "Pipeline & contacts" },
+  { id: "verticals", label: "Verticals & holdings" },
+  { id: "finance", label: "Money & books" },
+  { id: "work", label: "People & work" },
+  { id: "records", label: "Records & compliance" },
+  { id: "admin", label: "Admin" },
   { id: "personal", label: "Rahul Mane · private" },
 ];
 
 export const SECTIONS: { id: SectionId; href: string; label: string; group: Group }[] = [
-  { id: "console", href: "/portal/console", label: "Console", group: "super" },
-  { id: "security", href: "/portal/security", label: "Security", group: "super" },
-  { id: "content", href: "/portal/content", label: "Site content", group: "super" },
-  // Intelligence: what the numbers say.
-  { id: "dashboard", href: "/portal/dashboard", label: "Dashboard", group: "intelligence" },
-  { id: "assistant", href: "/portal/assistant", label: "Assistant", group: "intelligence" },
-  { id: "guides", href: "/portal/guides", label: "Guides", group: "intelligence" },
-  { id: "intelligence", href: "/portal/intelligence", label: "Insights", group: "intelligence" },
-  { id: "reports", href: "/portal/reports", label: "MIS reports", group: "intelligence" },
-  { id: "networth", href: "/portal/networth", label: "Net worth", group: "intelligence" },
-  { id: "budgets", href: "/portal/budgets", label: "Budgets", group: "intelligence" },
-  { id: "portfolio", href: "/portal/portfolio", label: "Portfolio", group: "intelligence" },
-  // Verticals: Build, Co-Build, Own and Boring Stack (Enable), which manages all of them.
-  { id: "v_build", href: "/portal/verticals/build", label: "Build", group: "ventures" },
-  { id: "v_co_build", href: "/portal/verticals/co-build", label: "Co-Build", group: "ventures" },
-  { id: "v_own", href: "/portal/verticals/own", label: "Own", group: "ventures" },
-  { id: "v_studio", href: "/portal/verticals/stack", label: "Boring Stack", group: "ventures" },
-  { id: "ventures", href: "/portal/ventures", label: "Ventures", group: "ventures" },
-  { id: "deals", href: "/portal/deals", label: "Deal Pipeline", group: "ventures" },
-  { id: "marrow", href: "/portal/marrow", label: "Impact Marrow", group: "ventures" },
-  { id: "tasks", href: "/portal/tasks", label: "Tasks", group: "ventures" },
-  { id: "approvals", href: "/portal/approvals", label: "Approvals", group: "ventures" },
-  // Infrastructure: the systems every venture runs on.
-  { id: "books", href: "/portal/books", label: "Books", group: "infrastructure" },
-  { id: "invoices", href: "/portal/invoices", label: "Invoices", group: "infrastructure" },
-  { id: "bank", href: "/portal/bank", label: "Bank reconciliation", group: "infrastructure" },
-  { id: "money", href: "/portal/money", label: "Money", group: "infrastructure" },
-  { id: "assets", href: "/portal/assets", label: "Fixed assets", group: "infrastructure" },
-  { id: "people", href: "/portal/people", label: "People & payroll", group: "infrastructure" },
-  { id: "vault", href: "/portal/vault", label: "BIDU Vault", group: "infrastructure" },
-  { id: "inbox", href: "/portal/inbox", label: "Inbox", group: "infrastructure" },
-  { id: "calendar", href: "/portal/calendar", label: "Calendar", group: "infrastructure" },
-  { id: "whatsapp", href: "/portal/whatsapp", label: "WhatsApp", group: "infrastructure" },
-  { id: "integrations", href: "/portal/integrations", label: "Integrations", group: "infrastructure" },
-  { id: "kyc", href: "/portal/kyc", label: "KYC", group: "infrastructure" },
-  { id: "secrets", href: "/portal/secrets", label: "Password vault", group: "infrastructure" },
-  { id: "activity", href: "/portal/activity", label: "Activity", group: "infrastructure" },
-  { id: "access", href: "/portal/access", label: "Access", group: "infrastructure" },
+  // Overview: what is happening and what needs you.
+  { id: "dashboard", href: "/portal/dashboard", label: "Dashboard", group: "overview" },
+  { id: "intelligence", href: "/portal/intelligence", label: "Insights", group: "overview" },
+  { id: "assistant", href: "/portal/assistant", label: "Assistant", group: "overview" },
+  { id: "guides", href: "/portal/guides", label: "Guides", group: "overview" },
+  // Pipeline and contacts: who we deal with, and every conversation with them.
+  { id: "deals", href: "/portal/deals", label: "Deal Pipeline", group: "pipeline" },
+  { id: "parties", href: "/portal/parties", label: "Contacts", group: "pipeline" },
+  { id: "inbox", href: "/portal/inbox", label: "Inbox", group: "pipeline" },
+  { id: "whatsapp", href: "/portal/whatsapp", label: "WhatsApp", group: "pipeline" },
+  { id: "calendar", href: "/portal/calendar", label: "Calendar", group: "pipeline" },
+  // Verticals and holdings: what we build, co-build, own and enable.
+  { id: "v_build", href: "/portal/verticals/build", label: "Build", group: "verticals" },
+  { id: "v_co_build", href: "/portal/verticals/co-build", label: "Co-Build", group: "verticals" },
+  { id: "v_own", href: "/portal/verticals/own", label: "Own", group: "verticals" },
+  { id: "v_studio", href: "/portal/verticals/stack", label: "Boring Stack", group: "verticals" },
+  { id: "ventures", href: "/portal/ventures", label: "Ventures", group: "verticals" },
+  { id: "portfolio", href: "/portal/portfolio", label: "Portfolio", group: "verticals" },
+  { id: "marrow", href: "/portal/marrow", label: "Impact Marrow", group: "verticals" },
+  // Money and books: every rupee in or out, and what the books say about it.
+  { id: "money", href: "/portal/money", label: "Money", group: "finance" },
+  { id: "invoices", href: "/portal/invoices", label: "Invoices", group: "finance" },
+  { id: "bank", href: "/portal/bank", label: "Bank reconciliation", group: "finance" },
+  { id: "books", href: "/portal/books", label: "Books", group: "finance" },
+  { id: "assets", href: "/portal/assets", label: "Fixed assets", group: "finance" },
+  { id: "budgets", href: "/portal/budgets", label: "Budgets", group: "finance" },
+  { id: "reports", href: "/portal/reports", label: "MIS reports", group: "finance" },
+  { id: "networth", href: "/portal/networth", label: "Net worth", group: "finance" },
+  // People and work: who does what, and what waits for a decision.
+  { id: "tasks", href: "/portal/tasks", label: "Tasks", group: "work" },
+  { id: "approvals", href: "/portal/approvals", label: "Approvals", group: "work" },
+  { id: "people", href: "/portal/people", label: "People & payroll", group: "work" },
+  // Records and compliance: the proof we keep.
+  { id: "vault", href: "/portal/vault", label: "BIDU Vault", group: "records" },
+  { id: "kyc", href: "/portal/kyc", label: "KYC", group: "records" },
+  { id: "secrets", href: "/portal/secrets", label: "Password vault", group: "records" },
+  // Admin: how the portal itself runs.
+  { id: "console", href: "/portal/console", label: "Console", group: "admin" },
+  { id: "access", href: "/portal/access", label: "Access", group: "admin" },
+  { id: "security", href: "/portal/security", label: "Security", group: "admin" },
+  { id: "integrations", href: "/portal/integrations", label: "Integrations", group: "admin" },
+  { id: "activity", href: "/portal/activity", label: "Activity", group: "admin" },
+  { id: "content", href: "/portal/content", label: "Site content", group: "admin" },
+  // Rahul's own.
   { id: "personal", href: "/portal/personal", label: "Personal desk", group: "personal" },
 ];
 
 const GRANTS: Record<Role, SectionId[]> = {
   super_admin: [
-    "console", "security", "integrations", "content", "dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
+    "console", "security", "integrations", "content", "dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "parties", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow",
     "reports", "networth", "approvals", "access", "personal", "kyc", "secrets", "guides", "activity", "v_build", "v_co_build", "v_own", "v_studio",
   ],
-  admin: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "networth", "approvals", "access", "kyc", "secrets", "guides", "activity", "v_build", "v_co_build", "v_own", "v_studio"],
-  partner: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "networth", "approvals", "kyc", "secrets", "guides", "v_build", "v_co_build", "v_own", "v_studio"],
+  admin: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "parties", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "networth", "approvals", "access", "kyc", "secrets", "guides", "activity", "v_build", "v_co_build", "v_own", "v_studio"],
+  partner: ["dashboard", "assistant", "intelligence", "inbox", "calendar", "whatsapp", "portfolio", "ventures", "deals", "parties", "money", "books", "invoices", "bank", "assets", "budgets", "tasks", "people", "vault", "marrow", "reports", "networth", "approvals", "kyc", "secrets", "guides", "v_build", "v_co_build", "v_own", "v_studio"],
   operator: ["dashboard", "assistant", "inbox", "calendar", "portfolio", "ventures", "tasks", "people", "vault", "marrow", "approvals", "secrets", "guides"],
   cobuild_partner: ["dashboard", "assistant", "inbox", "calendar", "portfolio", "ventures", "tasks", "vault"],
   founder: ["dashboard", "assistant", "inbox", "calendar", "vault", "marrow"],
@@ -171,7 +187,9 @@ export function allowedSections(role: Role) {
   return SECTIONS.filter((section) => can(role, section.id));
 }
 
+/** Where someone lands after signing in: the owner on the console, everyone else on their first page. */
 export function firstAllowedHref(role: Role) {
+  if (role === "super_admin") return "/portal/console";
   return allowedSections(role)[0]?.href ?? "/portal/dashboard";
 }
 

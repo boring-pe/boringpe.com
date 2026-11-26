@@ -240,6 +240,31 @@ or rejected, and comes back as **Re-KYC due** on a date set by risk (2 years hig
   nightly encrypted dumps, for running everything on your own servers in India. See
   `deploy/SELF-HOSTING.md`.
 
+## Menu structure and workflows (MECE)
+
+The menu has eight groups. Each one answers one question, and every page sits in exactly one group. `tests/rbac.test.ts` checks that no page is in two groups and none is left out.
+
+| Group | The question it answers | Pages |
+| --- | --- | --- |
+| Overview | What is happening, and what needs me? | Dashboard, Insights, Assistant, Guides |
+| Pipeline & contacts | Who do we deal with? | Deal Pipeline, Contacts, Inbox, WhatsApp, Calendar |
+| Verticals & holdings | What do we build, co-build, own and enable? | Build, Co-Build, Own, Boring Stack, Ventures, Portfolio, Impact Marrow |
+| Money & books | Where is every rupee? | Money, Invoices, Bank reconciliation, Books, Fixed assets, Budgets, MIS reports, Net worth |
+| People & work | Who does what, and what waits for a decision? | Tasks, Approvals, People & payroll |
+| Records & compliance | What proof do we keep? | BIDU Vault, KYC, Password vault |
+| Admin | How does the portal itself run? | Console, Access, Security, Integrations, Activity, Site content |
+| Personal | Rahul's own | Personal desk |
+
+Workflows connect the modules (`src/lib/workflows-calc.ts` holds the pure steps; `src/lib/workflows.ts` holds the queries). Progress is never stored. Each step is read from the records it depends on, so a workflow can never disagree with the books.
+
+- **Deal to cash** (Boring Stack): close the deal, verify the contact (KYC), raise the invoice, get paid, match it to the bank.
+- **Deal to holding** (Own, Co-Build): close the deal, KYC, record the holding, invest, match it to the bank.
+- **Deal to venture** (Build): close the deal, KYC, set up the venture, book the first period.
+- **Closing a deal** runs `onDealClosed` once per deal. It does this whether the owner moved the deal or approved a request to move it, and `deals.closed_at` stops it running twice. It opens the next step as a task for whoever added the deal, and a KYC case for the contact if they have none.
+- **Deal record** (`/portal/deals/[id]`) shows the workflow and its linked invoices, money, holding or venture, tasks and documents. Every next step is one click away: an invoice raised from the deal, or a holding or venture recorded from it, is tied to the deal (`deal_id`).
+- **Contact record** (`/portal/parties/[id]`) is one page per party: deals with their progress, KYC, invoices, money, tasks, documents and linked WhatsApp chats.
+- **Spend to bank**: each money entry shows the steps requested, approved, in the books and matched to the bank. Posted money that is still not on a bank statement after 7 days is flagged on the list and appears in the dashboard's "What needs attention".
+
 ## Portal shell
 
 The shell follows Sevastack's interface, adapted for the portal.
