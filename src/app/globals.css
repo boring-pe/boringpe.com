@@ -239,3 +239,46 @@ body {
 }
 @keyframes portal-opening-in { to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .portal main[data-navigating] > * { transition: none; } .portal main[data-navigating]::before { animation: none; opacity: 1; } }
+
+/* ---- Sign-in pages: a slow wash of the accent behind one card (after Sevastack's impact portal). */
+.portal.auth-root .auth-aurora { position: absolute; inset: 0 0 auto 0; height: 640px; overflow: hidden; pointer-events: none; }
+.portal.auth-root .auth-aurora::before {
+  content: ""; position: absolute; inset: 0;
+  background-image: radial-gradient(color-mix(in oklab, var(--a-500) 24%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, black 25%, transparent 75%);
+}
+.portal.auth-root .auth-blob { position: absolute; border-radius: 9999px; filter: blur(70px); opacity: .32; will-change: transform; animation: auth-drift 20s ease-in-out infinite alternate; }
+.portal.auth-root .auth-blob-a { width: 440px; height: 440px; left: -120px; top: -160px; background: color-mix(in oklab, var(--a-500) 60%, white); }
+.portal.auth-root .auth-blob-b { width: 380px; height: 380px; right: -80px; top: -40px; background: color-mix(in oklab, var(--a-500) 35%, white); animation-duration: 24s; animation-delay: -7s; }
+.portal.auth-root .auth-blob-c { width: 320px; height: 320px; left: 38%; top: 220px; background: color-mix(in oklab, var(--a-500) 30%, #f5d9a8); animation-duration: 28s; animation-delay: -13s; opacity: .22; }
+@media (prefers-color-scheme: dark) { .portal.auth-root:not([data-theme="light"]) .auth-blob { opacity: .14; } }
+@keyframes auth-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(50px, 35px, 0) scale(1.08); }
+  100% { transform: translate3d(-35px, 20px, 0) scale(.95); }
+}
+/* The card: a light that travels round its border. */
+@property --auth-angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+.portal .auth-ring { position: relative; }
+.portal .auth-ring::before {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from var(--auth-angle), transparent 0 62%, color-mix(in oklab, var(--a-500) 45%, white) 74%, var(--a-500) 84%, transparent 96%);
+  -webkit-mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: auth-angle 5s linear infinite;
+}
+@keyframes auth-angle { to { --auth-angle: 360deg; } }
+/* The name: one word in the accent, rising in once. */
+.portal .auth-word {
+  display: inline-block; background: linear-gradient(90deg, var(--a-600), color-mix(in oklab, var(--a-500) 55%, #d4a24a));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: auth-word-in .55s cubic-bezier(.2, .8, .2, 1) both;
+}
+@keyframes auth-word-in { from { opacity: 0; transform: translateY(.6em); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+.portal .auth-enter { animation: auth-enter .7s ease-out both; }
+@keyframes auth-enter { from { opacity: 0; transform: translateY(.75rem); } to { opacity: 1; transform: none; } }
+.portal .auth-stage { animation: auth-stage .45s ease-out both; }
+@keyframes auth-stage { from { opacity: 0; transform: translateX(1rem); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .portal.auth-root *, .portal.auth-root *::before, .portal.auth-root *::after { animation: none !important; transition: none !important; }
+}
