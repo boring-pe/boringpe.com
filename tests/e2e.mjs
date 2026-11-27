@@ -34,10 +34,12 @@ const ctx = async () => {
 };
 
 async function login(page, email, password) {
+  // Step 1: the email, then "Password"; the password field follows on the same card.
   await page.goto("/portal/login");
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', password);
-  await page.click('button:has-text("Sign in")');
+  await page.fill('[data-signin-stage="identify"] input[name="email"]', email);
+  await page.click('[data-method="password"]');
+  await page.fill('[data-signin-stage="password"] input[name="password"]', password);
+  await page.click('[data-signin-stage="password"] button:has-text("Sign in")');
 }
 
 const A = await ctx();
@@ -72,6 +74,23 @@ await step("login page: no social buttons without keys, security headers set", a
   assert.equal(response.headers()["x-frame-options"], "DENY");
   const robots = await A.page.request.get("/robots.txt");
   assert.match(await robots.text(), /Disallow: \/portal/);
+
+  const read = (sel) => A.page.locator(sel).first().innerText();
+  // Step 1 asks for the email first and says so; a bad address stops there with the reason.
+  assert.match(await read("[data-signin-step]"), /Step 1 of 2: who are you\?/);
+  await A.page.fill('[data-signin-stage="identify"] input[name="email"]', "not an email");
+  await A.page.click('[data-method="password"]');
+  assert.match(await read('[data-signin-stage="identify"]'), /email address you were invited with/);
+  assert.equal(await A.page.locator('input[name="password"]').count(), 0, "no password field before a valid email");
+  // A valid one moves on, names the address, and "Change" goes back with it kept.
+  await A.page.fill('[data-signin-stage="identify"] input[name="email"]', "someone@example.test");
+  await A.page.keyboard.press("Enter");
+  await A.page.waitForSelector('[data-signin-stage="password"]');
+  assert.match(await read('[data-signin-stage="password"]'), /Signing in as someone@example\.test/);
+  await A.page.click('[data-signin-stage="password"] button:has-text("Change")');
+  assert.equal(await A.page.inputValue('[data-signin-stage="identify"] input[name="email"]'), "someone@example.test");
+  // Help for someone without an account.
+  assert.match(await read("[data-access-help]"), /Access is by invitation/);
 });
 
 await step("wrong password and unknown email give the same message", async () => {
